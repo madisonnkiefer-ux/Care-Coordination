@@ -5,9 +5,9 @@ variable "aws_region" {
 }
 
 variable "environment" {
-  description = "Environment name, used in resource naming and tags (e.g. \"staging\", \"production\")."
+  description = "Environment name, used in resource naming and tags (e.g. \"pilot\", \"production\")."
   type        = string
-  default     = "production"
+  default     = "pilot"
 }
 
 variable "project_name" {
@@ -23,9 +23,15 @@ variable "vpc_cidr" {
 }
 
 variable "availability_zones" {
-  description = "Availability zones to spread subnets across. Two is the minimum for RDS Multi-AZ and an ALB."
+  description = "Availability zones to spread subnets across. Two is the minimum for an ALB (required regardless of single_nat_gateway)."
   type        = list(string)
   default     = ["us-east-1a", "us-east-1b"]
+}
+
+variable "single_nat_gateway" {
+  description = "Cost vs. redundancy knob, NOT a compliance one. true (default): one shared NAT gateway for all private subnets, ~half the cost, survives everything except a single-AZ outage taking down outbound internet access temporarily. false: one NAT gateway per AZ, full redundancy, ~2x the cost. Fine to leave true for a pilot; flip before a go-live where an AZ outage causing a brief outage is unacceptable."
+  type        = bool
+  default     = true
 }
 
 variable "db_instance_class" {
@@ -89,9 +95,9 @@ variable "app_memory" {
 }
 
 variable "app_desired_count" {
-  description = "Number of running ECS tasks."
+  description = "Number of running ECS tasks. 1 (default) is fine for a pilot — deploys have a brief blip instead of staying zero-downtime. Bump to 2+ once that matters."
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "domain_name" {
@@ -102,12 +108,6 @@ variable "domain_name" {
 
 variable "route53_zone_id" {
   description = "Existing Route53 hosted zone ID for domain_name. Required only if domain_name is set and you want Terraform to manage the DNS record and ACM validation."
-  type        = string
-  default     = ""
-}
-
-variable "alert_email" {
-  description = "Email address to notify on CloudTrail/security-relevant alarms. Leave empty to skip creating the SNS subscription."
   type        = string
   default     = ""
 }

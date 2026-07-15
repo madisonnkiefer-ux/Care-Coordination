@@ -66,8 +66,8 @@ docker push <ecr_repository_url>:latest
 aws ecs update-service --cluster <ecs_cluster_name> --service <name_prefix>-app --force-new-deployment
 ```
 
-(No `Dockerfile` exists in the repo yet — add one alongside `next.config.ts`
-using the standard Next.js standalone-output pattern before this step.)
+(The `Dockerfile` at the repo root already does this — standard Next.js
+standalone-output multi-stage build.)
 
 ## Adding HTTPS
 
@@ -95,7 +95,29 @@ files can contain sensitive values.
 
 ## Cost note
 
-Two NAT gateways + `db_multi_az = true` + 2 ECS tasks is a reasonable
-production baseline, not the cheapest possible setup. For a low-traffic
-pilot you can drop to one AZ's NAT gateway and `db_multi_az = false`, but
-weigh that against the availability you actually need before go-live.
+The defaults in `terraform.tfvars.example` are a **lean pilot profile** —
+roughly **$85–100/month** at low traffic:
+
+| Resource | Pilot default | Monthly (approx) |
+|---|---|---|
+| NAT gateway | 1 shared (`single_nat_gateway = true`) | ~$32 + data processing |
+| RDS `db.t4g.micro`, single-AZ | `db_multi_az = false` | ~$13 |
+| ALB | always on | ~$20 + LCU usage |
+| Fargate, 1 task (.5 vCPU / 1GB) | `app_desired_count = 1` | ~$18 |
+| S3, Secrets Manager, KMS, CloudTrail | — | ~$5 |
+
+None of that is a compliance requirement — it's redundancy/uptime spend.
+The actual HIPAA-relevant safeguards (KMS encryption at rest, force-SSL in
+transit, private subnets, RBAC, audit logging) cost nothing extra and are
+**not** behind any of these knobs.
+
+Scaling up before a real go-live, roughly **$150–250/month**:
+
+```hcl
+single_nat_gateway = false  # +~$32/mo — survives a single-AZ NAT outage
+db_multi_az         = true  # +~$13/mo — automatic RDS failover
+app_desired_count   = 2     # +~$18/mo — zero-downtime deploys
+```
+
+Flip these independently, whenever the uptime matters more than the
+savings — there's no reason to do it all at once.

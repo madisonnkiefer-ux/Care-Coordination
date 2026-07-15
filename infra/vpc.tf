@@ -37,16 +37,22 @@ resource "aws_subnet" "private" {
   tags = { Name = "${local.name_prefix}-private-${var.availability_zones[count.index]}" }
 }
 
+locals {
+  # Pure cost/redundancy knob, not a compliance one: one NAT gateway per AZ
+  # survives a single-AZ outage but costs ~2x. A pilot with modest traffic is
+  # fine sharing one NAT gateway across all private subnets — flip
+  # single_nat_gateway to false once uptime matters more than the ~$32/mo.
+  nat_gateway_count = var.single_nat_gateway ? 1 : local.az_count
+}
+
 resource "aws_eip" "nat" {
-  count  = local.az_count
+  count  = local.nat_gateway_count
   domain = "vpc"
   tags   = { Name = "${local.name_prefix}-nat-eip-${count.index}" }
 }
 
-# One NAT gateway per AZ so a single AZ outage doesn't take down outbound
-# access (needed for ECS tasks to pull images / call AWS APIs) for the whole app.
 resource "aws_nat_gateway" "main" {
-  count         = local.az_count
+  count         = local.nat_gateway_count
   allocation_id = aws_eip.nat[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
   tags          = { Name = "${local.name_prefix}-nat-${count.index}" }
@@ -77,7 +83,7 @@ resource "aws_route_table" "private" {
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main[count.index].id
+    nat_gateway_id = aws_nat_gateway.main[count.index % local.nat_gateway_count].id
   }
 }
 
