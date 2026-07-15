@@ -80,11 +80,25 @@ Once you have a domain and hosted zone:
 
 ## Database migrations
 
-`aws_db_instance.main` starts empty. Run your migration/seed step against
-`rds_endpoint` output (via the `database_url_secret_arn` secret, from
-somewhere with network access to the VPC — a bastion, ECS `run-task` one-off,
-or AWS Systems Manager Session Manager; the DB has no public endpoint on
-purpose).
+`aws_db_instance.main` starts empty and has no public endpoint on purpose —
+you can't `psql` into it from your laptop. The way in is a one-off ECS
+Fargate task, running the same app image, inside the same private subnet as
+the real app, so it can reach RDS but nothing else can reach RDS.
+
+After you've pushed a real app image (see "Deploying the app" above), run:
+
+```bash
+terraform output -raw run_migration_command | bash
+```
+
+That runs `npx prisma db push` inside a throwaway task using the
+`DATABASE_URL` secret already wired into the task definition, then exits.
+Watch it finish in the ECS console (or `aws ecs describe-tasks`) — a schema
+sync against an empty database only takes a few seconds.
+
+To load the fake demo dataset too (never real PHI — see `prisma/seed.ts`),
+swap the container override's command for `["npx","prisma","db","seed"]` and
+re-run the same way.
 
 ## Remote state
 
