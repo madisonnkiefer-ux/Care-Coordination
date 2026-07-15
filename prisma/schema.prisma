@@ -1,0 +1,390 @@
+// Care Coordination Hub — data model
+// Notes on HIPAA alignment (technical safeguards implemented in app code, not by Prisma itself):
+// - AuditLog captures who viewed/edited what record and when (record-level audit trail).
+// - User has no shared accounts: every login is a unique User row.
+// - Role enum drives RBAC by clinic and role.
+// - Encryption at rest is provided by the underlying Postgres host (e.g. RDS with KMS) — see infra docs.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Auth / org ----------
+
+enum Role {
+  CARE_COORDINATOR
+  SUPERVISOR
+  ADMIN
+}
+
+model Clinic {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  users   User[]
+  members Member[]
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(CARE_COORDINATOR)
+  clinicId     String
+  clinic       Clinic    @relation(fields: [clinicId], references: [id])
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+
+  assignedMembers Member[]        @relation("AssignedCoordinator")
+  tasks           Task[]          @relation("TaskAssignee")
+  touchpoints     Touchpoint[]
+  notes           QuickNote[]
+  documents       Document[]
+  auditLogs       AuditLog[]
+  cnaAssessments  CnaAssessment[]
+  hraAssessments  HraAssessment[]
+  carePlans       CarePlan[]
+
+  @@index([clinicId])
+}
+
+// ---------- Member (patient) ----------
+
+enum CclLevel {
+  CCL1
+  CCL2
+  CCL3
+  HIGH_RISK
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  DISCHARGED
+}
+
+model Member {
+  id        String   @id @default(cuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Demographics
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime
+  phone       String?
+  email       String?
+  address     String?
+  language    String?  @default("English")
+  photoUrl    String?
+
+  // Program / plan
+  medicaidId       String?      @unique
+  memberIdExternal String?
+  program          String? // e.g. "Prenatal"
+  status           MemberStatus @default(ACTIVE)
+  cclLevel         CclLevel?
+  edd              DateTime? // Estimated Due Date, for prenatal program
+  attributedDate   DateTime?
+
+  assignedCoordinatorId String?
+  assignedCoordinator   User?   @relation("AssignedCoordinator", fields: [assignedCoordinatorId], references: [id])
+
+  demographics   Demographics?
+  cnaAssessments CnaAssessment[]
+  hraAssessments HraAssessment[]
+  carePlans      CarePlan[]
+  tasks          Task[]
+  touchpoints    Touchpoint[]
+  documents      Document[]
+  appointments   Appointment[]
+  notes          QuickNote[]
+  auditLogs      AuditLog[]
+
+  @@index([clinicId])
+  @@index([assignedCoordinatorId])
+}
+
+// Extended demographics/intake fields kept separate from the core Member
+// record so the Member Chart "Demographics" tab can be versioned/edited
+// independently of the identity fields used everywhere else in the UI.
+model Demographics {
+  id       String @id @default(cuid())
+  memberId String @unique
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  emergencyContactRel   String?
+  race                  String?
+  ethnicity             String?
+  primaryPayer          String?
+  householdSize         Int?
+  incomeLevel           String?
+  housingStatus         String?
+  transportationAccess  Boolean?
+  updatedAt             DateTime @updatedAt
+}
+
+// ---------- CNA (Comprehensive Needs Assessment) ----------
+
+enum AssessmentStatus {
+  DRAFT
+  COMPLETED
+}
+
+enum LifeDomain {
+  PHYSICAL_HEALTH
+  BEHAVIORAL_HEALTH
+  SOCIAL_RELATIONSHIPS
+  PRACTICAL_NEEDS
+  SAFETY
+  PREGNANCY_POSTPARTUM
+}
+
+model CnaAssessment {
+  id             String           @id @default(cuid())
+  memberId       String
+  member         Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assessorId     String
+  assessor       User             @relation(fields: [assessorId], references: [id])
+  assessmentType String           @default("Initial CNA")
+  assessmentDate DateTime         @default(now())
+  status         AssessmentStatus @default(DRAFT)
+  summaryNotes   String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  domains CnaDomainResult[]
+
+  @@index([memberId])
+}
+
+model CnaDomainResult {
+  id           String        @id @default(cuid())
+  assessmentId String
+  assessment   CnaAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  domain       LifeDomain
+  needsCount   Int           @default(0)
+  hasNeeds     Boolean       @default(false)
+  strengths    String?
+  notes        String?
+
+  @@unique([assessmentId, domain])
+}
+
+// ---------- HRA (Health Risk Assessment) ----------
+
+model HraAssessment {
+  id             String           @id @default(cuid())
+  memberId       String
+  member         Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assessorId     String
+  assessor       User             @relation(fields: [assessorId], references: [id])
+  assessmentDate DateTime         @default(now())
+  status         AssessmentStatus @default(DRAFT)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  screenings HraScreening[]
+
+  @@index([memberId])
+}
+
+model HraScreening {
+  id           String        @id @default(cuid())
+  assessmentId String
+  assessment   HraAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  toolName     String // e.g. "EPDS", "SDOH", "ASSIST", "HITS"
+  score        String?
+  riskLevel    String? // e.g. "Low", "High"
+  completedAt  DateTime?
+  notes        String?
+
+  @@unique([assessmentId, toolName])
+}
+
+// ---------- Care Plan (CCP) ----------
+
+enum GoalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  ON_TRACK
+  COMPLETE
+}
+
+model CarePlan {
+  id          String   @id @default(cuid())
+  memberId    String
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  goals CarePlanGoal[]
+
+  @@index([memberId])
+}
+
+model CarePlanGoal {
+  id          String     @id @default(cuid())
+  carePlanId  String
+  carePlan    CarePlan   @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  status      GoalStatus @default(NOT_STARTED)
+  targetDate  DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+// ---------- Tasks, touchpoints, appointments, notes ----------
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  OPEN
+  COMPLETED
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  memberId    String?
+  member      Member?      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assigneeId  String
+  assignee    User         @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  title       String
+  dueDate     DateTime?
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(OPEN)
+  createdAt   DateTime     @default(now())
+  completedAt DateTime?
+
+  @@index([assigneeId])
+  @@index([memberId])
+}
+
+enum TouchpointType {
+  PHONE_CALL
+  TEXT_MESSAGE
+  HOME_VISIT
+  VIDEO_VISIT
+  OFFICE_VISIT
+  EMAIL
+}
+
+enum TouchpointOutcome {
+  COMPLETED
+  ATTEMPTED
+  NO_ANSWER
+  CANCELLED
+}
+
+model Touchpoint {
+  id       String            @id @default(cuid())
+  memberId String
+  member   Member            @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User              @relation(fields: [userId], references: [id])
+  type     TouchpointType
+  outcome  TouchpointOutcome
+  date     DateTime          @default(now())
+  notes    String?
+
+  @@index([memberId])
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  title     String
+  location  String?
+  startsAt  DateTime
+  isVirtual Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([memberId])
+}
+
+model QuickNote {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  body      String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([memberId])
+}
+
+enum DocumentCategory {
+  CARE_PLAN
+  CNA
+  HRA
+  TOC
+  SIGNATURE
+  SCREENING
+  OTHER
+}
+
+model Document {
+  id           String           @id @default(cuid())
+  memberId     String
+  member       Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  uploadedById String
+  uploadedBy   User             @relation(fields: [uploadedById], references: [id])
+  name         String
+  category     DocumentCategory @default(OTHER)
+  storageKey   String // key/path in encrypted object storage (e.g. S3), never the raw file
+  createdAt    DateTime         @default(now())
+
+  @@index([memberId])
+}
+
+// ---------- Audit log (HIPAA record-level audit trail) ----------
+
+enum AuditAction {
+  VIEW
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGIN_FAILED
+  LOGOUT
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id])
+  memberId   String?
+  member     Member?     @relation(fields: [memberId], references: [id])
+  action     AuditAction
+  resource   String // e.g. "Member", "CnaAssessment", "CarePlanGoal"
+  resourceId String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime    @default(now())
+
+  @@index([userId])
+  @@index([memberId])
+  @@index([createdAt])
+}
