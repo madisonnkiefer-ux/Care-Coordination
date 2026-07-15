@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Standalone output for the Docker image (infra/README.md) — bundles only
+  // the production dependencies actually needed at runtime.
+  output: "standalone",
 };
 
 export default nextConfig;
