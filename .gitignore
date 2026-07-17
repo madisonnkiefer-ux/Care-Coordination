@@ -43,3 +43,12 @@ next-env.d.ts
 
 # generated prisma client
 /app/generated/prisma
+
+# terraform
+infra/.terraform/
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+infra/terraform.tfvars
+infra/crash.log
+infra/tfplan
+infra/*.tfplan
