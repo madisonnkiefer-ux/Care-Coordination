@@ -80,6 +80,7 @@ model Member {
 
   // Demographics
   firstName   String
+  middleName  String?
   lastName    String
   dateOfBirth DateTime
   phone       String?
@@ -123,17 +124,64 @@ model Demographics {
   memberId String @unique
   member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
+  // Identity / demographics
+  race                String?
+  ethnicity           String?
+  tribalAffiliation   String?
+  sexAssignedAtBirth  String?
+  currentGender       String?
+  currentGenderOther  String?
+  sexualIdentity      String?
+  sexualIdentityOther String?
+
+  // Form completion / permission
+  permissionForOtherToComplete Boolean?
+  formCompletedByName          String?
+  formCompletedByRelationship  String?
+
+  // Member contact
+  phoneCell             String?
+  phoneHome             String?
+  preferredContactVoice Boolean?
+  preferredContactText  Boolean?
+
   emergencyContactName  String?
   emergencyContactPhone String?
   emergencyContactRel   String?
-  race                  String?
-  ethnicity             String?
-  primaryPayer          String?
-  householdSize         Int?
-  incomeLevel           String?
-  housingStatus         String?
-  transportationAccess  Boolean?
-  updatedAt             DateTime @updatedAt
+
+  // MCO / Medicaid eligibility
+  mcoEnrollmentDate              DateTime?
+  eligibilityCategory            String?
+  medicaidEligibilityBeginDate   DateTime?
+  medicaidEligibilityRenewalDate DateTime?
+
+  // Screening flags
+  justiceInvolved        Boolean?
+  justiceInvolvedDetails String?
+  caraIndividual         Boolean?
+  cyfdInvolved           Boolean?
+  cyfdInvolvedDetails    String?
+  hasOtherInsurance      Boolean?
+  otherInsuranceDetails  String?
+  onWaiver               Boolean?
+  waiverType             String?
+
+  // Authorized representative / decision maker
+  cnaCompletedByNameRelation           String?
+  representativeName                   String?
+  representativePhone                  String?
+  representativeEmail                  String?
+  decisionMaker                        String?
+  representativeDocumentationSubmitted Boolean?
+  representativeDocumentationType      String?
+  permissionToContactRepWithoutMember  Boolean?
+
+  primaryPayer         String?
+  householdSize        Int?
+  incomeLevel          String?
+  housingStatus        String?
+  transportationAccess Boolean?
+  updatedAt            DateTime @updatedAt
 }
 
 // ---------- CNA (Comprehensive Needs Assessment) ----------

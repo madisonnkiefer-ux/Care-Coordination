@@ -61,5 +61,5 @@ export async function saveCna(memberId: string, formData: FormData) {
     metadata: { status },
   });
 
-  redirect(`/members/${memberId}`);
+  redirect(`/members/${memberId}/intake`);
 }

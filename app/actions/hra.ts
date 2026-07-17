@@ -50,5 +50,5 @@ export async function saveHra(memberId: string, formData: FormData) {
     metadata: { status },
   });
 
-  redirect(`/members/${memberId}`);
+  redirect(`/members/${memberId}/intake`);
 }

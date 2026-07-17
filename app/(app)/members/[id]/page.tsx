@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckSquare, Square, ClipboardList, HeartPulse, ListTree, FileSignature } from "lucide-react";
+import { CheckSquare, Square, ListTree, FileSignature } from "lucide-react";
 import { getMemberChart } from "@/lib/data/members";
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { GoalDonut } from "@/components/goal-donut";
@@ -39,19 +39,9 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
           <Card title="Quick Access">
             <div className="grid grid-cols-2 gap-3">
               <QuickAccessTile
-                href={`/members/${id}/demographics`}
+                href={`/members/${id}/intake`}
                 icon={FileSignature}
-                label="Demographics"
-              />
-              <QuickAccessTile
-                href={`/members/${id}/hra`}
-                icon={HeartPulse}
-                label="Health Risk Assessment"
-              />
-              <QuickAccessTile
-                href={`/members/${id}/cna`}
-                icon={ClipboardList}
-                label="Comprehensive Needs Assessment"
+                label="Intake (Demographics, HRA, CNA, Notes)"
               />
               <QuickAccessTile
                 href={`/members/${id}/care-plan`}
