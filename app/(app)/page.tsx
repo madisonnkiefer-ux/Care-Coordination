@@ -21,7 +21,7 @@ export default async function DashboardPage() {
           <StatTile label="Care Plans Tracked" value={stats.carePlansTracked} icon={ClipboardList} />
         </div>
 
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card
             title="My Tasks"
             action={
@@ -92,7 +92,7 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card title="Care Plan Goals Overview">
             <GoalDonut totals={goalTotals} />
           </Card>
