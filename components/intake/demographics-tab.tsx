@@ -54,7 +54,7 @@ export function DemographicsTab({
       />
 
       {!selected ? (
-        <p className="text-sm text-slate-500">No Demographics record yet — click &quot;+ New Demographics&quot; to start one.</p>
+        <p className="text-sm text-stone-500">No Demographics record yet — click &quot;+ New Demographics&quot; to start one.</p>
       ) : (
         <form action={saveDemographics.bind(null, memberId, selected.id)} className="max-w-3xl space-y-6">
           {locked && <SignedBanner signedByName={selected.signedBy?.name ?? null} signedAt={selected.signedAt as Date} />}
@@ -233,11 +233,11 @@ export function DemographicsTab({
                 type="submit"
                 name="intent"
                 value="draft"
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
               >
                 Save Draft
               </button>
-              <button type="submit" name="intent" value="complete" className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+              <button type="submit" name="intent" value="complete" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
                 Complete
               </button>
             </div>

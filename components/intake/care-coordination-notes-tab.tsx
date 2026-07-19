@@ -49,7 +49,7 @@ export function CareCoordinationNotesTab({
       />
 
       {!draft ? (
-        <p className="text-sm text-slate-500">No Care Coordination Note yet — click &quot;+ New Note&quot; to start one.</p>
+        <p className="text-sm text-stone-500">No Care Coordination Note yet — click &quot;+ New Note&quot; to start one.</p>
       ) : (
       <form action={saveCareCoordinationNote.bind(null, memberId, draft.id)} className="max-w-3xl space-y-6">
       {locked && <SignedBanner signedByName={draft.signedBy?.name ?? null} signedAt={draft.signedAt as Date} />}
@@ -99,23 +99,23 @@ export function CareCoordinationNotesTab({
       <Card title="6. Per comprehensive needs assessment, member meets criteria for:">
         <div className="space-y-6">
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">CCL1</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">CCL1</p>
             <CheckboxGroup name="ccl1Criteria" options={CCL1_CRITERIA_OPTIONS} defaultValues={draft?.ccl1Criteria} />
             <div className="mt-3 max-w-md">
               <TextField name="ccl1OtherSpecify" label="Other, specify" defaultValue={draft?.ccl1OtherSpecify} />
             </div>
           </div>
 
-          <div className="border-t border-slate-100 pt-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">CCL2</p>
+          <div className="border-t border-stone-100 pt-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">CCL2</p>
             <CheckboxGroup name="ccl2Criteria" options={CCL2_CRITERIA_OPTIONS} defaultValues={draft?.ccl2Criteria} />
             <div className="mt-3 max-w-md">
               <TextField name="ccl2OtherSpecify" label="Other, specify" defaultValue={draft?.ccl2OtherSpecify} />
             </div>
           </div>
 
-          <div className="border-t border-slate-100 pt-4">
-            <p className="mb-2 text-xs font-semibold text-slate-700">*Members with the below indicators may not be leveled down.</p>
+          <div className="border-t border-stone-100 pt-4">
+            <p className="mb-2 text-xs font-semibold text-stone-700">*Members with the below indicators may not be leveled down.</p>
             <CheckboxGroup name="cannotBeLeveledDownIndicators" options={CANNOT_BE_LEVELED_DOWN_OPTIONS} defaultValues={draft?.cannotBeLeveledDownIndicators} />
           </div>
         </div>
@@ -151,7 +151,7 @@ export function CareCoordinationNotesTab({
             />
             <div className="mt-2 flex gap-6">
               {ABP_CLASSIFICATION_OPTIONS.map((opt) => (
-                <label key={opt} className="flex items-center gap-2 text-sm text-slate-600">
+                <label key={opt} className="flex items-center gap-2 text-sm text-stone-600">
                   <input type="radio" name="abpClassification" value={opt} defaultChecked={draft?.abpClassification === opt} className="h-4 w-4" />
                   {opt}
                 </label>
@@ -206,7 +206,7 @@ export function CareCoordinationNotesTab({
             type="submit"
             name="intent"
             value="draft"
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
           >
             Save Draft
           </button>
@@ -214,7 +214,7 @@ export function CareCoordinationNotesTab({
             type="submit"
             name="intent"
             value="complete"
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
           >
             Complete
           </button>

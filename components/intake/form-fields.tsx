@@ -11,14 +11,14 @@ export function TextField({
 }) {
   return (
     <div className={className}>
-      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
         {label}
       </label>
       <input
         id={name}
         name={name}
         defaultValue={defaultValue ?? ""}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
       />
     </div>
   );
@@ -39,7 +39,7 @@ export function TextArea({
 }) {
   return (
     <div className={className}>
-      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
         {label}
       </label>
       <textarea
@@ -47,7 +47,7 @@ export function TextArea({
         name={name}
         rows={rows}
         defaultValue={defaultValue ?? ""}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
       />
     </div>
   );
@@ -56,7 +56,7 @@ export function TextArea({
 export function DateField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: string | null }) {
   return (
     <div>
-      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
         {label}
       </label>
       <input
@@ -64,7 +64,7 @@ export function DateField({ name, label, defaultValue }: { name: string; label: 
         id={name}
         name={name}
         defaultValue={defaultValue ?? ""}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
       />
     </div>
   );
@@ -87,14 +87,14 @@ export function SelectField({
   const isCustom = Boolean(defaultValue) && !options.includes(defaultValue as string);
   return (
     <div>
-      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
         {label}
       </label>
       <select
         id={name}
         name={name}
         defaultValue={isCustom ? "" : defaultValue ?? ""}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
       >
         <option value="">—</option>
         {options.map((opt) => (
@@ -107,7 +107,7 @@ export function SelectField({
         name={`${name}Custom`}
         defaultValue={isCustom ? (defaultValue as string) : ""}
         placeholder="Not listed? Type it here instead"
-        className="mt-1 w-full rounded-md border border-slate-200 px-3 py-1.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+        className="mt-1 w-full rounded-md border border-stone-200 px-3 py-1.5 text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-stone-900"
       />
     </div>
   );
@@ -128,7 +128,7 @@ export function NumberScaleField({
       id={name}
       name={name}
       defaultValue={defaultValue ?? ""}
-      className="w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+      className="w-full max-w-sm rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
     >
       <option value="">—</option>
       {options.map((opt) => (
@@ -142,8 +142,8 @@ export function NumberScaleField({
 
 export function Checkbox({ name, label, defaultChecked }: { name: string; label: string; defaultChecked?: boolean }) {
   return (
-    <label className="flex items-center gap-2 text-sm text-slate-700">
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 rounded border-slate-300" />
+    <label className="flex items-center gap-2 text-sm text-stone-700">
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 rounded border-stone-300" />
       {label}
     </label>
   );
@@ -163,13 +163,13 @@ export function CheckboxGroup({
   return (
     <div className="space-y-2">
       {options.map((opt) => (
-        <label key={opt} className="flex items-start gap-2 text-sm text-slate-700">
+        <label key={opt} className="flex items-start gap-2 text-sm text-stone-700">
           <input
             type="checkbox"
             name={name}
             value={opt}
             defaultChecked={defaultValues?.includes(opt) ?? false}
-            className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300"
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300"
           />
           {opt}
         </label>
@@ -181,13 +181,13 @@ export function CheckboxGroup({
 export function YesNoField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: boolean | null }) {
   return (
     <div>
-      <p className="mb-1 text-sm font-medium text-slate-700">{label}</p>
+      <p className="mb-1 text-sm font-medium text-stone-700">{label}</p>
       <div className="flex gap-6">
-        <label className="flex items-center gap-2 text-sm text-slate-600">
+        <label className="flex items-center gap-2 text-sm text-stone-600">
           <input type="radio" name={name} value="yes" defaultChecked={defaultValue === true} className="h-4 w-4" />
           Yes
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-600">
+        <label className="flex items-center gap-2 text-sm text-stone-600">
           <input type="radio" name={name} value="no" defaultChecked={defaultValue === false} className="h-4 w-4" />
           No
         </label>
@@ -201,17 +201,17 @@ export function YesNoField({ name, label, defaultValue }: { name: string; label:
 export function YesNoNaField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: string | null }) {
   return (
     <div>
-      <p className="mb-1 text-sm font-medium text-slate-700">{label}</p>
+      <p className="mb-1 text-sm font-medium text-stone-700">{label}</p>
       <div className="flex gap-6">
-        <label className="flex items-center gap-2 text-sm text-slate-600">
+        <label className="flex items-center gap-2 text-sm text-stone-600">
           <input type="radio" name={name} value="yes" defaultChecked={defaultValue === "yes"} className="h-4 w-4" />
           Yes
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-600">
+        <label className="flex items-center gap-2 text-sm text-stone-600">
           <input type="radio" name={name} value="no" defaultChecked={defaultValue === "no"} className="h-4 w-4" />
           No
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-600">
+        <label className="flex items-center gap-2 text-sm text-stone-600">
           <input type="radio" name={name} value="na" defaultChecked={defaultValue === "na"} className="h-4 w-4" />
           N/A
         </label>
@@ -237,24 +237,24 @@ export function YesNoWithDetail({
 }) {
   return (
     <div>
-      <p className="mb-1 text-sm font-medium text-slate-700">{label}</p>
+      <p className="mb-1 text-sm font-medium text-stone-700">{label}</p>
       <div className="flex flex-wrap items-center gap-6">
         <div className="flex gap-6">
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 text-sm text-stone-600">
             <input type="radio" name={name} value="yes" defaultChecked={defaultValue === true} className="h-4 w-4" />
             Yes
           </label>
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 text-sm text-stone-600">
             <input type="radio" name={name} value="no" defaultChecked={defaultValue === false} className="h-4 w-4" />
             No
           </label>
         </div>
         <div className="flex flex-1 items-center gap-2">
-          <label className="text-xs text-slate-500">{detailLabel}:</label>
+          <label className="text-xs text-stone-500">{detailLabel}:</label>
           <input
             name={detailName}
             defaultValue={detailDefault ?? ""}
-            className="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+            className="flex-1 rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
           />
         </div>
       </div>

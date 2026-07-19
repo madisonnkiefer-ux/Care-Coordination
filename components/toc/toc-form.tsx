@@ -44,7 +44,7 @@ export function TocForm({
       />
 
       {!draft ? (
-        <p className="text-sm text-slate-500">No Transition of Care record yet — click &quot;+ New TOC&quot; to start one.</p>
+        <p className="text-sm text-stone-500">No Transition of Care record yet — click &quot;+ New TOC&quot; to start one.</p>
       ) : (
         <>
           <form action={saveTocRecord.bind(null, memberId, draft.id)} className="max-w-3xl space-y-6">
@@ -52,7 +52,7 @@ export function TocForm({
 
             <fieldset disabled={locked} className="contents">
               <Card title="1. Demographic Information">
-                <p className="mb-3 text-xs text-slate-400">
+                <p className="mb-3 text-xs text-stone-400">
                   Member name, date of birth, Medicaid ID, contact info, and emergency contact are already on file under
                   Demographics — not repeated here.
                 </p>
@@ -62,14 +62,14 @@ export function TocForm({
                   <DateField name="tocPlanCompletionDate" label="TOC Plan Completion Date" defaultValue={toDateInputValue(draft.tocPlanCompletionDate)} />
                 </div>
 
-                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Member&apos;s Address Prior to Transition</p>
+                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-500">Member&apos;s Address Prior to Transition</p>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <TextField name="priorAddressStreet" label="Street" defaultValue={draft.priorAddressStreet} />
                   <TextField name="priorAddressCity" label="City" defaultValue={draft.priorAddressCity} />
                   <TextField name="priorAddressStateZip" label="State / Zip" defaultValue={draft.priorAddressStateZip} />
                 </div>
 
-                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-500">
                   For Children in State Custody (CISC) Members (if applicable)
                 </p>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -96,21 +96,21 @@ export function TocForm({
               ))}
 
               <Card title="5. Monthly Follow-Up (for 3 months)">
-                <p className="mb-4 text-xs text-slate-400">
+                <p className="mb-4 text-xs text-stone-400">
                   The Transition of Care Plan shall remain in place for a minimum of 60 calendar days from the date of the
                   decision to pursue transition or until the transition has occurred and a new CCP is in place.
                 </p>
                 <div className="space-y-4">
                   {[1, 2, 3].map((n) => (
-                    <div key={n} className="grid grid-cols-1 items-start gap-2 border-t border-slate-100 pt-3 first:border-t-0 first:pt-0 sm:grid-cols-4">
-                      <p className="text-sm font-medium text-slate-700">Follow-up {n}</p>
+                    <div key={n} className="grid grid-cols-1 items-start gap-2 border-t border-stone-100 pt-3 first:border-t-0 first:pt-0 sm:grid-cols-4">
+                      <p className="text-sm font-medium text-stone-700">Follow-up {n}</p>
                       <DateField
                         name={`followUp${n}Date`}
                         label="Date"
                         defaultValue={toDateInputValue(draft[`followUp${n}Date` as "followUp1Date"])}
                       />
                       <div className="flex gap-6">
-                        <label className="flex items-center gap-2 text-sm text-slate-600">
+                        <label className="flex items-center gap-2 text-sm text-stone-600">
                           <input
                             type="radio"
                             name={`followUp${n}Status`}
@@ -120,7 +120,7 @@ export function TocForm({
                           />
                           None
                         </label>
-                        <label className="flex items-center gap-2 text-sm text-slate-600">
+                        <label className="flex items-center gap-2 text-sm text-stone-600">
                           <input
                             type="radio"
                             name={`followUp${n}Status`}
@@ -135,7 +135,7 @@ export function TocForm({
                         name={`followUp${n}Notes`}
                         placeholder="Additional Needs/Notes"
                         defaultValue={draft[`followUp${n}Notes` as "followUp1Notes"] ?? ""}
-                        className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+                        className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
                       />
                     </div>
                   ))}
@@ -149,11 +149,11 @@ export function TocForm({
                   type="submit"
                   name="intent"
                   value="draft"
-                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
                 >
                   Save Draft
                 </button>
-                <button type="submit" name="intent" value="complete" className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                <button type="submit" name="intent" value="complete" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
                   Complete
                 </button>
               </div>

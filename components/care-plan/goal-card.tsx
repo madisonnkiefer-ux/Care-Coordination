@@ -20,20 +20,20 @@ export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; car
     <Card>
       <div className="flex items-start justify-between gap-4">
         <button type="button" onClick={() => setExpanded((v) => !v)} className="flex-1 text-left">
-          <p className="text-sm font-semibold text-slate-900">{goal.opportunity || goal.goalText || "Untitled goal"}</p>
-          {goal.priority && <p className="text-xs text-slate-500">{goal.priority}</p>}
+          <p className="text-sm font-semibold text-stone-900">{goal.opportunity || goal.goalText || "Untitled goal"}</p>
+          {goal.priority && <p className="text-xs text-stone-500">{goal.priority}</p>}
         </button>
         <GoalStatusSelect memberId={memberId} goalId={goal.id} status={goal.status as GoalStatus} />
-        <button type="button" onClick={() => setExpanded((v) => !v)} className="text-xs font-medium text-fuchsia-600 hover:underline">
+        <button type="button" onClick={() => setExpanded((v) => !v)} className="text-xs font-medium text-stone-900 hover:underline">
           {expanded ? "Collapse" : "Expand"}
         </button>
       </div>
 
       {expanded && (
-        <div className="mt-5 space-y-6 border-t border-slate-100 pt-5">
+        <div className="mt-5 space-y-6 border-t border-stone-100 pt-5">
           <form action={saveGoal.bind(null, memberId, carePlanId, goal.id)} className="space-y-5">
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Opportunity</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">Opportunity</p>
               <TextField name="opportunity" label="Opportunity" defaultValue={goal.opportunity} />
               <div className="mt-2 max-w-xs">
                 <SelectField name="priority" label="Priority" options={GOAL_PRIORITY_OPTIONS} defaultValue={goal.priority} />
@@ -69,8 +69,8 @@ export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; car
 
             <TextArea name="goalText" label="Goal" defaultValue={goal.goalText} rows={3} />
 
-            <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Action I will take (Member)</p>
+            <div className="rounded-lg border border-stone-100 bg-stone-50 p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-500">Action I will take (Member)</p>
               <TextArea name="memberActionText" label="Action I will take to achieve this goal" defaultValue={goal.memberActionText} rows={2} />
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <DateField name="memberActionBeginDate" label="Begin Date" defaultValue={toInputDate(goal.memberActionBeginDate)} />
@@ -79,8 +79,8 @@ export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; car
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Action my care coordinator will take</p>
+            <div className="rounded-lg border border-stone-100 bg-stone-50 p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-500">Action my care coordinator will take</p>
               <TextArea name="coordinatorActionText" label="Action my care coordinator will take to help me achieve this goal" defaultValue={goal.coordinatorActionText} rows={2} />
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <DateField name="coordinatorActionBeginDate" label="Begin Date" defaultValue={toInputDate(goal.coordinatorActionBeginDate)} />
@@ -89,12 +89,12 @@ export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; car
               </div>
             </div>
 
-            <button type="submit" className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+            <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
               Save Goal
             </button>
           </form>
 
-          <div className="grid grid-cols-1 gap-6 border-t border-slate-100 pt-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 border-t border-stone-100 pt-5 sm:grid-cols-2">
             <ProgressNoteColumn
               label="Member Progress Updates"
               notes={memberNotes}
@@ -127,13 +127,13 @@ function ProgressNoteColumn({
 }) {
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">{label}</p>
       <ul className="mb-3 space-y-2">
-        {notes.length === 0 && <li className="text-sm text-slate-400">No progress updates yet.</li>}
+        {notes.length === 0 && <li className="text-sm text-stone-400">No progress updates yet.</li>}
         {notes.map((n) => (
-          <li key={n.id} className="rounded-md border border-slate-100 bg-white p-2 text-sm text-slate-700">
+          <li key={n.id} className="rounded-md border border-stone-100 bg-white p-2 text-sm text-stone-700">
             <p>{n.note}</p>
-            {n.date && <p className="mt-1 text-xs text-slate-400">{formatDate(n.date)}</p>}
+            {n.date && <p className="mt-1 text-xs text-stone-400">{formatDate(n.date)}</p>}
           </li>
         ))}
       </ul>
@@ -141,7 +141,7 @@ function ProgressNoteColumn({
         <input type="hidden" name="track" value={track} />
         <TextArea name="note" label="Progress Update" rows={2} />
         <DateField name="date" label="Date" />
-        <button type="submit" className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+        <button type="submit" className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50">
           + Add Update
         </button>
       </form>

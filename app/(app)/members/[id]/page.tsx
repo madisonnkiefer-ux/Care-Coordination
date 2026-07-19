@@ -41,43 +41,43 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
           <Card title="Insurance &amp; Provider">
             <form action={updateMemberDetails.bind(null, id)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">Subscriber ID</label>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Subscriber ID</label>
                 <input
                   name="subscriberId"
                   defaultValue={member.subscriberId ?? ""}
-                  className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">Availity ID</label>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Availity ID</label>
                 <input
                   name="availityId"
                   defaultValue={member.availityId ?? ""}
-                  className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">Provider</label>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Provider</label>
                 <input
                   name="provider"
                   placeholder="Member's outside doctor"
                   defaultValue={member.provider ?? ""}
-                  className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex items-center gap-2 text-sm text-stone-700">
                 <input
                   type="checkbox"
                   name="medicaidEligibilityVerified"
                   defaultChecked={member.medicaidEligibilityVerified ?? false}
-                  className="h-4 w-4 rounded border-slate-300"
+                  className="h-4 w-4 rounded border-stone-300"
                 />
                 Medicaid Eligibility Verified
               </label>
               <div className="flex items-end justify-end">
                 <button
                   type="submit"
-                  className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
+                  className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
                 >
                   Save
                 </button>
@@ -115,19 +115,19 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-slate-400">
+                  <tr className="text-left text-xs text-stone-400">
                     <th className="pb-2 font-medium">Date</th>
                     <th className="pb-2 font-medium">Type</th>
                     <th className="pb-2 font-medium">By</th>
                     <th className="pb-2 font-medium">Outcome</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-stone-100">
                   {touchpoints.map((tp) => (
                     <tr key={tp.id}>
-                      <td className="py-2 text-slate-600">{formatDate(tp.date)}</td>
-                      <td className="py-2 text-slate-600">{titleCase(tp.type)}</td>
-                      <td className="py-2 text-slate-600">{tp.user.name}</td>
+                      <td className="py-2 text-stone-600">{formatDate(tp.date)}</td>
+                      <td className="py-2 text-stone-600">{titleCase(tp.type)}</td>
+                      <td className="py-2 text-stone-600">{tp.user.name}</td>
                       <td className="py-2">
                         <Badge color={tp.outcome === "COMPLETED" ? "green" : "yellow"}>{titleCase(tp.outcome)}</Badge>
                       </td>
@@ -150,7 +150,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                   return (
                     <li key={task.id} className="flex items-center gap-2 py-1.5 text-sm">
                       <form action={toggle}>
-                        <button type="submit" className="text-slate-400 hover:text-fuchsia-600" aria-label="Toggle complete">
+                        <button type="submit" className="text-stone-400 hover:text-stone-900" aria-label="Toggle complete">
                           {task.status === "COMPLETED" ? (
                             <CheckSquare className="h-4 w-4 text-emerald-500" />
                           ) : (
@@ -158,10 +158,10 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                           )}
                         </button>
                       </form>
-                      <span className={task.status === "COMPLETED" ? "flex-1 text-slate-400 line-through" : "flex-1 text-slate-700"}>
+                      <span className={task.status === "COMPLETED" ? "flex-1 text-stone-400 line-through" : "flex-1 text-stone-700"}>
                         {task.title}
                       </span>
-                      <span className="text-xs text-slate-400">{formatDate(task.dueDate)}</span>
+                      <span className="text-xs text-stone-400">{formatDate(task.dueDate)}</span>
                     </li>
                   );
                 })}
@@ -175,17 +175,17 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 name="body"
                 rows={3}
                 placeholder="Type note here..."
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
               />
               <button
                 type="submit"
-                className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
+                className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
               >
                 Save Note
               </button>
             </form>
             {notes && (
-              <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-400">
+              <p className="mt-3 border-t border-stone-100 pt-3 text-xs text-stone-400">
                 Last updated: {formatDateTime(notes.updatedAt)}
               </p>
             )}
@@ -198,8 +198,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               <ul className="space-y-2 text-sm">
                 {appointments.map((appt) => (
                   <li key={appt.id}>
-                    <p className="font-medium text-slate-800">{appt.title}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="font-medium text-stone-800">{appt.title}</p>
+                    <p className="text-xs text-stone-500">
                       {formatDateTime(appt.startsAt)} {appt.location ? `· ${appt.location}` : ""}
                     </p>
                   </li>
@@ -220,11 +220,11 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                       href={doc.storageKey ?? "#"}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="truncate text-slate-700 hover:text-fuchsia-600 hover:underline"
+                      className="truncate text-stone-700 hover:text-stone-900 hover:underline"
                     >
                       {doc.name}
                     </a>
-                    <span className="shrink-0 text-xs text-slate-400">{formatDate(doc.createdAt)}</span>
+                    <span className="shrink-0 text-xs text-stone-400">{formatDate(doc.createdAt)}</span>
                   </li>
                 ))}
               </ul>
@@ -239,8 +239,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
 function Field({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</dt>
-      <dd className="text-slate-800">{value || "—"}</dd>
+      <dt className="text-xs font-medium uppercase tracking-wide text-stone-400">{label}</dt>
+      <dd className="text-stone-800">{value || "—"}</dd>
     </div>
   );
 }
@@ -257,9 +257,9 @@ function QuickAccessTile({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-lg border border-slate-200 p-3 text-sm font-medium text-slate-700 hover:border-fuchsia-300 hover:bg-fuchsia-50"
+      className="flex items-center gap-3 rounded-lg border border-stone-200 p-3 text-sm font-medium text-stone-700 hover:border-stone-300 hover:bg-stone-100"
     >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-fuchsia-100 to-orange-100 text-fuchsia-600">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-50 text-stone-700">
         <Icon className="h-4 w-4" />
       </span>
       {label}
@@ -268,5 +268,5 @@ function QuickAccessTile({
 }
 
 function EmptyState({ label }: { label: string }) {
-  return <p className="py-4 text-center text-sm text-slate-400">{label}</p>;
+  return <p className="py-4 text-center text-sm text-stone-400">{label}</p>;
 }

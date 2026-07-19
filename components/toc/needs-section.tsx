@@ -7,15 +7,15 @@ export function NeedsSection({ config, existingNeeds }: { config: NeedsSectionCo
 
   return (
     <Card title={config.title}>
-      <p className="mb-4 text-xs text-slate-400">{config.subtitle}</p>
+      <p className="mb-4 text-xs text-stone-400">{config.subtitle}</p>
       <div className="space-y-4">
         {config.needs.map((need) => {
           const existing = byKey.get(need.key);
           return (
-            <div key={need.key} className="grid grid-cols-1 items-start gap-2 border-t border-slate-100 pt-3 first:border-t-0 first:pt-0 sm:grid-cols-3">
-              <p className="text-sm font-medium text-slate-700 sm:col-span-1">{need.label}</p>
+            <div key={need.key} className="grid grid-cols-1 items-start gap-2 border-t border-stone-100 pt-3 first:border-t-0 first:pt-0 sm:grid-cols-3">
+              <p className="text-sm font-medium text-stone-700 sm:col-span-1">{need.label}</p>
               <div className="flex gap-6 sm:col-span-1">
-                <label className="flex items-center gap-2 text-sm text-slate-600">
+                <label className="flex items-center gap-2 text-sm text-stone-600">
                   <input
                     type="radio"
                     name={needFieldName(config.section, need.key, "status")}
@@ -25,7 +25,7 @@ export function NeedsSection({ config, existingNeeds }: { config: NeedsSectionCo
                   />
                   None
                 </label>
-                <label className="flex items-center gap-2 text-sm text-slate-600">
+                <label className="flex items-center gap-2 text-sm text-stone-600">
                   <input
                     type="radio"
                     name={needFieldName(config.section, need.key, "status")}
@@ -40,7 +40,7 @@ export function NeedsSection({ config, existingNeeds }: { config: NeedsSectionCo
                 name={needFieldName(config.section, need.key, "actions")}
                 placeholder="If yes, describe / Actions"
                 defaultValue={existing?.actions ?? ""}
-                className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500 sm:col-span-1"
+                className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 sm:col-span-1"
               />
             </div>
           );

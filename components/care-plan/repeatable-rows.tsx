@@ -22,14 +22,14 @@ export function RepeatableRows<T extends Record<string, string | null>>({
   return (
     <div className="space-y-3">
       {Array.from({ length: count }, (_, i) => (
-        <div key={i} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+        <div key={i} className="rounded-lg border border-stone-100 bg-stone-50 p-3">
           {renderRow(initialRows[i] ?? {}, i)}
         </div>
       ))}
       <button
         type="button"
         onClick={() => setCount((c) => c + 1)}
-        className="rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-500 hover:border-fuchsia-400 hover:text-fuchsia-600"
+        className="rounded-md border border-dashed border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-stone-900"
       >
         {addLabel}
       </button>

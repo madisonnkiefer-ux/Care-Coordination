@@ -26,11 +26,11 @@ export function GeneralCommunicationTab({ memberId, records }: { memberId: strin
       />
 
       {!record ? (
-        <p className="text-sm text-slate-500">No General Communication entries yet — click &quot;+ New Entry&quot; to start one.</p>
+        <p className="text-sm text-stone-500">No General Communication entries yet — click &quot;+ New Entry&quot; to start one.</p>
       ) : (
         <form action={saveGeneralCommunication.bind(null, memberId, record.id)} className="max-w-4xl space-y-4">
           <Card title="General Communication">
-            <p className="mb-3 text-xs text-slate-400">
+            <p className="mb-3 text-xs text-stone-400">
               Started {formatDateTime(record.createdAt)} by {record.author?.name ?? "unknown"}
               {record.updatedAt > record.createdAt && ` · last updated ${formatDateTime(record.updatedAt)}`}
             </p>
@@ -38,10 +38,10 @@ export function GeneralCommunicationTab({ memberId, records }: { memberId: strin
               name="body"
               defaultValue={record.body ?? ""}
               rows={20}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
             />
           </Card>
-          <button type="submit" className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
             Save
           </button>
         </form>

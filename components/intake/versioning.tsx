@@ -25,8 +25,8 @@ export function HistoryBar({
   newLabel?: string;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-slate-200 pb-4">
-      {items.length === 0 && <p className="text-sm text-slate-400">No records yet.</p>}
+    <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-stone-200 pb-4">
+      {items.length === 0 && <p className="text-sm text-stone-400">No records yet.</p>}
       {items.map((item) => {
         const active = item.id === selectedId;
         return (
@@ -36,15 +36,15 @@ export function HistoryBar({
             onClick={() => onSelect(item.id)}
             className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
               active
-                ? "border-fuchsia-600 bg-fuchsia-50 text-fuchsia-700"
-                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                ? "border-stone-900 bg-stone-100 text-stone-900"
+                : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
             }`}
           >
             {formatDate(item.dateLabel)}
             {item.signedAt ? (
               <span title={`Signed by ${item.signedByName ?? "unknown"} on ${formatDateTime(item.signedAt)}`}>🔒</span>
             ) : (
-              <span className="text-slate-400">·{item.status === "COMPLETED" ? "Completed" : "Draft"}</span>
+              <span className="text-stone-400">·{item.status === "COMPLETED" ? "Completed" : "Draft"}</span>
             )}
           </button>
         );
@@ -52,7 +52,7 @@ export function HistoryBar({
       <form action={newAction}>
         <button
           type="submit"
-          className="rounded-full border border-dashed border-slate-300 px-3 py-1 text-xs font-medium text-slate-500 hover:border-fuchsia-400 hover:text-fuchsia-600"
+          className="rounded-full border border-dashed border-stone-300 px-3 py-1 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-stone-900"
         >
           {newLabel}
         </button>
@@ -77,8 +77,8 @@ export function SimpleHistoryBar({
   newLabel?: string;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-slate-200 pb-4">
-      {items.length === 0 && <p className="text-sm text-slate-400">No records yet.</p>}
+    <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-stone-200 pb-4">
+      {items.length === 0 && <p className="text-sm text-stone-400">No records yet.</p>}
       {items.map((item) => {
         const active = item.id === selectedId;
         return (
@@ -88,8 +88,8 @@ export function SimpleHistoryBar({
             onClick={() => onSelect(item.id)}
             className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
               active
-                ? "border-fuchsia-600 bg-fuchsia-50 text-fuchsia-700"
-                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                ? "border-stone-900 bg-stone-100 text-stone-900"
+                : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
             }`}
           >
             {formatDate(item.dateLabel)}
@@ -99,7 +99,7 @@ export function SimpleHistoryBar({
       <form action={newAction}>
         <button
           type="submit"
-          className="rounded-full border border-dashed border-slate-300 px-3 py-1 text-xs font-medium text-slate-500 hover:border-fuchsia-400 hover:text-fuchsia-600"
+          className="rounded-full border border-dashed border-stone-300 px-3 py-1 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-stone-900"
         >
           {newLabel}
         </button>
@@ -110,7 +110,7 @@ export function SimpleHistoryBar({
 
 export function SignedBanner({ signedByName, signedAt }: { signedByName: string | null; signedAt: Date }) {
   return (
-    <div className="mb-4 flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+    <div className="mb-4 flex items-center gap-2 rounded-md border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-600">
       <Badge color="slate">🔒 Signed &amp; Locked</Badge>
       <span>
         Signed by {signedByName ?? "unknown"} on {formatDateTime(signedAt)}. This record can no longer be edited.
