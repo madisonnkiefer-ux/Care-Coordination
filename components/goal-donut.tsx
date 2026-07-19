@@ -5,10 +5,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 type GoalTotals = { onTrack: number; inProgress: number; notStarted: number; complete: number };
 
 const COLORS = {
-  onTrack: "#10b981",
-  inProgress: "#f59e0b",
-  notStarted: "#f43f5e",
-  complete: "#3b82f6",
+  onTrack: "#1c1917",
+  inProgress: "#d4a574",
+  complete: "#a8a29e",
+  notStarted: "#e8b4b8",
 };
 
 export function GoalDonut({ totals }: { totals: GoalTotals }) {
@@ -38,15 +38,15 @@ export function GoalDonut({ totals }: { totals: GoalTotals }) {
               {(total === 0 ? [{ key: "empty" }] : data).map((entry) => (
                 <Cell
                   key={entry.key}
-                  fill={total === 0 ? "#e2e8f0" : COLORS[entry.key as keyof typeof COLORS]}
+                  fill={total === 0 ? "#e7e5e4" : COLORS[entry.key as keyof typeof COLORS]}
                 />
               ))}
             </Pie>
           </PieChart>
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-semibold text-slate-900">{total}</span>
-          <span className="text-[10px] text-slate-500">Total Goals</span>
+          <span className="text-xl font-semibold text-stone-900">{total}</span>
+          <span className="text-[10px] text-stone-500">Total Goals</span>
         </div>
       </div>
       <ul className="space-y-1.5 text-sm">
@@ -63,8 +63,8 @@ function LegendRow({ color, label, value }: { color: string; label: string; valu
   return (
     <li className="flex items-center gap-2">
       <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
-      <span className="text-slate-600">{label}</span>
-      <span className="text-slate-400">({value})</span>
+      <span className="text-stone-600">{label}</span>
+      <span className="text-stone-400">({value})</span>
     </li>
   );
 }

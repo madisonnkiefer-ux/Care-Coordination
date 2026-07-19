@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Users, ListChecks, FileText, ClipboardList, ClipboardCheck } from "lucide-react";
 import { getDashboardData } from "@/lib/data/dashboard";
 import { PageHeader, Card, StatTile, Badge } from "@/components/ui";
 import { GoalDonut } from "@/components/goal-donut";
@@ -14,10 +15,10 @@ export default async function DashboardPage() {
 
       <div className="p-8 space-y-6">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatTile label="My Members" value={stats.myMembers} />
-          <StatTile label="Tasks Due" value={stats.tasksDue} />
-          <StatTile label="CNA Drafts Open" value={stats.cnaDue} />
-          <StatTile label="Care Plans Tracked" value={stats.carePlansTracked} />
+          <StatTile label="My Members" value={stats.myMembers} icon={Users} />
+          <StatTile label="Tasks Due" value={stats.tasksDue} icon={ListChecks} />
+          <StatTile label="CNA Drafts Open" value={stats.cnaDue} icon={FileText} />
+          <StatTile label="Care Plans Tracked" value={stats.carePlansTracked} icon={ClipboardList} />
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -25,28 +26,28 @@ export default async function DashboardPage() {
             title="My Tasks"
             className="lg:col-span-2"
             action={
-              <Link href="/tasks" className="text-xs font-medium text-fuchsia-600 hover:underline">
+              <Link href="/tasks" className="text-xs font-medium text-stone-900 hover:underline">
                 View my tasks →
               </Link>
             }
           >
             {myTasks.length === 0 ? (
-              <EmptyState label="No open tasks. Nice work." />
+              <EmptyState label="No open tasks." sub="You're all caught up." />
             ) : (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-stone-100">
                 {myTasks.map((task) => (
                   <li key={task.id} className="flex items-center justify-between py-2.5 text-sm">
                     <div>
-                      <p className="font-medium text-slate-800">{task.title}</p>
+                      <p className="font-medium text-stone-800">{task.title}</p>
                       {task.member && (
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-stone-500">
                           {task.member.firstName} {task.member.lastName}
                         </p>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
                       <PriorityBadge priority={task.priority} />
-                      <span className="text-xs text-slate-500">{formatDate(task.dueDate)}</span>
+                      <span className="text-xs text-stone-500">{formatDate(task.dueDate)}</span>
                     </div>
                   </li>
                 ))}
@@ -61,8 +62,8 @@ export default async function DashboardPage() {
               <ul className="space-y-3">
                 {upcomingAppointments.map((appt) => (
                   <li key={appt.id} className="text-sm">
-                    <p className="font-medium text-slate-800">{appt.title}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="font-medium text-stone-800">{appt.title}</p>
+                    <p className="text-xs text-stone-500">
                       {appt.member.firstName} {appt.member.lastName} · {formatDateTime(appt.startsAt)}
                     </p>
                   </li>
@@ -83,21 +84,21 @@ export default async function DashboardPage() {
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-slate-400">
+                  <tr className="text-left text-xs text-stone-400">
                     <th className="pb-2 font-medium">Date</th>
                     <th className="pb-2 font-medium">Member</th>
                     <th className="pb-2 font-medium">Type</th>
                     <th className="pb-2 font-medium">Outcome</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-stone-100">
                   {recentTouchpoints.map((tp) => (
                     <tr key={tp.id}>
-                      <td className="py-2 text-slate-600">{formatDate(tp.date)}</td>
-                      <td className="py-2 text-slate-800">
+                      <td className="py-2 text-stone-600">{formatDate(tp.date)}</td>
+                      <td className="py-2 text-stone-800">
                         {tp.member.firstName} {tp.member.lastName}
                       </td>
-                      <td className="py-2 text-slate-600">{titleCase(tp.type)}</td>
+                      <td className="py-2 text-stone-600">{titleCase(tp.type)}</td>
                       <td className="py-2">
                         <OutcomeBadge outcome={tp.outcome} />
                       </td>
@@ -123,6 +124,14 @@ function OutcomeBadge({ outcome }: { outcome: string }) {
   return <Badge color={color}>{titleCase(outcome)}</Badge>;
 }
 
-function EmptyState({ label }: { label: string }) {
-  return <p className="py-6 text-center text-sm text-slate-400">{label}</p>;
+function EmptyState({ label, sub }: { label: string; sub?: string }) {
+  return (
+    <div className="flex flex-col items-center py-8 text-center">
+      <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
+        <ClipboardCheck className="h-7 w-7 text-stone-500" />
+      </div>
+      <p className="text-sm font-medium text-stone-700">{label}</p>
+      {sub && <p className="mt-0.5 text-xs text-stone-400">{sub}</p>}
+    </div>
+  );
 }

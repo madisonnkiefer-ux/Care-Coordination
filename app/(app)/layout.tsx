@@ -8,9 +8,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const session = await verifySession();
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-stone-50">
       <Sidebar user={{ name: session.name, email: session.email, role: session.role }} />
-      <main className="flex-1 min-w-0">{children}</main>
+      <div className="flex flex-1 min-w-0 flex-col">
+        <main className="flex-1 min-w-0">{children}</main>
+        <footer className="border-t border-stone-200 px-8 py-4 text-center text-xs text-stone-400">
+          © {new Date().getFullYear()} CareCoord Hub. All rights reserved.
+        </footer>
+      </div>
     </div>
   );
 }
