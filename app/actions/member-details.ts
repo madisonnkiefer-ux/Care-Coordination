@@ -17,6 +17,7 @@ export async function updateMemberDetails(memberId: string, formData: FormData) 
   await db.member.update({
     where: { id: memberId },
     data: {
+      memberIdExternal: str("memberIdExternal"),
       subscriberId: str("subscriberId"),
       availityId: str("availityId"),
       provider: str("provider"),

@@ -53,6 +53,7 @@ export async function seedDemoData(db: PrismaClient) {
         phone: `(505) 555-${String(1000 + i).slice(1)}`,
         email: `${seed.first.toLowerCase()}.${seed.last.toLowerCase()}@demo-member.local`,
         medicaidId: `DEMO${String(100000000 + i)}`,
+        memberIdExternal: `CH-${String(1000 + i)}`,
         program: seed.program,
         status: "ACTIVE",
         cclLevel: seed.ccl,

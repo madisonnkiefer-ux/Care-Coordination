@@ -41,6 +41,14 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
           <Card title="Insurance &amp; Provider">
             <form action={updateMemberDetails.bind(null, id)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Chart ID</label>
+                <input
+                  name="memberIdExternal"
+                  defaultValue={member.memberIdExternal ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                />
+              </div>
+              <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Subscriber ID</label>
                 <input
                   name="subscriberId"
