@@ -234,32 +234,90 @@ model CnaDomainResult {
 // ---------- HRA (Health Risk Assessment) ----------
 
 model HraAssessment {
-  id             String           @id @default(cuid())
-  memberId       String
-  member         Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  assessorId     String
-  assessor       User             @relation(fields: [assessorId], references: [id])
-  assessmentDate DateTime         @default(now())
-  status         AssessmentStatus @default(DRAFT)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  id                    String           @id @default(cuid())
+  memberId              String
+  member                Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assessorId            String
+  assessor              User             @relation(fields: [assessorId], references: [id])
+  assessmentDate        DateTime         @default(now())
+  assessmentType        String? // Initial assessment / Change in health status
+  assessmentMethod      String? // Telephonic / In-person / Other
+  assessmentMethodOther String?
+  status                AssessmentStatus @default(DRAFT)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
 
-  screenings HraScreening[]
+  // Q1
+  languageNeedOtherThanEnglish Boolean?
+  needsTranslationServices     Boolean?
+
+  // Q2
+  specialPreferences         String?
+  specialPreferencesDescribe String?
+
+  // Q3
+  healthConditions         String?
+  healthConditionsDescribe String?
+
+  // Q4-7
+  sexAssignedAtBirth  String?
+  currentGender       String?
+  currentGenderOther  String?
+  sexualIdentity      String?
+  sexualIdentityOther String?
+  preferredPronouns   String?
+
+  // Q8
+  isPregnant Boolean?
+
+  // Q9
+  perinatalPostpartumOrYoungChild String? // yes / no / na
+
+  // Q10
+  usesTobaccoNicotine          String? // yes / no / na
+  interestedInCessationProgram String? // yes / no / na
+  historyOfTobaccoUse          Boolean?
+
+  // Q11-13
+  worriedAboutFood         String? // yes / no / na
+  reliableTransportation   String? // yes / no / na
+  needsHelpFindingProvider String? // yes / no / na
+
+  // Q14
+  erVisitsPast12Months Boolean?
+  erVisitCount         String?
+
+  // Q15
+  hospitalOvernightPast6Months Boolean?
+  readmittedWithin30Days       Boolean?
+
+  // Q16
+  medicationsCount String?
+
+  // Q17
+  currentSituations String?
+
+  // Q18
+  livingSituation      String?
+  livingSituationOther String?
+
+  // Q19
+  needsHelpWith2OrMoreAdls Boolean?
+  adlHelpNeeded            String?
+  adlHelpOther             String?
+
+  // Q20
+  hasLivingWillOrAdvanceDirective Boolean?
+  wantsMoreAdvanceDirectiveInfo   Boolean?
+
+  // Q21-22
+  mainHealthConcerns        String?
+  mostSignificantNeedsToday String?
+
+  // Q23
+  interestedInCareCoordination Boolean?
 
   @@index([memberId])
-}
-
-model HraScreening {
-  id           String        @id @default(cuid())
-  assessmentId String
-  assessment   HraAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  toolName     String // e.g. "EPDS", "SDOH", "ASSIST", "HITS"
-  score        String?
-  riskLevel    String? // e.g. "Low", "High"
-  completedAt  DateTime?
-  notes        String?
-
-  @@unique([assessmentId, toolName])
 }
 
 // ---------- Care Plan (CCP) ----------

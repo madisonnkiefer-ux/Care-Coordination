@@ -2,6 +2,8 @@ import { Card } from "@/components/ui";
 import { saveDemographics } from "@/app/actions/demographics";
 import { toDateInputValue } from "@/lib/format";
 import type { Member, Demographics } from "@/app/generated/prisma/client";
+import { TextField, TextArea, DateField, SelectField, Checkbox, YesNoField, YesNoWithDetail } from "@/components/intake/form-fields";
+import { SEX_ASSIGNED_AT_BIRTH_OPTIONS, CURRENT_GENDER_OPTIONS, SEXUAL_IDENTITY_OPTIONS } from "@/components/intake/options";
 
 const ETHNICITY_OPTIONS = ["Hispanic or Latino", "Not Hispanic or Latino", "Unknown/Declined"];
 const RACE_OPTIONS = [
@@ -13,9 +15,6 @@ const RACE_OPTIONS = [
   "Two or More Races",
   "Unknown/Declined",
 ];
-const SEX_OPTIONS = ["Male", "Female", "Intersex", "Unknown/Declined"];
-const GENDER_OPTIONS = ["Male", "Female", "Non-binary", "Transgender", "Other", "Unknown/Declined"];
-const SEXUAL_IDENTITY_OPTIONS = ["Straight", "Gay", "Lesbian", "Bisexual", "Other", "Unknown/Declined"];
 
 export function DemographicsTab({ memberId, member, demographics }: { memberId: string; member: Member; demographics: Demographics | null }) {
   return (
@@ -44,9 +43,14 @@ export function DemographicsTab({ memberId, member, demographics }: { memberId: 
 
       <Card title="Sex, Gender &amp; Sexual Identity">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <SelectField name="sexAssignedAtBirth" label="Sex Assigned at Birth" options={SEX_OPTIONS} defaultValue={demographics?.sexAssignedAtBirth} />
+          <SelectField
+            name="sexAssignedAtBirth"
+            label="Sex Assigned at Birth"
+            options={SEX_ASSIGNED_AT_BIRTH_OPTIONS}
+            defaultValue={demographics?.sexAssignedAtBirth}
+          />
           <div />
-          <SelectField name="currentGender" label="Current Gender" options={GENDER_OPTIONS} defaultValue={demographics?.currentGender} />
+          <SelectField name="currentGender" label="Current Gender" options={CURRENT_GENDER_OPTIONS} defaultValue={demographics?.currentGender} />
           <TextField name="currentGenderOther" label="If other, please describe" defaultValue={demographics?.currentGenderOther} />
           <SelectField
             name="sexualIdentity"
@@ -196,185 +200,5 @@ export function DemographicsTab({ memberId, member, demographics }: { memberId: 
         Save Demographics
       </button>
     </form>
-  );
-}
-
-function TextField({
-  name,
-  label,
-  defaultValue,
-  className = "",
-}: {
-  name: string;
-  label: string;
-  defaultValue?: string | null;
-  className?: string;
-}) {
-  return (
-    <div className={className}>
-      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-        {label}
-      </label>
-      <input
-        id={name}
-        name={name}
-        defaultValue={defaultValue ?? ""}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
-      />
-    </div>
-  );
-}
-
-function TextArea({
-  name,
-  label,
-  defaultValue,
-  className = "",
-}: {
-  name: string;
-  label: string;
-  defaultValue?: string | null;
-  className?: string;
-}) {
-  return (
-    <div className={className}>
-      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-        {label}
-      </label>
-      <textarea
-        id={name}
-        name={name}
-        rows={2}
-        defaultValue={defaultValue ?? ""}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
-      />
-    </div>
-  );
-}
-
-function DateField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: string | null }) {
-  return (
-    <div>
-      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-        {label}
-      </label>
-      <input
-        type="date"
-        id={name}
-        name={name}
-        defaultValue={defaultValue ?? ""}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
-      />
-    </div>
-  );
-}
-
-function SelectField({
-  name,
-  label,
-  options,
-  defaultValue,
-}: {
-  name: string;
-  label: string;
-  options: string[];
-  defaultValue?: string | null;
-}) {
-  const isCustom = Boolean(defaultValue) && !options.includes(defaultValue as string);
-  return (
-    <div>
-      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
-        {label}
-      </label>
-      <select
-        id={name}
-        name={name}
-        defaultValue={isCustom ? "" : defaultValue ?? ""}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
-      >
-        <option value="">—</option>
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
-      {/* Not in the list? This overrides the dropdown above when filled in. */}
-      <input
-        name={`${name}Custom`}
-        defaultValue={isCustom ? (defaultValue as string) : ""}
-        placeholder="Not listed? Type it here instead"
-        className="mt-1 w-full rounded-md border border-slate-200 px-3 py-1.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
-      />
-    </div>
-  );
-}
-
-function Checkbox({ name, label, defaultChecked }: { name: string; label: string; defaultChecked?: boolean }) {
-  return (
-    <label className="flex items-center gap-2 text-sm text-slate-700">
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 rounded border-slate-300" />
-      {label}
-    </label>
-  );
-}
-
-function YesNoField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: boolean | null }) {
-  return (
-    <div>
-      <p className="mb-1 text-sm font-medium text-slate-700">{label}</p>
-      <div className="flex gap-6">
-        <label className="flex items-center gap-2 text-sm text-slate-600">
-          <input type="radio" name={name} value="yes" defaultChecked={defaultValue === true} className="h-4 w-4" />
-          Yes
-        </label>
-        <label className="flex items-center gap-2 text-sm text-slate-600">
-          <input type="radio" name={name} value="no" defaultChecked={defaultValue === false} className="h-4 w-4" />
-          No
-        </label>
-      </div>
-    </div>
-  );
-}
-
-function YesNoWithDetail({
-  name,
-  label,
-  defaultValue,
-  detailName,
-  detailDefault,
-  detailLabel = "If yes, specify",
-}: {
-  name: string;
-  label: string;
-  defaultValue?: boolean | null;
-  detailName: string;
-  detailDefault?: string | null;
-  detailLabel?: string;
-}) {
-  return (
-    <div>
-      <p className="mb-1 text-sm font-medium text-slate-700">{label}</p>
-      <div className="flex flex-wrap items-center gap-6">
-        <div className="flex gap-6">
-          <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input type="radio" name={name} value="yes" defaultChecked={defaultValue === true} className="h-4 w-4" />
-            Yes
-          </label>
-          <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input type="radio" name={name} value="no" defaultChecked={defaultValue === false} className="h-4 w-4" />
-            No
-          </label>
-        </div>
-        <div className="flex flex-1 items-center gap-2">
-          <label className="text-xs text-slate-500">{detailLabel}:</label>
-          <input
-            name={detailName}
-            defaultValue={detailDefault ?? ""}
-            className="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
-          />
-        </div>
-      </div>
-    </div>
   );
 }
