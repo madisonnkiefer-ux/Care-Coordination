@@ -54,6 +54,7 @@ model User {
   careCoordinationNotes CareCoordinationNote[]
   carePlans             CarePlan[]
   demographicsRecords   Demographics[]
+  generalCommunications GeneralCommunication[]
 
   cnaAssessmentsSigned        CnaAssessment[]        @relation("CnaSignedBy")
   hraAssessmentsSigned        HraAssessment[]        @relation("HraSignedBy")
@@ -113,6 +114,7 @@ model Member {
   hraAssessments        HraAssessment[]
   careCoordinationNotes CareCoordinationNote[]
   carePlans             CarePlan[]
+  generalCommunications GeneralCommunication[]
   tasks                 Task[]
   touchpoints           Touchpoint[]
   documents             Document[]
@@ -597,17 +599,119 @@ enum GoalStatus {
 }
 
 model CarePlan {
-  id          String   @id @default(cuid())
+  id          String           @id @default(cuid())
   memberId    String
-  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  member      Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
   createdById String
-  createdBy   User     @relation(fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdBy   User             @relation(fields: [createdById], references: [id])
+  status      AssessmentStatus @default(DRAFT)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
-  goals CarePlanGoal[]
+  // Demographic Information (CCP-specific — Medicaid eligibility renewal date
+  // already lives on Demographics, so it isn't repeated here)
+  ccpStartDate                DateTime?
+  mostRecentCnaCompletionDate DateTime?
+  preferredContactMethod      String?
+
+  // Services / conditions / medications summary
+  servicesAuthorizedByMco String?
+  phBhConditions          String?
+
+  // Backup Plan
+  backupPlanText String?
+  backupContacts CarePlanBackupContact[]
+
+  // Disaster Preparedness Plan
+  disasterPlanText               String?
+  disasterReviewItems            String[] // check-all-that-apply: Medication/drugs, Oxygen tank, etc.
+  disasterReviewItemsOther       String?
+  disasterDmeNeedsProvider       String?
+  disasterTransportationCo       String?
+  disasterMedicationPickup       String?
+  disasterHomeHealthAgency       String?
+  disasterServiceAnimalsCare     String?
+  hasEmergencyContactsList       Boolean?
+  discussedSafetyWithCoordinator Boolean?
+  disasterContacts               CarePlanDisasterContact[]
+
+  // Other Services / Medicare & Dual Eligible coordination
+  otherServicesText             String?
+  otherServicesNa               Boolean?
+  dualEligibleInfoNeeded        String?
+  dualEligibleNoNeedsIdentified Boolean?
+  dualEligibleNa                Boolean?
+
+  // Frequency of Planned Care Coordinator Contacts
+  ccl1ContactGuidelines Boolean?
+  ccl2ContactGuidelines Boolean?
+  otherContactSchedule  String?
+
+  // Member's Choice
+  agencyBasedCb    Boolean?
+  selfDirectedCb   Boolean?
+  nursingFacility  Boolean?
+  cbSettingsChoice String?
+
+  // Closing sections
+  hasCommunityBenefits Boolean?
+  mcoIntegrationPlan   String?
+  hasFacilityCarePlan  Boolean?
+
+  teamMembers CarePlanTeamMember[]
+  medications CarePlanMedication[]
+  goals       CarePlanGoal[]
 
   @@index([memberId])
+}
+
+model CarePlanTeamMember {
+  id         String   @id @default(cuid())
+  carePlanId String
+  carePlan   CarePlan @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+  name       String?
+  phone      String?
+  email      String?
+  relation   String?
+  specialty  String?
+
+  @@index([carePlanId])
+}
+
+model CarePlanMedication {
+  id         String    @id @default(cuid())
+  carePlanId String
+  carePlan   CarePlan  @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+  name       String?
+  dosage     String?
+  frequency  String?
+  startDate  DateTime?
+  endDate    DateTime?
+
+  @@index([carePlanId])
+}
+
+model CarePlanBackupContact {
+  id           String   @id @default(cuid())
+  carePlanId   String
+  carePlan     CarePlan @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+  name         String?
+  phone        String?
+  address      String?
+  relationship String?
+
+  @@index([carePlanId])
+}
+
+model CarePlanDisasterContact {
+  id         String   @id @default(cuid())
+  carePlanId String
+  carePlan   CarePlan @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+  name       String?
+  phone      String?
+  helpWith   String?
+
+  @@index([carePlanId])
 }
 
 model CarePlanGoal {
@@ -620,6 +724,67 @@ model CarePlanGoal {
   targetDate  DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+
+  // Opportunity / priority
+  opportunity       String?
+  priority          String? // High / Medium / Low
+  hasAllocationTool Boolean?
+
+  strengths String?
+  barriers  String?
+
+  memberDeferredDiscussion Boolean?
+  deferredReason           String?
+  memberDeclinedDiscussion Boolean?
+  declinedReason           String?
+
+  goalText String?
+
+  // Action I will take (member)
+  memberActionText             String?
+  memberActionBeginDate        DateTime?
+  memberActionTargetEndDate    DateTime?
+  memberActionAccomplishedDate DateTime?
+
+  // Action my care coordinator will take
+  coordinatorActionText             String?
+  coordinatorActionBeginDate        DateTime?
+  coordinatorActionTargetEndDate    DateTime?
+  coordinatorActionAccomplishedDate DateTime?
+
+  progressNotes CarePlanProgressNote[]
+}
+
+enum ProgressNoteTrack {
+  MEMBER
+  COORDINATOR
+}
+
+model CarePlanProgressNote {
+  id        String            @id @default(cuid())
+  goalId    String
+  goal      CarePlanGoal      @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  track     ProgressNoteTrack
+  note      String
+  date      DateTime?
+  createdAt DateTime          @default(now())
+
+  @@index([goalId])
+}
+
+// ---------- General Communication (running dated log, no draft/sign concept) ----------
+
+model GeneralCommunication {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  body      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([memberId])
 }
 
 // ---------- Tasks, touchpoints, appointments, notes ----------

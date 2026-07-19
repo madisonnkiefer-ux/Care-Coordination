@@ -173,3 +173,24 @@ export const CANNOT_BE_LEVELED_DOWN_OPTIONS = [
 export const CARE_COORDINATION_LEVEL_OPTIONS = ["CCL0", "CCL1", "CCL2", "Initial Not Otherwise Medicaid Eligible (NOME)"];
 export const ABP_CLASSIFICATION_OPTIONS = ["ABP", "ABP Exempt", "N/A"];
 export const COMPLEX_CASE_OPTIONS = ["Initial NFLOC", "Complex Case Management", "N/A"];
+
+// Comprehensive Care Plan (CCP) — from the standardized HCA form (MAD 866).
+export const PREFERRED_CONTACT_METHOD_OPTIONS = ["Voice", "Text", "Mail", "Email"];
+
+export const DISASTER_REVIEW_ITEMS_OPTIONS = [
+  "Medication/drugs",
+  "Oxygen tank/concentrator",
+  "Nebulizer and attachments",
+  "Wound care supplies",
+  "Catheters/supplies",
+  "Feeding tube supplies",
+  "Identification (ID) cards and valuable papers",
+  "Special food",
+  "Clothing",
+  "Purse/wallet",
+  "Medical summary",
+  "Names/contact information of providers",
+  "Other",
+];
+
+export const GOAL_PRIORITY_OPTIONS = ["High Priority", "Medium Priority", "Low Priority"];
