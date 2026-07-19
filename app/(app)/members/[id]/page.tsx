@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckSquare, Square, ListTree, FileSignature } from "lucide-react";
+import { CheckSquare, Square, ListTree, FileSignature, ArrowRightLeft } from "lucide-react";
 import { getMemberChart } from "@/lib/data/members";
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { GoalDonut } from "@/components/goal-donut";
@@ -96,6 +96,11 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 href={`/members/${id}/care-plan`}
                 icon={ListTree}
                 label="Comprehensive Care Plan"
+              />
+              <QuickAccessTile
+                href={`/members/${id}/toc`}
+                icon={ArrowRightLeft}
+                label="Transition of Care (TOC)"
               />
             </div>
           </Card>

@@ -55,11 +55,13 @@ model User {
   carePlans             CarePlan[]
   demographicsRecords   Demographics[]
   generalCommunications GeneralCommunication[]
+  tocRecords            TocRecord[]
 
   cnaAssessmentsSigned        CnaAssessment[]        @relation("CnaSignedBy")
   hraAssessmentsSigned        HraAssessment[]        @relation("HraSignedBy")
   careCoordinationNotesSigned CareCoordinationNote[] @relation("CareCoordinationNoteSignedBy")
   demographicsSigned          Demographics[]         @relation("DemographicsSignedBy")
+  tocRecordsSigned            TocRecord[]            @relation("TocRecordSignedBy")
 
   @@index([clinicId])
 }
@@ -122,6 +124,7 @@ model Member {
   carePlans             CarePlan[]
   generalCommunications GeneralCommunication[]
   hedisMeasures         HedisMeasures?
+  tocRecords            TocRecord[]
   tasks                 Task[]
   touchpoints           Touchpoint[]
   documents             Document[]
@@ -822,6 +825,78 @@ model HedisMeasures {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ---------- TOC (Transition of Care) Assessment/Plan — versioned/signable, same pattern as Demographics/HRA/CNA ----------
+
+model TocRecord {
+  id         String           @id @default(cuid())
+  memberId   String
+  member     Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assessorId String
+  assessor   User             @relation(fields: [assessorId], references: [id])
+  status     AssessmentStatus @default(DRAFT)
+  signedAt   DateTime?
+  signedById String?
+  signedBy   User?            @relation("TocRecordSignedBy", fields: [signedById], references: [id])
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  // Section 1: Demographic Information (TOC-specific only — member identity,
+  // contact info, and emergency contact already live on Demographics)
+  mcoNotificationDate   DateTime?
+  tocPlanStartDate      DateTime?
+  tocPlanCompletionDate DateTime?
+
+  priorAddressStreet   String?
+  priorAddressCity     String?
+  priorAddressStateZip String?
+
+  ciscPcName  String? // Permanency Coordinator — CISC Members only
+  ciscPcPhone String?
+
+  transitionType      String?
+  transitionTypeOther String?
+
+  // Section 2 intro (needs/actions rows live in TocNeed)
+  dcTeamContactSummary String?
+
+  // Section 5: Monthly Follow-Up — fixed at 3 rows per the standardized form
+  followUp1Date   DateTime?
+  followUp1Status NoneOrYes?
+  followUp1Notes  String?
+  followUp2Date   DateTime?
+  followUp2Status NoneOrYes?
+  followUp2Notes  String?
+  followUp3Date   DateTime?
+  followUp3Status NoneOrYes?
+  followUp3Notes  String?
+
+  needs TocNeed[]
+}
+
+// The standardized form's "Needs" checkboxes are always None/Yes(describe) —
+// unlike HEDIS's Yes/No/N/A — so this gets its own enum.
+enum NoneOrYes {
+  NONE
+  YES
+}
+
+// Sections 2, 3, 4, 6, 7, and 8 are all the same "Needs | Actions" table
+// shape with a fixed, section-specific list of needs — stored generically
+// here (keyed by section number + a stable needKey from the static config
+// in components/toc/needs-config.ts) instead of ~150 individual columns.
+model TocNeed {
+  id          String     @id @default(cuid())
+  tocRecordId String
+  tocRecord   TocRecord  @relation(fields: [tocRecordId], references: [id], onDelete: Cascade)
+  section     Int
+  needKey     String
+  status      NoneOrYes?
+  actions     String?
+
+  @@unique([tocRecordId, section, needKey])
+  @@index([tocRecordId])
 }
 
 // ---------- Tasks, touchpoints, appointments, notes ----------
