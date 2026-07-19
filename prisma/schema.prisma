@@ -121,6 +121,7 @@ model Member {
   careCoordinationNotes CareCoordinationNote[]
   carePlans             CarePlan[]
   generalCommunications GeneralCommunication[]
+  hedisMeasures         HedisMeasures?
   tasks                 Task[]
   touchpoints           Touchpoint[]
   documents             Document[]
@@ -791,6 +792,36 @@ model GeneralCommunication {
   updatedAt DateTime @updatedAt
 
   @@index([memberId])
+}
+
+// ---------- HEDIS Measures (one evolving record per pregnancy episode, no draft/sign concept) ----------
+
+enum YesNoNa {
+  YES
+  NO
+  NA
+}
+
+model HedisMeasures {
+  id       String @id @default(cuid())
+  memberId String @unique
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  deliveryDate DateTime?
+
+  prenatalFirstTrimester     YesNoNa?
+  prenatalFirstTrimesterDate DateTime?
+
+  postPartum1stTouchpoint     YesNoNa?
+  postPartum1stTouchpointDate DateTime?
+
+  postPartum2ndTouchpoint     YesNoNa?
+  postPartum2ndTouchpointDate DateTime?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ---------- Tasks, touchpoints, appointments, notes ----------

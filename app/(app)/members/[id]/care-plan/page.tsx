@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getCarePlanFormData } from "@/lib/data/care-plan";
 import { getGeneralCommunicationFormData } from "@/lib/data/general-communication";
+import { getHedisFormData } from "@/lib/data/hedis";
 import { PageHeader } from "@/components/ui";
 import { Tabs } from "@/components/tabs";
 import { CcpTab } from "@/components/care-plan/ccp-tab";
@@ -10,9 +11,13 @@ import { GeneralCommunicationTab } from "@/components/care-plan/general-communic
 export default async function CarePlanPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const [carePlanData, commData] = await Promise.all([getCarePlanFormData(id), getGeneralCommunicationFormData(id)]);
+  const [carePlanData, commData, hedisData] = await Promise.all([
+    getCarePlanFormData(id),
+    getGeneralCommunicationFormData(id),
+    getHedisFormData(id),
+  ]);
 
-  if (!carePlanData || !commData) notFound();
+  if (!carePlanData || !commData || !hedisData) notFound();
 
   const { member, records: carePlans } = carePlanData;
 
@@ -22,7 +27,7 @@ export default async function CarePlanPage({ params }: { params: Promise<{ id: s
       <Tabs
         tabs={[
           { id: "ccp", label: "CCP", content: <CcpTab memberId={id} records={carePlans} /> },
-          { id: "hedis", label: "HEDIS Measures", content: <HedisTab /> },
+          { id: "hedis", label: "HEDIS Measures", content: <HedisTab memberId={id} record={hedisData.record} /> },
           {
             id: "general-communication",
             label: "General Communication",
