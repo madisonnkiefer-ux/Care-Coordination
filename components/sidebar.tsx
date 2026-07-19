@@ -58,7 +58,7 @@ export function Sidebar({
         <span className="text-sm font-bold tracking-wide text-stone-900">CARECOORD HUB</span>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+      <nav className="overflow-y-auto py-4 px-3 space-y-1">
         {NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(user.role)).map(
           (item) => {
             const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
