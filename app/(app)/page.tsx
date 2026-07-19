@@ -6,7 +6,7 @@ import { GoalDonut } from "@/components/goal-donut";
 import { formatDate, formatDateTime, titleCase } from "@/lib/format";
 
 export default async function DashboardPage() {
-  const { session, stats, myTasks, upcomingAppointments, goalTotals, recentContacts, annualCnaDue } =
+  const { session, stats, myTasks, upcomingAppointments, goalTotals, recentContacts, annualCnaDue, notContactedThisQuarter } =
     await getDashboardData();
 
   return (
@@ -92,9 +92,28 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card title="Care Plan Goals Overview">
             <GoalDonut totals={goalTotals} />
+          </Card>
+
+          <Card title="Not Contacted This Quarter">
+            {notContactedThisQuarter.length === 0 ? (
+              <EmptyState label="Everyone's been reached this quarter." />
+            ) : (
+              <ul className="divide-y divide-stone-100">
+                {notContactedThisQuarter.map((m) => (
+                  <li key={m.id} className="flex items-center justify-between py-2.5 text-sm">
+                    <Link href={`/members/${m.id}/care-plan`} className="font-medium text-stone-800 hover:text-stone-900 hover:underline">
+                      {m.firstName} {m.lastName}
+                    </Link>
+                    <Badge color={m.lastSuccessfulContactDate ? "yellow" : "red"}>
+                      {m.lastSuccessfulContactDate ? formatDate(m.lastSuccessfulContactDate) : "Never contacted"}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
 
           <Card title="Recent Contact Attempts">

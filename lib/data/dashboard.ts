@@ -20,6 +20,7 @@ export async function getDashboardData() {
     goalCounts,
     recentContacts,
     membersForAnnualCna,
+    membersForContactCheck,
   ] = await Promise.all([
     db.member.count({ where: memberScope }),
     db.task.count({
@@ -71,6 +72,20 @@ export async function getDashboardData() {
         },
       },
     }),
+    db.member.findMany({
+      where: memberScope,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        generalCommunications: {
+          where: { successful: true },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { createdAt: true },
+        },
+      },
+    }),
   ]);
 
   const goalTotals = { onTrack: 0, inProgress: 0, notStarted: 0, complete: 0 };
@@ -101,6 +116,25 @@ export async function getDashboardData() {
       return a.dueDate.getTime() - b.dueDate.getTime();
     });
 
+  // "This quarter" = the current calendar quarter (Jan-Mar, Apr-Jun, etc.) —
+  // members with no successful contact since it started are a care-gap
+  // signal, sorted with never-contacted / longest-stale first.
+  const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+  const quarterStart = new Date(now.getFullYear(), quarterStartMonth, 1);
+  const notContactedThisQuarter = membersForContactCheck
+    .map((m) => ({
+      id: m.id,
+      firstName: m.firstName,
+      lastName: m.lastName,
+      lastSuccessfulContactDate: m.generalCommunications[0]?.createdAt ?? null,
+    }))
+    .filter((m) => !m.lastSuccessfulContactDate || m.lastSuccessfulContactDate < quarterStart)
+    .sort((a, b) => {
+      if (!a.lastSuccessfulContactDate) return -1;
+      if (!b.lastSuccessfulContactDate) return 1;
+      return a.lastSuccessfulContactDate.getTime() - b.lastSuccessfulContactDate.getTime();
+    });
+
   return {
     session,
     stats: {
@@ -114,5 +148,6 @@ export async function getDashboardData() {
     goalTotals,
     recentContacts,
     annualCnaDue,
+    notContactedThisQuarter,
   };
 }
