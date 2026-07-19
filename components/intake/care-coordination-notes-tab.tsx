@@ -51,7 +51,11 @@ export function CareCoordinationNotesTab({
       {!draft ? (
         <p className="text-sm text-stone-500">No Care Coordination Note yet — click &quot;+ New Note&quot; to start one.</p>
       ) : (
-      <form action={saveCareCoordinationNote.bind(null, memberId, draft.id)} className="max-w-3xl space-y-6">
+      <form
+        key={`${draft.id}-${draft.updatedAt.getTime()}`}
+        action={saveCareCoordinationNote.bind(null, memberId, draft.id)}
+        className="max-w-3xl space-y-6"
+      >
       {locked && <SignedBanner signedByName={draft.signedBy?.name ?? null} signedAt={draft.signedAt as Date} />}
 
       <fieldset disabled={locked} className="contents">

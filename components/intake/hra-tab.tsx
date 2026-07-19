@@ -51,7 +51,11 @@ export function HraTab({ memberId, records, currentUserIsAdmin }: { memberId: st
       {!draft ? (
         <p className="text-sm text-stone-500">No HRA yet — click &quot;+ New HRA&quot; to start one.</p>
       ) : (
-      <form action={saveHra.bind(null, memberId, draft.id)} className="max-w-3xl space-y-6">
+      <form
+        key={`${draft.id}-${draft.updatedAt.getTime()}`}
+        action={saveHra.bind(null, memberId, draft.id)}
+        className="max-w-3xl space-y-6"
+      >
       {locked && <SignedBanner signedByName={draft.signedBy?.name ?? null} signedAt={draft.signedAt as Date} />}
 
       {cnaReasons.length > 0 && (

@@ -4,8 +4,6 @@ import { db } from "@/lib/db";
 import { verifySession, authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 
-const IN_PERSON_TOUCHPOINT_TYPES = ["HOME_VISIT", "OFFICE_VISIT"] as const;
-
 export async function listMembers() {
   const session = await verifySession();
 
@@ -46,9 +44,9 @@ export async function listMembers() {
       carePlans: {
         select: { ccpStartDate: true, createdAt: true, updatedAt: true },
       },
-      touchpoints: {
-        orderBy: { date: "desc" },
-        select: { date: true, type: true },
+      generalCommunications: {
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true, contactMethod: true },
       },
     },
   });
@@ -65,8 +63,7 @@ export async function listMembers() {
       ? new Date(Math.max(...m.carePlans.map((cp) => cp.updatedAt.getTime())))
       : null;
 
-    const lastInPersonTouchpoint =
-      m.touchpoints.find((t) => (IN_PERSON_TOUCHPOINT_TYPES as readonly string[]).includes(t.type))?.date ?? null;
+    const lastInPersonContact = m.generalCommunications.find((c) => c.contactMethod === "In Person")?.createdAt ?? null;
 
     return {
       id: m.id,
@@ -85,8 +82,8 @@ export async function listMembers() {
       dueDate: m.edd,
       provider: m.provider,
       assignedCoordinator: m.assignedCoordinator,
-      lastContactDate: m.touchpoints[0]?.date ?? null,
-      lastInPersonTouchpointDate: lastInPersonTouchpoint,
+      lastContactDate: m.generalCommunications[0]?.createdAt ?? null,
+      lastInPersonTouchpointDate: lastInPersonContact,
       initialCnaDate: initialCna?.assessmentDate ?? null,
       mostRecentCnaDate: mostRecentCna?.assessmentDate ?? null,
       mostRecentCnaType: mostRecentCna?.assessmentType[0] ?? null,
@@ -103,14 +100,14 @@ export async function getMemberChart(memberId: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) notFound();
 
-  const [tasks, touchpoints, appointments, documents, notes, goalCounts, latestCarePlan] =
+  const [tasks, recentContacts, appointments, documents, notes, goalCounts, latestCarePlan] =
     await Promise.all([
       db.task.findMany({ where: { memberId }, orderBy: { dueDate: "asc" }, take: 6 }),
-      db.touchpoint.findMany({
+      db.generalCommunication.findMany({
         where: { memberId },
-        orderBy: { date: "desc" },
+        orderBy: { createdAt: "desc" },
         take: 5,
-        include: { user: { select: { name: true } } },
+        include: { author: { select: { name: true } } },
       }),
       db.appointment.findMany({
         where: { memberId, startsAt: { gte: new Date() } },
@@ -147,7 +144,7 @@ export async function getMemberChart(memberId: string) {
     session,
     member,
     tasks,
-    touchpoints,
+    recentContacts,
     appointments,
     documents,
     notes,

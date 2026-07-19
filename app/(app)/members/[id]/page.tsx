@@ -11,7 +11,7 @@ import { updateMemberDetails } from "@/app/actions/member-details";
 
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { member, tasks, touchpoints, appointments, documents, notes, goalTotals } = await getMemberChart(id);
+  const { member, tasks, recentContacts, appointments, documents, notes, goalTotals } = await getMemberChart(id);
 
   const returnPath = `/members/${id}`;
 
@@ -39,7 +39,11 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
           </Card>
 
           <Card title="Insurance &amp; Provider">
-            <form action={updateMemberDetails.bind(null, id)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <form
+              key={member.updatedAt.getTime()}
+              action={updateMemberDetails.bind(null, id)}
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+            >
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Chart ID</label>
                 <input
@@ -117,27 +121,31 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
             <GoalDonut totals={goalTotals} />
           </Card>
 
-          <Card title="Recent Touchpoints">
-            {touchpoints.length === 0 ? (
-              <EmptyState label="No touchpoints logged yet." />
+          <Card title="Recent Contact Attempts">
+            {recentContacts.length === 0 ? (
+              <EmptyState label="No contact attempts logged yet." />
             ) : (
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs text-stone-400">
                     <th className="pb-2 font-medium">Date</th>
-                    <th className="pb-2 font-medium">Type</th>
+                    <th className="pb-2 font-medium">Method</th>
                     <th className="pb-2 font-medium">By</th>
                     <th className="pb-2 font-medium">Outcome</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
-                  {touchpoints.map((tp) => (
-                    <tr key={tp.id}>
-                      <td className="py-2 text-stone-600">{formatDate(tp.date)}</td>
-                      <td className="py-2 text-stone-600">{titleCase(tp.type)}</td>
-                      <td className="py-2 text-stone-600">{tp.user.name}</td>
+                  {recentContacts.map((c) => (
+                    <tr key={c.id}>
+                      <td className="py-2 text-stone-600">{formatDate(c.createdAt)}</td>
+                      <td className="py-2 text-stone-600">{c.contactMethod ?? "—"}</td>
+                      <td className="py-2 text-stone-600">{c.author?.name ?? "—"}</td>
                       <td className="py-2">
-                        <Badge color={tp.outcome === "COMPLETED" ? "green" : "yellow"}>{titleCase(tp.outcome)}</Badge>
+                        {c.successful === null ? (
+                          <Badge color="slate">—</Badge>
+                        ) : (
+                          <Badge color={c.successful ? "green" : "yellow"}>{c.successful ? "Successful" : "Unsuccessful"}</Badge>
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -47,7 +47,11 @@ export function TocForm({
         <p className="text-sm text-stone-500">No Transition of Care record yet — click &quot;+ New TOC&quot; to start one.</p>
       ) : (
         <>
-          <form action={saveTocRecord.bind(null, memberId, draft.id)} className="max-w-3xl space-y-6">
+          <form
+            key={`${draft.id}-${draft.updatedAt.getTime()}`}
+            action={saveTocRecord.bind(null, memberId, draft.id)}
+            className="max-w-3xl space-y-6"
+          >
             {locked && <SignedBanner signedByName={draft.signedBy?.name ?? null} signedAt={draft.signedAt as Date} />}
 
             <fieldset disabled={locked} className="contents">

@@ -796,6 +796,15 @@ model GeneralCommunication {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Structured outreach-attempt fields, optional alongside the free-text
+  // body — lets the system compute contact counts/dates without forcing a
+  // separate workflow away from how the team already documents outreach.
+  contactMethod      String? // Phone/Video/In Person/Portal/Text/Email/Other
+  successful         Boolean?
+  unsuccessfulReason String? // No answer/Left voicemail/Wrong number/etc. — only when successful is false
+  personContacted    String? // Member/Parent or Guardian/Authorized Representative/Provider/Community Partner
+  nextAttemptDate    DateTime?
+
   @@index([memberId])
 }
 

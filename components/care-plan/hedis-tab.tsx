@@ -11,7 +11,11 @@ function lower(v: string | null | undefined) {
 export function HedisTab({ memberId, record }: { memberId: string; record: HedisMeasures | null }) {
   return (
     <div className="p-8">
-      <form action={saveHedisMeasures.bind(null, memberId)} className="max-w-2xl space-y-6">
+      <form
+        key={record ? `${record.id}-${record.updatedAt.getTime()}` : "new"}
+        action={saveHedisMeasures.bind(null, memberId)}
+        className="max-w-2xl space-y-6"
+      >
         <Card>
           <div className="max-w-xs">
             <DateField name="deliveryDate" label="Delivery Date" defaultValue={toDateInputValue(record?.deliveryDate)} />

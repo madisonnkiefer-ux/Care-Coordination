@@ -56,7 +56,11 @@ export function DemographicsTab({
       {!selected ? (
         <p className="text-sm text-stone-500">No Demographics record yet — click &quot;+ New Demographics&quot; to start one.</p>
       ) : (
-        <form action={saveDemographics.bind(null, memberId, selected.id)} className="max-w-3xl space-y-6">
+        <form
+          key={`${selected.id}-${selected.updatedAt.getTime()}`}
+          action={saveDemographics.bind(null, memberId, selected.id)}
+          className="max-w-3xl space-y-6"
+        >
           {locked && <SignedBanner signedByName={selected.signedBy?.name ?? null} signedAt={selected.signedAt as Date} />}
 
           <fieldset disabled={locked} className="contents">

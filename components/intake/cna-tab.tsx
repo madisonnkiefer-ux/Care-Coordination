@@ -58,7 +58,11 @@ export function CnaTab({ memberId, records, currentUserIsAdmin }: { memberId: st
       {!draft ? (
         <p className="text-sm text-stone-500">No CNA yet — click &quot;+ New CNA&quot; to start one.</p>
       ) : (
-      <form action={saveCna.bind(null, memberId, draft.id)} className="max-w-3xl space-y-6">
+      <form
+        key={`${draft.id}-${draft.updatedAt.getTime()}`}
+        action={saveCna.bind(null, memberId, draft.id)}
+        className="max-w-3xl space-y-6"
+      >
       {locked && <SignedBanner signedByName={draft.signedBy?.name ?? null} signedAt={draft.signedAt as Date} />}
 
       {safetyReasons.length > 0 && (

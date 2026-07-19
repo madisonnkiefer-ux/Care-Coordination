@@ -18,7 +18,7 @@ export async function getDashboardData() {
     myTasks,
     upcomingAppointments,
     goalCounts,
-    recentTouchpoints,
+    recentContacts,
     membersForAnnualCna,
   ] = await Promise.all([
     db.member.count({ where: memberScope }),
@@ -48,13 +48,13 @@ export async function getDashboardData() {
       where: { carePlan: { member: memberScope } },
       _count: true,
     }),
-    db.touchpoint.findMany({
+    db.generalCommunication.findMany({
       where: { member: memberScope },
-      orderBy: { date: "desc" },
+      orderBy: { createdAt: "desc" },
       take: 5,
       include: {
         member: { select: { id: true, firstName: true, lastName: true } },
-        user: { select: { name: true } },
+        author: { select: { name: true } },
       },
     }),
     db.member.findMany({
@@ -112,7 +112,7 @@ export async function getDashboardData() {
     myTasks,
     upcomingAppointments,
     goalTotals,
-    recentTouchpoints,
+    recentContacts,
     annualCnaDue,
   };
 }

@@ -31,7 +31,11 @@ export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; car
 
       {expanded && (
         <div className="mt-5 space-y-6 border-t border-stone-100 pt-5">
-          <form action={saveGoal.bind(null, memberId, carePlanId, goal.id)} className="space-y-5">
+          <form
+            key={`${goal.id}-${goal.updatedAt.getTime()}`}
+            action={saveGoal.bind(null, memberId, carePlanId, goal.id)}
+            className="space-y-5"
+          >
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">Opportunity</p>
               <TextField name="opportunity" label="Opportunity" defaultValue={goal.opportunity} />

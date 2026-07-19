@@ -6,7 +6,7 @@ import { GoalDonut } from "@/components/goal-donut";
 import { formatDate, formatDateTime, titleCase } from "@/lib/format";
 
 export default async function DashboardPage() {
-  const { session, stats, myTasks, upcomingAppointments, goalTotals, recentTouchpoints, annualCnaDue } =
+  const { session, stats, myTasks, upcomingAppointments, goalTotals, recentContacts, annualCnaDue } =
     await getDashboardData();
 
   return (
@@ -97,29 +97,33 @@ export default async function DashboardPage() {
             <GoalDonut totals={goalTotals} />
           </Card>
 
-          <Card title="Recent Touchpoints">
-            {recentTouchpoints.length === 0 ? (
-              <EmptyState label="No touchpoints logged yet." />
+          <Card title="Recent Contact Attempts">
+            {recentContacts.length === 0 ? (
+              <EmptyState label="No contact attempts logged yet." />
             ) : (
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs text-stone-400">
                     <th className="pb-2 font-medium">Date</th>
                     <th className="pb-2 font-medium">Member</th>
-                    <th className="pb-2 font-medium">Type</th>
+                    <th className="pb-2 font-medium">Method</th>
                     <th className="pb-2 font-medium">Outcome</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
-                  {recentTouchpoints.map((tp) => (
-                    <tr key={tp.id}>
-                      <td className="py-2 text-stone-600">{formatDate(tp.date)}</td>
+                  {recentContacts.map((c) => (
+                    <tr key={c.id}>
+                      <td className="py-2 text-stone-600">{formatDate(c.createdAt)}</td>
                       <td className="py-2 text-stone-800">
-                        {tp.member.firstName} {tp.member.lastName}
+                        {c.member.firstName} {c.member.lastName}
                       </td>
-                      <td className="py-2 text-stone-600">{titleCase(tp.type)}</td>
+                      <td className="py-2 text-stone-600">{c.contactMethod ?? "—"}</td>
                       <td className="py-2">
-                        <OutcomeBadge outcome={tp.outcome} />
+                        {c.successful === null ? (
+                          <Badge color="slate">—</Badge>
+                        ) : (
+                          <Badge color={c.successful ? "green" : "yellow"}>{c.successful ? "Successful" : "Unsuccessful"}</Badge>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -136,11 +140,6 @@ export default async function DashboardPage() {
 function PriorityBadge({ priority }: { priority: "LOW" | "MEDIUM" | "HIGH" }) {
   const color = priority === "HIGH" ? "red" : priority === "MEDIUM" ? "yellow" : "slate";
   return <Badge color={color}>{titleCase(priority)}</Badge>;
-}
-
-function OutcomeBadge({ outcome }: { outcome: string }) {
-  const color = outcome === "COMPLETED" ? "green" : outcome === "ATTEMPTED" ? "yellow" : "red";
-  return <Badge color={color}>{titleCase(outcome)}</Badge>;
 }
 
 function EmptyState({ label, sub }: { label: string; sub?: string }) {

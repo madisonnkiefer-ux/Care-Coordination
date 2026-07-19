@@ -1,10 +1,19 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+
+function str(formData: FormData, key: string) {
+  const v = formData.get(key);
+  return typeof v === "string" && v.trim() ? v.trim() : null;
+}
+
+function date(formData: FormData, key: string) {
+  const v = str(formData, key);
+  return v ? new Date(v) : null;
+}
 
 export async function createNewGeneralCommunication(memberId: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
@@ -23,7 +32,6 @@ export async function createNewGeneralCommunication(memberId: string) {
   });
 
   revalidatePath(`/members/${memberId}/care-plan`);
-  redirect(`/members/${memberId}/care-plan`);
 }
 
 export async function saveGeneralCommunication(memberId: string, commId: string, formData: FormData) {
@@ -33,11 +41,19 @@ export async function saveGeneralCommunication(memberId: string, commId: string,
   const existing = await db.generalCommunication.findUnique({ where: { id: commId } });
   if (!existing || existing.memberId !== memberId) throw new Error("Not found");
 
-  const body = formData.get("body");
+  const successfulRaw = formData.get("successful");
+  const successful = successfulRaw === "yes" ? true : successfulRaw === "no" ? false : null;
 
   await db.generalCommunication.update({
     where: { id: commId },
-    data: { body: typeof body === "string" && body.trim() ? body.trim() : null },
+    data: {
+      body: str(formData, "body"),
+      contactMethod: str(formData, "contactMethod"),
+      successful,
+      unsuccessfulReason: successful === false ? str(formData, "unsuccessfulReason") : null,
+      personContacted: str(formData, "personContacted"),
+      nextAttemptDate: date(formData, "nextAttemptDate"),
+    },
   });
 
   await writeAuditLog({
@@ -49,5 +65,5 @@ export async function saveGeneralCommunication(memberId: string, commId: string,
   });
 
   revalidatePath(`/members/${memberId}/care-plan`);
-  redirect(`/members/${memberId}/care-plan`);
+  revalidatePath("/members");
 }

@@ -51,7 +51,11 @@ export function CcpTab({ memberId, records }: { memberId: string; records: CareP
         <p className="text-sm text-stone-500">No Comprehensive Care Plan yet — click &quot;+ New CCP&quot; to start one.</p>
       ) : (
         <div className="max-w-4xl space-y-6">
-          <form action={saveCarePlan.bind(null, memberId, plan.id)} className="space-y-6">
+          <form
+            key={`${plan.id}-${plan.updatedAt.getTime()}`}
+            action={saveCarePlan.bind(null, memberId, plan.id)}
+            className="space-y-6"
+          >
             <Card title="Demographic Information">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <DateField name="ccpStartDate" label="CCP Start Date" defaultValue={toInputDate(plan.ccpStartDate)} />
