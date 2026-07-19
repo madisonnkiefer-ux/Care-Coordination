@@ -1,9 +1,10 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
+import { writeAuditLog } from "@/lib/audit";
 
 export async function getCarePlanFormData(memberId: string) {
-  const { member } = await authorizeMemberAccess(memberId);
+  const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) return null;
 
   const records = await db.carePlan.findMany({
@@ -20,6 +21,8 @@ export async function getCarePlanFormData(memberId: string) {
       },
     },
   });
+
+  await writeAuditLog({ userId: session.userId, memberId, action: "VIEW", resource: "CarePlan", resourceId: memberId });
 
   return { member, records };
 }

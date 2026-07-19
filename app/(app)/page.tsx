@@ -6,7 +6,7 @@ import { GoalDonut } from "@/components/goal-donut";
 import { formatDate, formatDateTime, titleCase } from "@/lib/format";
 
 export default async function DashboardPage() {
-  const { session, stats, myTasks, upcomingAppointments, goalTotals, recentTouchpoints } =
+  const { session, stats, myTasks, upcomingAppointments, goalTotals, recentTouchpoints, annualCnaDue } =
     await getDashboardData();
 
   return (
@@ -24,7 +24,6 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card
             title="My Tasks"
-            className="lg:col-span-2"
             action={
               <Link href="/tasks" className="text-xs font-medium text-stone-900 hover:underline">
                 View my tasks →
@@ -51,6 +50,26 @@ export default async function DashboardPage() {
                     </div>
                   </li>
                 ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card title="Annual CNAs Due This Month">
+            {annualCnaDue.length === 0 ? (
+              <EmptyState label="Nothing due this month." />
+            ) : (
+              <ul className="divide-y divide-stone-100">
+                {annualCnaDue.map((m) => {
+                  const overdue = m.dueDate ? m.dueDate < new Date() : true;
+                  return (
+                    <li key={m.id} className="flex items-center justify-between py-2.5 text-sm">
+                      <Link href={`/members/${m.id}/intake`} className="font-medium text-stone-800 hover:text-stone-900 hover:underline">
+                        {m.firstName} {m.lastName}
+                      </Link>
+                      <Badge color={overdue ? "red" : "yellow"}>{m.dueDate ? formatDate(m.dueDate) : "Never completed"}</Badge>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </Card>

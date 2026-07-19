@@ -3,6 +3,7 @@ import { CheckSquare, Square, ListTree, FileSignature } from "lucide-react";
 import { getMemberChart } from "@/lib/data/members";
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { GoalDonut } from "@/components/goal-donut";
+import { DocumentUpload } from "@/components/document-upload";
 import { formatDate, formatDateTime, titleCase } from "@/lib/format";
 import { saveQuickNote } from "@/app/actions/notes";
 import { toggleTask } from "@/app/actions/tasks";
@@ -155,14 +156,22 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
           </Card>
 
           <Card title="Documents">
+            <DocumentUpload memberId={id} />
             {documents.length === 0 ? (
               <EmptyState label="No documents uploaded." />
             ) : (
               <ul className="space-y-2 text-sm">
                 {documents.map((doc) => (
-                  <li key={doc.id} className="flex items-center justify-between">
-                    <span className="text-slate-700">{doc.name}</span>
-                    <span className="text-xs text-slate-400">{formatDate(doc.createdAt)}</span>
+                  <li key={doc.id} className="flex items-center justify-between gap-2">
+                    <a
+                      href={doc.storageKey ?? "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="truncate text-slate-700 hover:text-fuchsia-600 hover:underline"
+                    >
+                      {doc.name}
+                    </a>
+                    <span className="shrink-0 text-xs text-slate-400">{formatDate(doc.createdAt)}</span>
                   </li>
                 ))}
               </ul>

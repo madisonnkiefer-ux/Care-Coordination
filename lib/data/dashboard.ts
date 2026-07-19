@@ -19,6 +19,7 @@ export async function getDashboardData() {
     upcomingAppointments,
     goalCounts,
     recentTouchpoints,
+    membersForAnnualCna,
   ] = await Promise.all([
     db.member.count({ where: memberScope }),
     db.task.count({
@@ -56,6 +57,20 @@ export async function getDashboardData() {
         user: { select: { name: true } },
       },
     }),
+    db.member.findMany({
+      where: memberScope,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        cnaAssessments: {
+          where: { status: "COMPLETED" },
+          orderBy: { assessmentDate: "desc" },
+          take: 1,
+          select: { assessmentDate: true },
+        },
+      },
+    }),
   ]);
 
   const goalTotals = { onTrack: 0, inProgress: 0, notStarted: 0, complete: 0 };
@@ -65,6 +80,26 @@ export async function getDashboardData() {
     if (row.status === "NOT_STARTED") goalTotals.notStarted = row._count;
     if (row.status === "COMPLETE") goalTotals.complete = row._count;
   }
+
+  // Annual CNA is due 12 months after the last completed one. "Due this
+  // month" includes anything already overdue, plus members who have never
+  // had a completed CNA (most urgent — sorted first).
+  const now = new Date();
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const annualCnaDue = membersForAnnualCna
+    .map((m) => {
+      const lastCnaDate = m.cnaAssessments[0]?.assessmentDate ?? null;
+      const dueDate = lastCnaDate
+        ? new Date(lastCnaDate.getFullYear() + 1, lastCnaDate.getMonth(), lastCnaDate.getDate())
+        : null;
+      return { id: m.id, firstName: m.firstName, lastName: m.lastName, lastCnaDate, dueDate };
+    })
+    .filter((m) => !m.dueDate || m.dueDate <= endOfMonth)
+    .sort((a, b) => {
+      if (!a.dueDate) return -1;
+      if (!b.dueDate) return 1;
+      return a.dueDate.getTime() - b.dueDate.getTime();
+    });
 
   return {
     session,
@@ -78,5 +113,6 @@ export async function getDashboardData() {
     upcomingAppointments,
     goalTotals,
     recentTouchpoints,
+    annualCnaDue,
   };
 }
