@@ -11,6 +11,7 @@ import {
   LogOut,
   HeartHandshake,
   BookOpen,
+  BarChart3,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { Avatar } from "@/components/ui";
@@ -32,6 +33,12 @@ const NAV_ITEMS: NavItem[] = [
     href: "/supervisor",
     label: "Supervisor Dashboard",
     icon: ShieldCheck,
+    roles: ["SUPERVISOR", "ADMIN"],
+  },
+  {
+    href: "/reports",
+    label: "Reports",
+    icon: BarChart3,
     roles: ["SUPERVISOR", "ADMIN"],
   },
   {
