@@ -21,7 +21,7 @@ export default async function DashboardPage() {
           <StatTile label="Care Plans Tracked" value={stats.carePlansTracked} icon={ClipboardList} />
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
           <Card
             title="My Tasks"
             action={
@@ -92,7 +92,7 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
           <Card title="Care Plan Goals Overview">
             <GoalDonut totals={goalTotals} />
           </Card>
@@ -144,12 +144,14 @@ function PriorityBadge({ priority }: { priority: "LOW" | "MEDIUM" | "HIGH" }) {
 
 function EmptyState({ label, sub }: { label: string; sub?: string }) {
   return (
-    <div className="flex flex-col items-center py-8 text-center">
-      <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
-        <ClipboardCheck className="h-7 w-7 text-stone-500" />
+    <div className="flex items-center gap-3 py-2">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-50">
+        <ClipboardCheck className="h-4 w-4 text-stone-500" />
       </div>
-      <p className="text-sm font-medium text-stone-700">{label}</p>
-      {sub && <p className="mt-0.5 text-xs text-stone-400">{sub}</p>}
+      <div>
+        <p className="text-sm font-medium text-stone-700">{label}</p>
+        {sub && <p className="text-xs text-stone-400">{sub}</p>}
+      </div>
     </div>
   );
 }
