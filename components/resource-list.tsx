@@ -14,8 +14,13 @@ const CATEGORY_OPTIONS = [
   "Maternity/OB Service",
   "Referral Contact",
   "Crisis/Emergency",
+  "Behavioral Health",
   "Administrative",
   "Housing",
+  "Travel/Logistics",
+  "Rewards/Incentives",
+  "Health Monitoring",
+  "Community Resource",
   "Internal Tool",
   "Other",
 ];
