@@ -116,3 +116,60 @@ export const PHQ_SCALE_OPTIONS = [
 ];
 
 export const PHQ_DIFFICULTY_OPTIONS = ["Not difficult at all", "Somewhat difficult", "Very difficult", "Extremely difficult"];
+
+// Care Coordination Notes — leveling criteria, from the standardized CNA's
+// "Care Coordination Engagement" section.
+export const CCL1_CRITERIA_OPTIONS = [
+  "CCL1 (at minimum)",
+  "Members who meet NF LOC or are receiving Long Term Services and Supports (LTSS)",
+  "Perinatal/Postpartum Members",
+  "Member engaged in Medicaid Home Visiting (MHV) (1 year postpartum)",
+  "Waiver Member",
+  "Member with three or more complaints, grievances, or appeals related to the Member's experience with the service delivery system",
+  "Behavioral Health diagnosis (non-SUD/SMI/SED)",
+  "Frequent emergency room use with four or more annual individual patient visits",
+  "Has an acute disease, as defined by the MCO",
+  "Justice Involved (13 months post release)",
+  "Member has housing insecurity",
+  "Readmitted to the hospital within thirty (30) Calendar Days of discharge",
+  "Has Dementia, mild or more significant cognitive deficits requiring prompting or cueing",
+  "Has poly-pharmaceutical use, defined as simultaneous use of six (6) or more medications from different drug classes and/or simultaneous use of three (3) or more medications from the same drug class",
+];
+
+export const CCL2_CRITERIA_OPTIONS = [
+  "CCL2",
+  "Is a dependent child in an out-of-home placement",
+  "High Cost Member",
+  "Member with Substance Use Disorder (SUD)",
+  "Member with serious Emotional Disturbance (SED)",
+  "Member with serious mental illness (SMI)",
+  "Justice-Involved Member who have been incarcerated within the last year",
+  "Members who are homeless",
+  "Member has a TBI",
+  "Children in State Custody (CISC) Member",
+  "CARA Member",
+  "Member is in an out of state placement",
+  "Medically Fragile Member",
+  "Is a transplant recipient",
+  "Is residing in an ICF/IID",
+  "Multi-comorbidity",
+  "Terminal Disease",
+  "Medically Frail",
+];
+
+export const CANNOT_BE_LEVELED_DOWN_OPTIONS = [
+  "095 and 096",
+  "CISC Members",
+  "CARA Members",
+  "Members with four or more annual individual emergency department or inpatient visits",
+  "Members defined as high cost need",
+  "Members with a Nursing Facility Level of Care",
+  "Members in and out of State Placement",
+  "Members who have been incarcerated in the last year",
+  "Members who are homeless",
+  "Perinatal or maternal health member or member engaged in maternal home visiting MHV",
+];
+
+export const CARE_COORDINATION_LEVEL_OPTIONS = ["CCL0", "CCL1", "CCL2", "Initial Not Otherwise Medicaid Eligible (NOME)"];
+export const ABP_CLASSIFICATION_OPTIONS = ["ABP", "ABP Exempt", "N/A"];
+export const COMPLEX_CASE_OPTIONS = ["Initial NFLOC", "Complex Case Management", "N/A"];

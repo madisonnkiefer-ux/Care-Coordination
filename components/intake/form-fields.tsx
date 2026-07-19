@@ -149,6 +149,35 @@ export function Checkbox({ name, label, defaultChecked }: { name: string; label:
   );
 }
 
+// A "check all that apply" list bound to a single form field name — reads back
+// via formData.getAll(name) into a String[] column.
+export function CheckboxGroup({
+  name,
+  options,
+  defaultValues,
+}: {
+  name: string;
+  options: string[];
+  defaultValues?: string[] | null;
+}) {
+  return (
+    <div className="space-y-2">
+      {options.map((opt) => (
+        <label key={opt} className="flex items-start gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            name={name}
+            value={opt}
+            defaultChecked={defaultValues?.includes(opt) ?? false}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300"
+          />
+          {opt}
+        </label>
+      ))}
+    </div>
+  );
+}
+
 export function YesNoField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: boolean | null }) {
   return (
     <div>

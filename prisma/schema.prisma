@@ -43,15 +43,16 @@ model User {
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
 
-  assignedMembers Member[]        @relation("AssignedCoordinator")
-  tasks           Task[]          @relation("TaskAssignee")
-  touchpoints     Touchpoint[]
-  notes           QuickNote[]
-  documents       Document[]
-  auditLogs       AuditLog[]
-  cnaAssessments  CnaAssessment[]
-  hraAssessments  HraAssessment[]
-  carePlans       CarePlan[]
+  assignedMembers       Member[]               @relation("AssignedCoordinator")
+  tasks                 Task[]                 @relation("TaskAssignee")
+  touchpoints           Touchpoint[]
+  notes                 QuickNote[]
+  documents             Document[]
+  auditLogs             AuditLog[]
+  cnaAssessments        CnaAssessment[]
+  hraAssessments        HraAssessment[]
+  careCoordinationNotes CareCoordinationNote[]
+  carePlans             CarePlan[]
 
   @@index([clinicId])
 }
@@ -101,16 +102,17 @@ model Member {
   assignedCoordinatorId String?
   assignedCoordinator   User?   @relation("AssignedCoordinator", fields: [assignedCoordinatorId], references: [id])
 
-  demographics   Demographics?
-  cnaAssessments CnaAssessment[]
-  hraAssessments HraAssessment[]
-  carePlans      CarePlan[]
-  tasks          Task[]
-  touchpoints    Touchpoint[]
-  documents      Document[]
-  appointments   Appointment[]
-  notes          QuickNote[]
-  auditLogs      AuditLog[]
+  demographics          Demographics?
+  cnaAssessments        CnaAssessment[]
+  hraAssessments        HraAssessment[]
+  careCoordinationNotes CareCoordinationNote[]
+  carePlans             CarePlan[]
+  tasks                 Task[]
+  touchpoints           Touchpoint[]
+  documents             Document[]
+  appointments          Appointment[]
+  notes                 QuickNote[]
+  auditLogs             AuditLog[]
 
   @@index([clinicId])
   @@index([assignedCoordinatorId])
@@ -407,6 +409,56 @@ model CnaAssessment {
   interestedInCareCoordination  Boolean?
   declinationExplainedAndSigned String? // yes / no / na
   declinationReason             String?
+
+  @@index([memberId])
+}
+
+// ---------- Care Coordination Notes (post-CNA leveling & closeout) ----------
+
+model CareCoordinationNote {
+  id         String           @id @default(cuid())
+  memberId   String
+  member     Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assessorId String
+  assessor   User             @relation(fields: [assessorId], references: [id])
+  status     AssessmentStatus @default(DRAFT)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  // Summary
+  physicalHealthSummary                    String?
+  behavioralHealthSummary                  String?
+  safetyVisionHearingCaregiverObservations String?
+  hrsnAndAdditionalObservations            String?
+  communityProviderReferrals               String?
+  schedulingAssistanceProvided             String?
+
+  // Care Coordination Level leveling criteria (check all that apply)
+  ccl1Criteria                  String[]
+  ccl1OtherSpecify              String?
+  ccl2Criteria                  String[]
+  ccl2OtherSpecify              String?
+  cannotBeLeveledDownIndicators String[]
+
+  careCoordinationLevel         String?
+  eligibilityConclusionsSummary String?
+
+  cbsqCbmaCompleted           String? // yes / no / na
+  cbsqCbmaNotCompletedExplain String?
+
+  hasCoe100Abp             Boolean?
+  wantsAbpExemptEvaluation Boolean?
+  abpClassification        String? // ABP / ABP Exempt / N/A
+  qualifiesForAbpExempt    Boolean?
+  abpExemptReason          String?
+
+  hcbsSettingsRuleAssessed String? // yes / no / na
+
+  providedServicesBenefitsInfo        Boolean?
+  providedServicesBenefitsInfoExplain String?
+
+  memberSatisfactionDescription String?
+  complexCaseManagementOrNfloc  String? // Initial NFLOC / Complex Case Management / N/A
 
   @@index([memberId])
 }
