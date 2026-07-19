@@ -146,7 +146,6 @@ export async function saveCarePlan(memberId: string, carePlanId: string, formDat
   });
 
   revalidatePath(`/members/${memberId}/care-plan`);
-  redirect(`/members/${memberId}/care-plan`);
 }
 
 export async function addGoal(memberId: string, carePlanId: string) {
@@ -166,7 +165,6 @@ export async function addGoal(memberId: string, carePlanId: string) {
   });
 
   revalidatePath(`/members/${memberId}/care-plan`);
-  redirect(`/members/${memberId}/care-plan`);
 }
 
 export async function saveGoal(memberId: string, carePlanId: string, goalId: string, formData: FormData) {
@@ -219,7 +217,6 @@ export async function saveGoal(memberId: string, carePlanId: string, goalId: str
 
   revalidatePath(`/members/${memberId}/care-plan`);
   revalidatePath(`/members/${memberId}`);
-  redirect(`/members/${memberId}/care-plan`);
 }
 
 export async function updateGoalStatus(memberId: string, goalId: string, status: GoalStatus) {
@@ -246,7 +243,7 @@ export async function addProgressNote(memberId: string, carePlanId: string, goal
   if (!member) throw new Error("Forbidden");
 
   const note = str(formData, "note");
-  if (!note) redirect(`/members/${memberId}/care-plan`);
+  if (!note) return;
 
   const track = formData.get("track") === "COORDINATOR" ? "COORDINATOR" : "MEMBER";
 
@@ -254,7 +251,7 @@ export async function addProgressNote(memberId: string, carePlanId: string, goal
     data: {
       goalId,
       track,
-      note: note!,
+      note,
       date: date(formData, "date") ?? new Date(),
     },
   });
@@ -268,5 +265,4 @@ export async function addProgressNote(memberId: string, carePlanId: string, goal
   });
 
   revalidatePath(`/members/${memberId}/care-plan`);
-  redirect(`/members/${memberId}/care-plan`);
 }
