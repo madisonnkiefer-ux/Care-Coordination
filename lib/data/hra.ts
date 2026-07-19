@@ -6,19 +6,11 @@ export async function getHraFormData(memberId: string) {
   const { member } = await authorizeMemberAccess(memberId);
   if (!member) return null;
 
-  const draft = await db.hraAssessment.findFirst({
-    where: { memberId, status: "DRAFT" },
+  const records = await db.hraAssessment.findMany({
+    where: { memberId },
     orderBy: { createdAt: "desc" },
+    include: { signedBy: { select: { name: true } } },
   });
 
-  const latestCompleted = await db.hraAssessment.findFirst({
-    where: { memberId, status: "COMPLETED" },
-    orderBy: { assessmentDate: "desc" },
-  });
-
-  return {
-    member,
-    draft,
-    latestCompletedDate: latestCompleted?.assessmentDate ?? null,
-  };
+  return { member, records };
 }

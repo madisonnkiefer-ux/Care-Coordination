@@ -35,9 +35,8 @@ export async function getMemberChart(memberId: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) notFound();
 
-  const [demographics, tasks, touchpoints, appointments, documents, notes, goalCounts, latestCarePlan] =
+  const [tasks, touchpoints, appointments, documents, notes, goalCounts, latestCarePlan] =
     await Promise.all([
-      db.demographics.findUnique({ where: { memberId } }),
       db.task.findMany({ where: { memberId }, orderBy: { dueDate: "asc" }, take: 6 }),
       db.touchpoint.findMany({
         where: { memberId },
@@ -79,7 +78,6 @@ export async function getMemberChart(memberId: string) {
   return {
     session,
     member,
-    demographics,
     tasks,
     touchpoints,
     appointments,
@@ -88,12 +86,4 @@ export async function getMemberChart(memberId: string) {
     goalTotals,
     latestCarePlanId: latestCarePlan?.id ?? null,
   };
-}
-
-export async function getMemberForEdit(memberId: string) {
-  const { member } = await authorizeMemberAccess(memberId);
-  if (!member) notFound();
-
-  const demographics = await db.demographics.findUnique({ where: { memberId } });
-  return { member, demographics };
 }

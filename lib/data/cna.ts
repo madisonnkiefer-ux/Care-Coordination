@@ -6,19 +6,11 @@ export async function getCnaFormData(memberId: string) {
   const { member } = await authorizeMemberAccess(memberId);
   if (!member) return null;
 
-  const draft = await db.cnaAssessment.findFirst({
-    where: { memberId, status: "DRAFT" },
+  const records = await db.cnaAssessment.findMany({
+    where: { memberId },
     orderBy: { createdAt: "desc" },
+    include: { signedBy: { select: { name: true } } },
   });
 
-  const latestCompleted = await db.cnaAssessment.findFirst({
-    where: { memberId, status: "COMPLETED" },
-    orderBy: { assessmentDate: "desc" },
-  });
-
-  return {
-    member,
-    draft,
-    latestCompletedDate: latestCompleted?.assessmentDate ?? null,
-  };
+  return { member, records };
 }

@@ -53,6 +53,12 @@ model User {
   hraAssessments        HraAssessment[]
   careCoordinationNotes CareCoordinationNote[]
   carePlans             CarePlan[]
+  demographicsRecords   Demographics[]
+
+  cnaAssessmentsSigned        CnaAssessment[]        @relation("CnaSignedBy")
+  hraAssessmentsSigned        HraAssessment[]        @relation("HraSignedBy")
+  careCoordinationNotesSigned CareCoordinationNote[] @relation("CareCoordinationNoteSignedBy")
+  demographicsSigned          Demographics[]         @relation("DemographicsSignedBy")
 
   @@index([clinicId])
 }
@@ -102,7 +108,7 @@ model Member {
   assignedCoordinatorId String?
   assignedCoordinator   User?   @relation("AssignedCoordinator", fields: [assignedCoordinatorId], references: [id])
 
-  demographics          Demographics?
+  demographicsRecords   Demographics[]
   cnaAssessments        CnaAssessment[]
   hraAssessments        HraAssessment[]
   careCoordinationNotes CareCoordinationNote[]
@@ -118,13 +124,34 @@ model Member {
   @@index([assignedCoordinatorId])
 }
 
-// Extended demographics/intake fields kept separate from the core Member
-// record so the Member Chart "Demographics" tab can be versioned/edited
-// independently of the identity fields used everywhere else in the UI.
+// Versioned Demographics snapshots — every save creates/updates a DRAFT
+// record; signing (admin-only) locks it permanently. Member's own identity
+// fields (firstName, address, etc.) are kept in sync with the latest save
+// as a convenience "current value" cache read by the rest of the app, but
+// the full historical record — including exactly what was on file at
+// sign-time — lives here.
 model Demographics {
-  id       String @id @default(cuid())
-  memberId String @unique
-  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  id         String           @id @default(cuid())
+  memberId   String
+  member     Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assessorId String
+  assessor   User             @relation(fields: [assessorId], references: [id])
+  status     AssessmentStatus @default(DRAFT)
+  signedAt   DateTime?
+  signedById String?
+  signedBy   User?            @relation("DemographicsSignedBy", fields: [signedById], references: [id])
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  // Identity snapshot (mirrors Member's identity fields as of this record)
+  firstName   String?
+  middleName  String?
+  lastName    String?
+  dateOfBirth DateTime?
+  medicaidId  String?
+  address     String?
+  email       String?
+  language    String?
 
   // Identity / demographics
   race                String?
@@ -183,7 +210,6 @@ model Demographics {
   incomeLevel          String?
   housingStatus        String?
   transportationAccess Boolean?
-  updatedAt            DateTime @updatedAt
 }
 
 // ---------- CNA (Comprehensive Needs Assessment) ----------
@@ -203,6 +229,9 @@ model CnaAssessment {
   assessmentType   String[] // Initial / Annual / Semi-Annual / Change in Condition / Treat First (check all that apply)
   assessmentMethod String? // In-person in-home / In-person (alternate location) / Telephonic / Video
   status           AssessmentStatus @default(DRAFT)
+  signedAt         DateTime?
+  signedById       String?
+  signedBy         User?            @relation("CnaSignedBy", fields: [signedById], references: [id])
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -422,6 +451,9 @@ model CareCoordinationNote {
   assessorId String
   assessor   User             @relation(fields: [assessorId], references: [id])
   status     AssessmentStatus @default(DRAFT)
+  signedAt   DateTime?
+  signedById String?
+  signedBy   User?            @relation("CareCoordinationNoteSignedBy", fields: [signedById], references: [id])
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
 
@@ -476,6 +508,9 @@ model HraAssessment {
   assessmentMethod      String? // Telephonic / In-person / Other
   assessmentMethodOther String?
   status                AssessmentStatus @default(DRAFT)
+  signedAt              DateTime?
+  signedById            String?
+  signedBy              User?            @relation("HraSignedBy", fields: [signedById], references: [id])
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
 

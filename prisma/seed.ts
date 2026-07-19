@@ -64,8 +64,16 @@ async function main() {
         edd: seed.edd ? new Date(seed.edd) : null,
         attributedDate: new Date("2026-05-15"),
         assignedCoordinatorId: coordinator.id,
-        demographics: {
+        demographicsRecords: {
           create: {
+            assessorId: coordinator.id,
+            status: "COMPLETED",
+            firstName: seed.first,
+            lastName: seed.last,
+            dateOfBirth: new Date(seed.dob),
+            medicaidId: `DEMO${String(100000000 + i)}`,
+            email: `${seed.first.toLowerCase()}.${seed.last.toLowerCase()}@demo-member.local`,
+            language: "English",
             emergencyContactName: `${seed.first} Emergency Contact`,
             emergencyContactPhone: `(505) 555-${String(2000 + i).slice(1)}`,
             emergencyContactRel: "Spouse",

@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
-import { getMemberForEdit } from "@/lib/data/members";
+import { getDemographicsFormData } from "@/lib/data/demographics";
 import { getHraFormData } from "@/lib/data/hra";
 import { getCnaFormData } from "@/lib/data/cna";
 import { getCareCoordinationNoteFormData } from "@/lib/data/care-coordination-notes";
+import { getCurrentUser } from "@/lib/dal";
 import { PageHeader } from "@/components/ui";
 import { Tabs } from "@/components/tabs";
 import { DemographicsTab } from "@/components/intake/demographics-tab";
@@ -13,24 +14,36 @@ import { CareCoordinationNotesTab } from "@/components/intake/care-coordination-
 export default async function IntakePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const [{ member, demographics }, hraData, cnaData, notesData] = await Promise.all([
-    getMemberForEdit(id),
+  const [demographicsData, hraData, cnaData, notesData, currentUser] = await Promise.all([
+    getDemographicsFormData(id),
     getHraFormData(id),
     getCnaFormData(id),
     getCareCoordinationNoteFormData(id),
+    getCurrentUser(),
   ]);
 
-  if (!hraData || !cnaData || !notesData) notFound();
+  if (!demographicsData || !hraData || !cnaData || !notesData) notFound();
+
+  const { member } = demographicsData;
+  const currentUserIsAdmin = currentUser?.role === "ADMIN";
 
   return (
     <div>
       <PageHeader title="Intake" description={`${member.firstName} ${member.lastName}`} />
       <Tabs
         tabs={[
-          { id: "demographics", label: "Demographics", content: <DemographicsTab memberId={id} member={member} demographics={demographics} /> },
-          { id: "hra", label: "HRA", content: <HraTab memberId={id} data={hraData} /> },
-          { id: "cna", label: "CNA", content: <CnaTab memberId={id} data={cnaData} /> },
-          { id: "notes", label: "Care Coordination Notes", content: <CareCoordinationNotesTab memberId={id} data={notesData} /> },
+          {
+            id: "demographics",
+            label: "Demographics",
+            content: <DemographicsTab memberId={id} records={demographicsData.records} currentUserIsAdmin={currentUserIsAdmin} />,
+          },
+          { id: "hra", label: "HRA", content: <HraTab memberId={id} records={hraData.records} currentUserIsAdmin={currentUserIsAdmin} /> },
+          { id: "cna", label: "CNA", content: <CnaTab memberId={id} records={cnaData.records} currentUserIsAdmin={currentUserIsAdmin} /> },
+          {
+            id: "notes",
+            label: "Care Coordination Notes",
+            content: <CareCoordinationNotesTab memberId={id} records={notesData.records} currentUserIsAdmin={currentUserIsAdmin} />,
+          },
         ]}
       />
     </div>

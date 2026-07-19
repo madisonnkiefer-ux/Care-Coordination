@@ -1,7 +1,10 @@
-import { Card, Badge } from "@/components/ui";
-import { saveCareCoordinationNote } from "@/app/actions/care-coordination-notes";
-import { formatDate } from "@/lib/format";
-import type { getCareCoordinationNoteFormData } from "@/lib/data/care-coordination-notes";
+"use client";
+
+import { useState } from "react";
+import { Card } from "@/components/ui";
+import { saveCareCoordinationNote, createNewCareCoordinationNote, signCareCoordinationNote } from "@/app/actions/care-coordination-notes";
+import type { CareCoordinationNote } from "@/app/generated/prisma/client";
+import { HistoryBar, SignedBanner, SignButton, type HistoryItem } from "@/components/intake/versioning";
 import { TextArea, SelectField, YesNoField, YesNoNaField, CheckboxGroup, TextField } from "@/components/intake/form-fields";
 import {
   CCL1_CRITERIA_OPTIONS,
@@ -12,25 +15,46 @@ import {
   COMPLEX_CASE_OPTIONS,
 } from "@/components/intake/options";
 
+type NoteRecord = CareCoordinationNote & { signedBy: { name: string } | null };
+
 export function CareCoordinationNotesTab({
   memberId,
-  data,
+  records,
+  currentUserIsAdmin,
 }: {
   memberId: string;
-  data: NonNullable<Awaited<ReturnType<typeof getCareCoordinationNoteFormData>>>;
+  records: NoteRecord[];
+  currentUserIsAdmin: boolean;
 }) {
-  const { draft, latestCompletedDate } = data;
+  const [selectedId, setSelectedId] = useState<string | null>(records[0]?.id ?? null);
+  const draft = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
+  const locked = Boolean(draft?.signedAt);
+
+  const historyItems: HistoryItem[] = records.map((r) => ({
+    id: r.id,
+    dateLabel: r.createdAt,
+    status: r.status,
+    signedAt: r.signedAt,
+    signedByName: r.signedBy?.name ?? null,
+  }));
 
   return (
-    <form action={saveCareCoordinationNote.bind(null, memberId)} className="max-w-3xl space-y-6 p-8">
-      <div className="flex justify-end">
-        {latestCompletedDate ? (
-          <Badge color="green">Last completed {formatDate(latestCompletedDate)}</Badge>
-        ) : (
-          <Badge color="yellow">No completed note yet</Badge>
-        )}
-      </div>
+    <div className="p-8">
+      <HistoryBar
+        items={historyItems}
+        selectedId={draft?.id ?? null}
+        onSelect={setSelectedId}
+        newAction={createNewCareCoordinationNote.bind(null, memberId)}
+        newLabel="+ New Note"
+      />
 
+      {!draft ? (
+        <p className="text-sm text-slate-500">No Care Coordination Note yet — click &quot;+ New Note&quot; to start one.</p>
+      ) : (
+      <form action={saveCareCoordinationNote.bind(null, memberId, draft.id)} className="max-w-3xl space-y-6">
+      {locked && <SignedBanner signedByName={draft.signedBy?.name ?? null} signedAt={draft.signedAt as Date} />}
+
+      <fieldset disabled={locked} className="contents">
       <Card title="Summary">
         <div className="space-y-6">
           <TextArea
@@ -174,25 +198,36 @@ export function CareCoordinationNotesTab({
           />
         </div>
       </Card>
+      </fieldset>
 
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          name="intent"
-          value="draft"
-          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          Save Draft
-        </button>
-        <button
-          type="submit"
-          name="intent"
-          value="complete"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-        >
-          Complete
-        </button>
-      </div>
-    </form>
+      {!locked && (
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            name="intent"
+            value="draft"
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Save Draft
+          </button>
+          <button
+            type="submit"
+            name="intent"
+            value="complete"
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Complete
+          </button>
+        </div>
+      )}
+      </form>
+      )}
+
+      {draft && !locked && draft.status === "COMPLETED" && currentUserIsAdmin && (
+        <div className="mt-4 max-w-3xl">
+          <SignButton action={signCareCoordinationNote.bind(null, memberId, draft.id)} />
+        </div>
+      )}
+    </div>
   );
 }

@@ -1,14 +1,62 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import type { AssessmentStatus } from "@/app/generated/prisma/client";
 
-export async function saveCareCoordinationNote(memberId: string, formData: FormData) {
+export async function createNewCareCoordinationNote(memberId: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
+
+  const record = await db.careCoordinationNote.create({ data: { memberId, assessorId: session.userId } });
+
+  await writeAuditLog({
+    userId: session.userId,
+    memberId,
+    action: "CREATE",
+    resource: "CareCoordinationNote",
+    resourceId: record.id,
+  });
+
+  revalidatePath(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake`);
+}
+
+export async function signCareCoordinationNote(memberId: string, noteId: string) {
+  const { session, member } = await authorizeMemberAccess(memberId);
+  if (!member) throw new Error("Forbidden");
+  if (session.role !== "ADMIN") throw new Error("Forbidden: only admins can sign");
+
+  const existing = await db.careCoordinationNote.findUnique({ where: { id: noteId } });
+  if (!existing || existing.memberId !== memberId) throw new Error("Not found");
+  if (existing.signedAt) throw new Error("Already signed");
+  if (existing.status !== "COMPLETED") throw new Error("Only completed records can be signed");
+
+  await db.careCoordinationNote.update({ where: { id: noteId }, data: { signedAt: new Date(), signedById: session.userId } });
+
+  await writeAuditLog({
+    userId: session.userId,
+    memberId,
+    action: "UPDATE",
+    resource: "CareCoordinationNote",
+    resourceId: noteId,
+    metadata: { signed: true },
+  });
+
+  revalidatePath(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake`);
+}
+
+export async function saveCareCoordinationNote(memberId: string, noteId: string, formData: FormData) {
+  const { session, member } = await authorizeMemberAccess(memberId);
+  if (!member) throw new Error("Forbidden");
+
+  const existing = await db.careCoordinationNote.findUnique({ where: { id: noteId } });
+  if (!existing || existing.memberId !== memberId) throw new Error("Not found");
+  if (existing.signedAt) throw new Error("This record is signed and locked");
 
   const str = (key: string) => {
     const value = formData.get(key);
@@ -33,11 +81,6 @@ export async function saveCareCoordinationNote(memberId: string, formData: FormD
 
   const intent = String(formData.get("intent") ?? "draft");
   const status: AssessmentStatus = intent === "complete" ? "COMPLETED" : "DRAFT";
-
-  const existingDraft = await db.careCoordinationNote.findFirst({
-    where: { memberId, status: "DRAFT" },
-    orderBy: { createdAt: "desc" },
-  });
 
   const data = {
     status,
@@ -75,20 +118,17 @@ export async function saveCareCoordinationNote(memberId: string, formData: FormD
     complexCaseManagementOrNfloc: str("complexCaseManagementOrNfloc"),
   };
 
-  const note = await db.careCoordinationNote.upsert({
-    where: { id: existingDraft?.id ?? "__none__" },
-    create: { memberId, assessorId: session.userId, ...data },
-    update: data,
-  });
+  await db.careCoordinationNote.update({ where: { id: noteId }, data });
 
   await writeAuditLog({
     userId: session.userId,
     memberId,
-    action: existingDraft ? "UPDATE" : "CREATE",
+    action: "UPDATE",
     resource: "CareCoordinationNote",
-    resourceId: note.id,
+    resourceId: noteId,
     metadata: { status },
   });
 
+  revalidatePath(`/members/${memberId}/intake`);
   redirect(`/members/${memberId}/intake`);
 }

@@ -1,14 +1,62 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import type { AssessmentStatus } from "@/app/generated/prisma/client";
 
-export async function saveCna(memberId: string, formData: FormData) {
+export async function createNewCna(memberId: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
+
+  const record = await db.cnaAssessment.create({ data: { memberId, assessorId: session.userId } });
+
+  await writeAuditLog({
+    userId: session.userId,
+    memberId,
+    action: "CREATE",
+    resource: "CnaAssessment",
+    resourceId: record.id,
+  });
+
+  revalidatePath(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake`);
+}
+
+export async function signCna(memberId: string, cnaId: string) {
+  const { session, member } = await authorizeMemberAccess(memberId);
+  if (!member) throw new Error("Forbidden");
+  if (session.role !== "ADMIN") throw new Error("Forbidden: only admins can sign");
+
+  const existing = await db.cnaAssessment.findUnique({ where: { id: cnaId } });
+  if (!existing || existing.memberId !== memberId) throw new Error("Not found");
+  if (existing.signedAt) throw new Error("Already signed");
+  if (existing.status !== "COMPLETED") throw new Error("Only completed records can be signed");
+
+  await db.cnaAssessment.update({ where: { id: cnaId }, data: { signedAt: new Date(), signedById: session.userId } });
+
+  await writeAuditLog({
+    userId: session.userId,
+    memberId,
+    action: "UPDATE",
+    resource: "CnaAssessment",
+    resourceId: cnaId,
+    metadata: { signed: true },
+  });
+
+  revalidatePath(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake`);
+}
+
+export async function saveCna(memberId: string, cnaId: string, formData: FormData) {
+  const { session, member } = await authorizeMemberAccess(memberId);
+  if (!member) throw new Error("Forbidden");
+
+  const existing = await db.cnaAssessment.findUnique({ where: { id: cnaId } });
+  if (!existing || existing.memberId !== memberId) throw new Error("Not found");
+  if (existing.signedAt) throw new Error("This record is signed and locked");
 
   const str = (key: string) => {
     const value = formData.get(key);
@@ -43,11 +91,6 @@ export async function saveCna(memberId: string, formData: FormData) {
 
   const intent = String(formData.get("intent") ?? "draft");
   const status: AssessmentStatus = intent === "complete" ? "COMPLETED" : "DRAFT";
-
-  const existingDraft = await db.cnaAssessment.findFirst({
-    where: { memberId, status: "DRAFT" },
-    orderBy: { createdAt: "desc" },
-  });
 
   const data = {
     status,
@@ -260,20 +303,17 @@ export async function saveCna(memberId: string, formData: FormData) {
     declinationReason: str("declinationReason"),
   };
 
-  const assessment = await db.cnaAssessment.upsert({
-    where: { id: existingDraft?.id ?? "__none__" },
-    create: { memberId, assessorId: session.userId, ...data },
-    update: data,
-  });
+  await db.cnaAssessment.update({ where: { id: cnaId }, data });
 
   await writeAuditLog({
     userId: session.userId,
     memberId,
-    action: existingDraft ? "UPDATE" : "CREATE",
+    action: "UPDATE",
     resource: "CnaAssessment",
-    resourceId: assessment.id,
+    resourceId: cnaId,
     metadata: { status },
   });
 
+  revalidatePath(`/members/${memberId}/intake`);
   redirect(`/members/${memberId}/intake`);
 }

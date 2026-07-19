@@ -1,8 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import { Card, Badge } from "@/components/ui";
-import { saveHra } from "@/app/actions/hra";
-import { formatDate, toDateInputValue } from "@/lib/format";
+import { saveHra, createNewHra, signHra } from "@/app/actions/hra";
+import { toDateInputValue } from "@/lib/format";
 import { getCnaRequiredReasons } from "@/lib/hra-cna-required";
-import type { getHraFormData } from "@/lib/data/hra";
+import type { HraAssessment } from "@/app/generated/prisma/client";
+import { HistoryBar, SignedBanner, SignButton, type HistoryItem } from "@/components/intake/versioning";
 import {
   TextField,
   TextArea,
@@ -24,19 +28,31 @@ import {
   ADL_HELP_OPTIONS,
 } from "@/components/intake/options";
 
-export function HraTab({ memberId, data }: { memberId: string; data: NonNullable<Awaited<ReturnType<typeof getHraFormData>>> }) {
-  const { draft, latestCompletedDate } = data;
+type HraRecord = HraAssessment & { signedBy: { name: string } | null };
+
+export function HraTab({ memberId, records, currentUserIsAdmin }: { memberId: string; records: HraRecord[]; currentUserIsAdmin: boolean }) {
+  const [selectedId, setSelectedId] = useState<string | null>(records[0]?.id ?? null);
+  const draft = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
+  const locked = Boolean(draft?.signedAt);
   const cnaReasons = draft ? getCnaRequiredReasons(draft) : [];
 
+  const historyItems: HistoryItem[] = records.map((r) => ({
+    id: r.id,
+    dateLabel: r.assessmentDate,
+    status: r.status,
+    signedAt: r.signedAt,
+    signedByName: r.signedBy?.name ?? null,
+  }));
+
   return (
-    <form action={saveHra.bind(null, memberId)} className="max-w-3xl space-y-6 p-8">
-      <div className="flex justify-end">
-        {latestCompletedDate ? (
-          <Badge color="green">Last completed {formatDate(latestCompletedDate)}</Badge>
-        ) : (
-          <Badge color="yellow">No completed assessment yet</Badge>
-        )}
-      </div>
+    <div className="p-8">
+      <HistoryBar items={historyItems} selectedId={draft?.id ?? null} onSelect={setSelectedId} newAction={createNewHra.bind(null, memberId)} newLabel="+ New HRA" />
+
+      {!draft ? (
+        <p className="text-sm text-slate-500">No HRA yet — click &quot;+ New HRA&quot; to start one.</p>
+      ) : (
+      <form action={saveHra.bind(null, memberId, draft.id)} className="max-w-3xl space-y-6">
+      {locked && <SignedBanner signedByName={draft.signedBy?.name ?? null} signedAt={draft.signedAt as Date} />}
 
       {cnaReasons.length > 0 && (
         <Card className="border-red-200 bg-red-50">
@@ -51,6 +67,7 @@ export function HraTab({ memberId, data }: { memberId: string; data: NonNullable
         </Card>
       )}
 
+      <fieldset disabled={locked} className="contents">
       <Card title="Assessment">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <DateField name="assessmentDate" label="Assessment Date" defaultValue={toDateInputValue(draft?.assessmentDate)} />
@@ -257,25 +274,36 @@ export function HraTab({ memberId, data }: { memberId: string; data: NonNullable
           </div>
         </div>
       </Card>
+      </fieldset>
 
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          name="intent"
-          value="draft"
-          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          Save Draft
-        </button>
-        <button
-          type="submit"
-          name="intent"
-          value="complete"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-        >
-          Complete Assessment
-        </button>
-      </div>
-    </form>
+      {!locked && (
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            name="intent"
+            value="draft"
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Save Draft
+          </button>
+          <button
+            type="submit"
+            name="intent"
+            value="complete"
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Complete Assessment
+          </button>
+        </div>
+      )}
+      </form>
+      )}
+
+      {draft && !locked && draft.status === "COMPLETED" && currentUserIsAdmin && (
+        <div className="mt-4 max-w-3xl">
+          <SignButton action={signHra.bind(null, memberId, draft.id)} />
+        </div>
+      )}
+    </div>
   );
 }
