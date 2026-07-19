@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { verifySession, authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 
+const IN_PERSON_TOUCHPOINT_TYPES = ["HOME_VISIT", "OFFICE_VISIT"] as const;
+
 export async function listMembers() {
   const session = await verifySession();
 
@@ -12,7 +14,7 @@ export async function listMembers() {
       ? { clinicId: session.clinicId, assignedCoordinatorId: session.userId }
       : { clinicId: session.clinicId };
 
-  return db.member.findMany({
+  const members = await db.member.findMany({
     where,
     orderBy: { lastName: "asc" },
     select: {
@@ -24,8 +26,73 @@ export async function listMembers() {
       cclLevel: true,
       program: true,
       medicaidId: true,
+      memberIdExternal: true,
+      subscriberId: true,
+      availityId: true,
+      medicaidEligibilityVerified: true,
+      edd: true,
+      provider: true,
       assignedCoordinator: { select: { name: true } },
+      demographicsRecords: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { medicaidEligibilityRenewalDate: true },
+      },
+      cnaAssessments: {
+        where: { status: "COMPLETED" },
+        orderBy: { assessmentDate: "desc" },
+        select: { assessmentDate: true, assessmentType: true },
+      },
+      carePlans: {
+        select: { ccpStartDate: true, createdAt: true, updatedAt: true },
+      },
+      touchpoints: {
+        orderBy: { date: "desc" },
+        select: { date: true, type: true },
+      },
     },
+  });
+
+  return members.map((m) => {
+    const mostRecentCna = m.cnaAssessments[0] ?? null;
+    const initialCna = m.cnaAssessments[m.cnaAssessments.length - 1] ?? null;
+
+    const sortedCarePlans = [...m.carePlans].sort(
+      (a, b) => (a.ccpStartDate ?? a.createdAt).getTime() - (b.ccpStartDate ?? b.createdAt).getTime()
+    );
+    const initialCcpStartDate = sortedCarePlans[0]?.ccpStartDate ?? sortedCarePlans[0]?.createdAt ?? null;
+    const lastCcpUpdatedAt = m.carePlans.length
+      ? new Date(Math.max(...m.carePlans.map((cp) => cp.updatedAt.getTime())))
+      : null;
+
+    const lastInPersonTouchpoint =
+      m.touchpoints.find((t) => (IN_PERSON_TOUCHPOINT_TYPES as readonly string[]).includes(t.type))?.date ?? null;
+
+    return {
+      id: m.id,
+      firstName: m.firstName,
+      lastName: m.lastName,
+      dateOfBirth: m.dateOfBirth,
+      status: m.status,
+      cclLevel: m.cclLevel,
+      program: m.program,
+      medicaidId: m.medicaidId,
+      chartId: m.memberIdExternal,
+      subscriberId: m.subscriberId,
+      availityId: m.availityId,
+      medicaidEligibilityVerified: m.medicaidEligibilityVerified,
+      medicaidEligibilityRenewalDate: m.demographicsRecords[0]?.medicaidEligibilityRenewalDate ?? null,
+      dueDate: m.edd,
+      provider: m.provider,
+      assignedCoordinator: m.assignedCoordinator,
+      lastContactDate: m.touchpoints[0]?.date ?? null,
+      lastInPersonTouchpointDate: lastInPersonTouchpoint,
+      initialCnaDate: initialCna?.assessmentDate ?? null,
+      mostRecentCnaDate: mostRecentCna?.assessmentDate ?? null,
+      mostRecentCnaType: mostRecentCna?.assessmentType[0] ?? null,
+      initialCcpStartDate,
+      lastCcpUpdatedAt,
+    };
   });
 }
 

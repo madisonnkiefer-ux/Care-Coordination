@@ -7,6 +7,7 @@ import { DocumentUpload } from "@/components/document-upload";
 import { formatDate, formatDateTime, titleCase } from "@/lib/format";
 import { saveQuickNote } from "@/app/actions/notes";
 import { toggleTask } from "@/app/actions/tasks";
+import { updateMemberDetails } from "@/app/actions/member-details";
 
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,6 +36,53 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               <Field label="Program" value={member.program ?? "—"} />
               <Field label="Language" value={member.language ?? "—"} />
             </dl>
+          </Card>
+
+          <Card title="Insurance &amp; Provider">
+            <form action={updateMemberDetails.bind(null, id)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">Subscriber ID</label>
+                <input
+                  name="subscriberId"
+                  defaultValue={member.subscriberId ?? ""}
+                  className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">Availity ID</label>
+                <input
+                  name="availityId"
+                  defaultValue={member.availityId ?? ""}
+                  className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">Provider</label>
+                <input
+                  name="provider"
+                  placeholder="Member's outside doctor"
+                  defaultValue={member.provider ?? ""}
+                  className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  name="medicaidEligibilityVerified"
+                  defaultChecked={member.medicaidEligibilityVerified ?? false}
+                  className="h-4 w-4 rounded border-slate-300"
+                />
+                Medicaid Eligibility Verified
+              </label>
+              <div className="flex items-end justify-end">
+                <button
+                  type="submit"
+                  className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
           </Card>
 
           <Card title="Quick Access">

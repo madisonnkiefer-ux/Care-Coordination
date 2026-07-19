@@ -99,12 +99,18 @@ model Member {
 
   // Program / plan
   medicaidId       String?      @unique
-  memberIdExternal String?
+  memberIdExternal String? // "Chart ID" on the coordinator's tracking sheet
   program          String? // e.g. "Prenatal"
   status           MemberStatus @default(ACTIVE)
   cclLevel         CclLevel?
   edd              DateTime? // Estimated Due Date, for prenatal program
   attributedDate   DateTime?
+
+  // Insurance / provider tracking (coordinator-editable, not versioned)
+  subscriberId                String?
+  availityId                  String?
+  medicaidEligibilityVerified Boolean?
+  provider                    String? // member's outside doctor, free text
 
   assignedCoordinatorId String?
   assignedCoordinator   User?   @relation("AssignedCoordinator", fields: [assignedCoordinatorId], references: [id])
