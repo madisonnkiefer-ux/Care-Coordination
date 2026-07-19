@@ -87,3 +87,32 @@ export const ADL_HELP_OPTIONS = [
   "Light housekeeping",
   "Other",
 ];
+
+// CNA-specific option lists, from the standardized HCA Comprehensive Needs Assessment (MAD 867).
+export const CNA_ASSESSMENT_TYPE_OPTIONS = ["Initial", "Annual", "Semi-Annual", "Change in Condition", "Treat First"];
+export const CNA_ASSESSMENT_METHOD_OPTIONS = [
+  "In-person in-home",
+  "In-person (alternate location exception approved)",
+  "Telephonic (exception approved)",
+  "Video (exception approved)",
+];
+
+export const CNA_SPECIAL_PREFERENCES_OPTIONS = ["Cultural preference", "Literacy", "Religion/spiritual needs or preferences", "None", "Other"];
+
+export const ER_VISITS_OPTIONS = ["0", "1", "2", "3", "4 or more", "unknown"];
+export const HOSPITAL_STAYS_OPTIONS = ["0", "1", "2", "3 or more"];
+
+export const OVERALL_HEALTH_OPTIONS = ["Excellent", "Good", "Fair", "Poor"];
+
+export const LIVING_ARRANGEMENT_OPTIONS = ["Alone", "With others"];
+
+export const REFERRAL_NEEDED_OPTIONS = ["Housing", "Caregiver support", "Childcare support", "Food", "Employment", "Transportation", "Financial/Legal", "Utilities"];
+
+export const PHQ_SCALE_OPTIONS = [
+  { value: 0, label: "0 — Not at all" },
+  { value: 1, label: "1 — Several days" },
+  { value: 2, label: "2 — More than half the days" },
+  { value: 3, label: "3 — Nearly every day" },
+];
+
+export const PHQ_DIFFICULTY_OPTIONS = ["Not difficult at all", "Somewhat difficult", "Very difficult", "Extremely difficult"];

@@ -113,6 +113,33 @@ export function SelectField({
   );
 }
 
+// Plain numeric select (no custom-override input) — for scored scale questions like PHQ-9.
+export function NumberScaleField({
+  name,
+  options,
+  defaultValue,
+}: {
+  name: string;
+  options: { value: number; label: string }[];
+  defaultValue?: number | null;
+}) {
+  return (
+    <select
+      id={name}
+      name={name}
+      defaultValue={defaultValue ?? ""}
+      className="w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+    >
+      <option value="">—</option>
+      {options.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export function Checkbox({ name, label, defaultChecked }: { name: string; label: string; defaultChecked?: boolean }) {
   return (
     <label className="flex items-center gap-2 text-sm text-slate-700">

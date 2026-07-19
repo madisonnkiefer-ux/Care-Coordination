@@ -191,44 +191,224 @@ enum AssessmentStatus {
   COMPLETED
 }
 
-enum LifeDomain {
-  PHYSICAL_HEALTH
-  BEHAVIORAL_HEALTH
-  SOCIAL_RELATIONSHIPS
-  PRACTICAL_NEEDS
-  SAFETY
-  PREGNANCY_POSTPARTUM
-}
-
 model CnaAssessment {
-  id             String           @id @default(cuid())
-  memberId       String
-  member         Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  assessorId     String
-  assessor       User             @relation(fields: [assessorId], references: [id])
-  assessmentType String           @default("Initial CNA")
-  assessmentDate DateTime         @default(now())
-  status         AssessmentStatus @default(DRAFT)
-  summaryNotes   String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  id               String           @id @default(cuid())
+  memberId         String
+  member           Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assessorId       String
+  assessor         User             @relation(fields: [assessorId], references: [id])
+  assessmentDate   DateTime         @default(now())
+  assessmentType   String[] // Initial / Annual / Semi-Annual / Change in Condition / Treat First (check all that apply)
+  assessmentMethod String? // In-person in-home / In-person (alternate location) / Telephonic / Video
+  status           AssessmentStatus @default(DRAFT)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  domains CnaDomainResult[]
+  // Introduction
+  hasImminentRisk              Boolean?
+  meetsCbsqCbma                Boolean?
+  languageNeedOtherThanEnglish Boolean?
+  needsTranslationServices     Boolean?
+  needsTranslationDescribe     String?
+  specialPreferences           String?
+  specialPreferencesDescribe   String?
+  erVisitsLast12Months         String? // 0 / 1 / 2 / 3 / 4 or more / unknown
+  erVisitsDescribe             String?
+  needsEdAlternativesInfo      Boolean?
+  hospitalStaysLast6Months     String? // 0 / 1 / 2 / 3 or more
+  hospitalStaysDescribe        String?
+  waitingForTransplant         Boolean?
+  waitingForTransplantSpecify  String?
+
+  // Vision / Hearing / Dental
+  hasVisionIssues              Boolean?
+  visionIssuesDescribe         String?
+  lastVisionCheck              String?
+  needsEyeCareAppointmentHelp  Boolean?
+  hasHearingIssues             Boolean?
+  hearingIssuesDescribe        String?
+  lastHearingTest              String?
+  needsHearingApptHelp         Boolean?
+  needsHearingApptHelpDescribe String?
+  lastDentalVisit              String?
+  needsDentalApptHelp          Boolean?
+  needsDentalApptHelpDescribe  String?
+
+  // Pregnancy (if applicable)
+  isCurrentlyPregnant                Boolean?
+  hadPerinatalCare                   String? // yes / no / na
+  pregnancyDueDate                   DateTime?
+  pregnancyDueDateNa                 Boolean?
+  pregnancyHighRisk                  String? // yes / no / na
+  needsMaternalProviderHelp          String? // yes / no / na
+  pregnantWithinLast12Months         String? // yes / no / na
+  hadPostpartumDepression            String? // yes / no / na
+  timesPregnant                      String?
+  viableBirths                       String?
+  historyOfMultipleBirths            String? // yes / no / unknown
+  everHadCSection                    String? // yes / no / na
+  priorPregnancyComplications        String? // yes / no / na
+  priorPregnancyComplicationsSpecify String?
+  interestedInHomeVisiting           String? // yes / no / na
+  homeVisitingProviderReferredTo     String?
+
+  // Physical Health
+  overallHealthVsYearAgo               String? // Excellent / Good / Fair / Poor
+  physicalHealthConditionsDiagnosed    Boolean?
+  physicalHealthConditionsSelfReported Boolean?
+  physicalHealthConditionsDescribe     String?
+  heightInches                         String?
+  weightLbs                            String?
+  hasNonMedicationAllergies            Boolean?
+  nonMedicationAllergiesSpecify        String?
+  seenProviderLast12Months             Boolean?
+  seenProviderLast12MonthsSpecify      String?
+  needsPcpAppointmentHelp              Boolean?
+  hadWellChildVisit                    Boolean?
+  wellChildVisitDate                   DateTime?
+  lastMammogram                        String?
+  lastPapSmear                         String?
+  hadColorectalScreening               Boolean?
+  colorectalScreeningYesSpecify        String?
+  colorectalScreeningNoSpecify         String?
+  pastSurgeriesProceduresTreatments    String?
+  upcomingMedicalServices              Boolean?
+  upcomingMedicalServicesSpecify       String?
+  needsSchedulingHelp                  Boolean?
+  usesOrNeedsDme                       Boolean?
+  usesOrNeedsDmeSpecify                String?
+  needsDmeObtainingHelp                Boolean?
+  needsDmeObtainingHelpSpecify         String?
+  hasNeurologicalDiagnoses             Boolean?
+  hasNeurologicalDiagnosesSpecify      String?
+  usesTobaccoNicotine                  Boolean?
+  interestedInCessationProgram         Boolean?
+
+  // Medication
+  takesMedications                      Boolean?
+  takesMedicationsSpecify               String?
+  ableToObtainAllMedications            Boolean?
+  ableToObtainAllMedicationsSpecify     String?
+  hasDiscontinuedMedications            Boolean?
+  hasDiscontinuedMedicationsSpecify     String?
+  hasMedicationAllergies                Boolean?
+  hasMedicationAllergiesSpecify         String?
+  takesLifeSustainingMedications        Boolean?
+  takesLifeSustainingMedicationsSpecify String?
+
+  // Behavioral Health Needs
+  behavioralHealthConditionsDiagnosed    Boolean?
+  behavioralHealthConditionsSelfReported Boolean?
+  behavioralHealthConditionsNa           Boolean?
+  behavioralHealthConditionsDescribe     String?
+  bhAdmissionsLast12Months               Boolean?
+  bhAdmissionsSpecify                    String?
+  lastBhProviderVisit                    String?
+  needsBhProviderHelp                    Boolean?
+  needsBhProviderHelpSpecify             String?
+  understandsBhCondition                 Boolean?
+  hasSubstanceUseIssues                  Boolean?
+  hasSubstanceUseIssuesSpecify           String?
+
+  // PHQ-2/PHQ-9 (each 0-3: Not At All / Several Days / More Than Half The Days / Nearly Every Day)
+  phqLittleInterest       Int?
+  phqFeelingDown          Int?
+  phqTroubleSleeping      Int?
+  phqTiredLowEnergy       Int?
+  phqAppetite             Int?
+  phqFeelingBad           Int?
+  phqTroubleConcentrating Int?
+  phqMovingSpeaking       Int?
+  phqSelfHarmThoughts     Int?
+  phqDifficultyLevel      String? // Not difficult at all / Somewhat difficult / Very difficult / Extremely difficult
+
+  // CAGE (each yes = 1 point)
+  cageCutDown          Boolean?
+  cageCutDownSpecify   String?
+  cageAnnoyed          Boolean?
+  cageAnnoyedSpecify   String?
+  cageGuilty           Boolean?
+  cageGuiltySpecify    String?
+  cageEyeOpener        Boolean?
+  cageEyeOpenerSpecify String?
+
+  // Health Related Social Needs (HRSN)
+  hasHousingInsecurity                Boolean?
+  hasHousingInsecuritySpecify         String?
+  livingArrangement                   String? // Alone / With others
+  livingArrangementSpecify            String?
+  feelsSafeWhereLiving                Boolean?
+  feelsSafeWhereLivingSpecify         String?
+  hasUrgentNeeds                      Boolean?
+  hasUrgentNeedsSpecify               String?
+  wantsHousingSpecialistReferral      Boolean?
+  householdReceivesCbServices         Boolean?
+  householdReceivesCbServicesSpecify  String?
+  hasNaturalSupports                  Boolean?
+  naturalSupportsContactInfo          String?
+  naturalSupportMeetsNeeds            Boolean?
+  naturalSupportMeetsNeedsExplain     String?
+  hasPaidCaregiver                    Boolean?
+  paidCaregiverContactInfo            String?
+  paidCaregiverHoursPerWeek           String?
+  hasSufficientChildCare              String? // yes / no / na
+  worriedAboutFood                    Boolean?
+  employmentStatus                    String?
+  primaryIncomeSource                 String?
+  managesFinancesIndependently        Boolean?
+  managesFinancesIndependentlySpecify String?
+  hasLegalIssues                      Boolean?
+  hasLegalIssuesSpecify               String?
+  reliableTransportation              Boolean?
+  reliableTransportationSpecify       String?
+  referralsNeeded                     String?
+
+  // ADLs
+  adlBathingNeeded          Boolean?
+  adlBathingSpecify         String?
+  adlDressingNeeded         Boolean?
+  adlDressingSpecify        String?
+  adlGroomingNeeded         Boolean?
+  adlGroomingSpecify        String?
+  adlBowelBladderNeeded     Boolean?
+  adlBowelBladderSpecify    String?
+  adlToiletingNeeded        Boolean?
+  adlToiletingSpecify       String?
+  adlEatingNeeded           Boolean?
+  adlEatingSpecify          String?
+  adlMobilityNeeded         Boolean?
+  adlMobilitySpecify        String?
+  adlTransferNeeded         Boolean?
+  adlTransferSpecify        String?
+  adlMealPrepNeeded         Boolean?
+  adlMealPrepSpecify        String?
+  adlDailyMedicationNeeded  Boolean?
+  adlDailyMedicationSpecify String?
+
+  // IADLs
+  iadlSupportServicesNeeded    Boolean?
+  iadlSupportServicesSpecify   String?
+  iadlDmeMaintenanceNeeded     Boolean?
+  iadlDmeMaintenanceSpecify    String?
+  iadlLightHousekeepingNeeded  Boolean?
+  iadlLightHousekeepingSpecify String?
+  iadlFinancesNeeded           Boolean?
+  iadlFinancesSpecify          String?
+
+  hasFallRiskIndication        Boolean?
+  hasFallRiskIndicationSpecify String?
+  needsNfLocEvaluation         Boolean?
+
+  // Summary
+  mainHealthGoal                String?
+  mostSignificantNeedsToday     String?
+  hasAdvanceDirective           Boolean?
+  wantsAdvanceDirectiveInfo     Boolean?
+  interestedInCareCoordination  Boolean?
+  declinationExplainedAndSigned String? // yes / no / na
+  declinationReason             String?
 
   @@index([memberId])
-}
-
-model CnaDomainResult {
-  id           String        @id @default(cuid())
-  assessmentId String
-  assessment   CnaAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  domain       LifeDomain
-  needsCount   Int           @default(0)
-  hasNeeds     Boolean       @default(false)
-  strengths    String?
-  notes        String?
-
-  @@unique([assessmentId, domain])
 }
 
 // ---------- HRA (Health Risk Assessment) ----------
