@@ -10,6 +10,7 @@ import {
   ClipboardList,
   LogOut,
   HeartHandshake,
+  BookOpen,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { Avatar } from "@/components/ui";
@@ -26,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Home", icon: Home },
   { href: "/members", label: "Member Charts", icon: Users },
   { href: "/tasks", label: "Tasks & Reminders", icon: ListChecks },
+  { href: "/resources", label: "Resources", icon: BookOpen },
   {
     href: "/supervisor",
     label: "Supervisor Dashboard",

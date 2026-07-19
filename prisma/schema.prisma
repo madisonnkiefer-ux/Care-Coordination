@@ -27,8 +27,9 @@ model Clinic {
   name      String
   createdAt DateTime @default(now())
 
-  users   User[]
-  members Member[]
+  users     User[]
+  members   Member[]
+  resources ResourceEntry[]
 }
 
 model User {
@@ -56,6 +57,7 @@ model User {
   demographicsRecords   Demographics[]
   generalCommunications GeneralCommunication[]
   tocRecords            TocRecord[]
+  resourceEntries       ResourceEntry[]
 
   cnaAssessmentsSigned        CnaAssessment[]        @relation("CnaSignedBy")
   hraAssessmentsSigned        HraAssessment[]        @relation("HraSignedBy")
@@ -1037,4 +1039,26 @@ model AuditLog {
   @@index([userId])
   @@index([memberId])
   @@index([createdAt])
+}
+
+// ---------- Resource directory (referral resources, programs, and key contacts) ----------
+
+model ResourceEntry {
+  id           String   @id @default(cuid())
+  clinicId     String
+  clinic       Clinic   @relation(fields: [clinicId], references: [id])
+  name         String
+  category     String // free text (e.g. "Pregnancy/Maternity Program", "Crisis/Emergency") — no fixed taxonomy yet
+  description  String?
+  contactName  String?
+  contactPhone String?
+  contactEmail String?
+  eligibility  String?
+  notes        String?
+  createdById  String
+  createdBy    User     @relation(fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([clinicId])
 }

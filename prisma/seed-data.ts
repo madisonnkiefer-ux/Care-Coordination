@@ -3,6 +3,7 @@
 // non-production database.
 import bcrypt from "bcryptjs";
 import type { PrismaClient } from "../app/generated/prisma/client";
+import { seedResources } from "./resource-seed-data";
 
 const DEMO_PASSWORD = "DemoPass123!";
 
@@ -226,6 +227,8 @@ export async function seedDemoData(db: PrismaClient) {
       },
     });
   }
+
+  await seedResources(db, clinic.id, admin.id);
 
   console.log(`Seeded clinic "${clinic.name}" with ${memberSeeds.length} demo members.`);
   return {
