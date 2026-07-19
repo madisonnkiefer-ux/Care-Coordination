@@ -23,6 +23,7 @@ export async function listMembers() {
       status: true,
       cclLevel: true,
       program: true,
+      medicaidId: true,
       assignedCoordinator: { select: { name: true } },
     },
   });
