@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
 import type { AssessmentStatus } from "@/app/generated/prisma/client";
 
 export async function createNewCareCoordinationNote(memberId: string) {
@@ -45,6 +46,17 @@ export async function signCareCoordinationNote(memberId: string, noteId: string)
     resourceId: noteId,
     metadata: { signed: true },
   });
+
+  if (member.assignedCoordinatorId) {
+    await createNotification({
+      clinicId: session.clinicId,
+      userId: member.assignedCoordinatorId,
+      actorId: session.userId,
+      priority: "HIGH",
+      title: `Care Coordination Note signed off for ${member.firstName} ${member.lastName}`,
+      memberId,
+    });
+  }
 
   revalidatePath(`/members/${memberId}/intake`);
   redirect(`/members/${memberId}/intake`);

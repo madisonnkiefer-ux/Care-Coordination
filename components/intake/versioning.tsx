@@ -63,6 +63,13 @@ export function HistoryBar({
 
 // Same look as HistoryBar, but for records with no draft/complete/sign concept
 // (e.g. Care Plans, General Communication) — just a list of dated entries.
+//
+// newAction may optionally return the new record's id. Some callers (e.g.
+// createNewCarePlan) redirect() instead, which forces a full remount that
+// naturally re-selects the new record — for those, a returned id isn't
+// needed. Callers that can't redirect() (e.g. General Communication, which
+// would otherwise snap back to the first tab) must return the new id so we
+// can select it here on the client instead.
 export function SimpleHistoryBar({
   items,
   selectedId,
@@ -73,9 +80,14 @@ export function SimpleHistoryBar({
   items: { id: string; dateLabel: Date }[];
   selectedId: string | null;
   onSelect: (id: string) => void;
-  newAction: () => Promise<void>;
+  newAction: () => Promise<string | void>;
   newLabel?: string;
 }) {
+  async function handleNew() {
+    const newId = await newAction();
+    if (typeof newId === "string") onSelect(newId);
+  }
+
   return (
     <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-stone-200 pb-4">
       {items.length === 0 && <p className="text-sm text-stone-400">No records yet.</p>}
@@ -96,14 +108,13 @@ export function SimpleHistoryBar({
           </button>
         );
       })}
-      <form action={newAction}>
-        <button
-          type="submit"
-          className="rounded-full border border-dashed border-stone-300 px-3 py-1 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-stone-900"
-        >
-          {newLabel}
-        </button>
-      </form>
+      <button
+        type="button"
+        onClick={handleNew}
+        className="rounded-full border border-dashed border-stone-300 px-3 py-1 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-stone-900"
+      >
+        {newLabel}
+      </button>
     </div>
   );
 }

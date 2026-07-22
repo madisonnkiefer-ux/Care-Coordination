@@ -12,10 +12,13 @@ import {
   HeartHandshake,
   BookOpen,
   BarChart3,
+  Bell,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { Avatar } from "@/components/ui";
+import { NotificationBell } from "@/components/notification-bell";
 import type { Role } from "@/app/generated/prisma/client";
+import type { getNotificationBellData } from "@/lib/data/notifications";
 
 type NavItem = {
   href: string;
@@ -29,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/members", label: "Member Charts", icon: Users },
   { href: "/tasks", label: "Tasks & Reminders", icon: ListChecks },
   { href: "/resources", label: "Resources", icon: BookOpen },
+  { href: "/notifications", label: "Notifications", icon: Bell },
   {
     href: "/supervisor",
     label: "Supervisor Dashboard",
@@ -51,18 +55,27 @@ const NAV_ITEMS: NavItem[] = [
 
 export function Sidebar({
   user,
+  notificationData,
 }: {
   user: { name: string; email: string; role: Role };
+  notificationData: Awaited<ReturnType<typeof getNotificationBellData>>;
 }) {
   const pathname = usePathname();
 
   return (
     <aside className="w-64 shrink-0 border-r border-stone-200 bg-white flex flex-col h-screen sticky top-0">
-      <div className="flex items-center gap-2.5 px-5 h-16 border-b border-stone-200">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-900">
-          <HeartHandshake className="h-4 w-4 text-white" />
+      <div className="flex items-center justify-between gap-1.5 px-4 h-16 border-b border-stone-200">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-900">
+            <HeartHandshake className="h-4 w-4 text-white" />
+          </div>
+          <span className="truncate text-sm font-bold text-stone-900">CARECOORD HUB</span>
         </div>
-        <span className="text-sm font-bold tracking-wide text-stone-900">CARECOORD HUB</span>
+        <NotificationBell
+          unreadCount={notificationData.unreadCount}
+          recent={notificationData.recent}
+          needsAttention={notificationData.needsAttention}
+        />
       </div>
 
       <nav className="overflow-y-auto py-4 px-3 space-y-1">

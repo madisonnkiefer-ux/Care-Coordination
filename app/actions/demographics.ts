@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
 
 export async function createNewDemographics(memberId: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
@@ -208,6 +209,17 @@ export async function signDemographics(memberId: string, demographicsId: string)
     resourceId: demographicsId,
     metadata: { signed: true },
   });
+
+  if (member.assignedCoordinatorId) {
+    await createNotification({
+      clinicId: session.clinicId,
+      userId: member.assignedCoordinatorId,
+      actorId: session.userId,
+      priority: "HIGH",
+      title: `Demographics/enrollment signed off for ${member.firstName} ${member.lastName}`,
+      memberId,
+    });
+  }
 
   revalidatePath(`/members/${memberId}/intake`);
   redirect(`/members/${memberId}/intake`);

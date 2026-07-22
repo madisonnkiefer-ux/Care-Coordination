@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
 import { TOC_NEEDS_SECTIONS, needFieldName } from "@/components/toc/needs-config";
 import type { AssessmentStatus, NoneOrYes } from "@/app/generated/prisma/client";
 
@@ -37,6 +38,17 @@ export async function createNewTocRecord(memberId: string) {
     resourceId: record.id,
   });
 
+  if (member.assignedCoordinatorId) {
+    await createNotification({
+      clinicId: session.clinicId,
+      userId: member.assignedCoordinatorId,
+      actorId: session.userId,
+      priority: "STANDARD",
+      title: `New Transition of Care record started for ${member.firstName} ${member.lastName}`,
+      memberId,
+    });
+  }
+
   revalidatePath(`/members/${memberId}/toc`);
   redirect(`/members/${memberId}/toc`);
 }
@@ -61,6 +73,17 @@ export async function signTocRecord(memberId: string, tocId: string) {
     resourceId: tocId,
     metadata: { signed: true },
   });
+
+  if (member.assignedCoordinatorId) {
+    await createNotification({
+      clinicId: session.clinicId,
+      userId: member.assignedCoordinatorId,
+      actorId: session.userId,
+      priority: "HIGH",
+      title: `Transition of Care record signed off for ${member.firstName} ${member.lastName}`,
+      memberId,
+    });
+  }
 
   revalidatePath(`/members/${memberId}/toc`);
   redirect(`/members/${memberId}/toc`);

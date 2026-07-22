@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
 
 function str(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -32,6 +33,7 @@ export async function createNewGeneralCommunication(memberId: string) {
   });
 
   revalidatePath(`/members/${memberId}/care-plan`);
+  return record.id;
 }
 
 export async function saveGeneralCommunication(memberId: string, commId: string, formData: FormData) {
@@ -63,6 +65,33 @@ export async function saveGeneralCommunication(memberId: string, commId: string,
     resource: "GeneralCommunication",
     resourceId: commId,
   });
+
+  // Flag the member the moment they cross 3 consecutive unsuccessful
+  // attempts — fires once at the threshold, not again on every attempt
+  // after, so it stays a signal rather than noise.
+  if (successful === false) {
+    const recent = await db.generalCommunication.findMany({
+      where: { memberId, successful: { not: null } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { successful: true },
+    });
+    let streak = 0;
+    for (const c of recent) {
+      if (c.successful === false) streak++;
+      else break;
+    }
+    if (streak === 3 && member.assignedCoordinatorId) {
+      await createNotification({
+        clinicId: session.clinicId,
+        userId: member.assignedCoordinatorId,
+        actorId: session.userId,
+        priority: "HIGH",
+        title: `${member.firstName} ${member.lastName} has reached 3 unsuccessful contact attempts in a row`,
+        memberId,
+      });
+    }
+  }
 
   revalidatePath(`/members/${memberId}/care-plan`);
   revalidatePath("/members");

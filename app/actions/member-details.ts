@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
 
 export async function updateMemberDetails(memberId: string, formData: FormData) {
   const { session, member } = await authorizeMemberAccess(memberId);
@@ -14,6 +15,8 @@ export async function updateMemberDetails(memberId: string, formData: FormData) 
     return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
   };
 
+  const medicaidEligibilityVerified = formData.get("medicaidEligibilityVerified") === "on";
+
   await db.member.update({
     where: { id: memberId },
     data: {
@@ -21,7 +24,7 @@ export async function updateMemberDetails(memberId: string, formData: FormData) 
       subscriberId: str("subscriberId"),
       availityId: str("availityId"),
       provider: str("provider"),
-      medicaidEligibilityVerified: formData.get("medicaidEligibilityVerified") === "on",
+      medicaidEligibilityVerified,
     },
   });
 
@@ -32,6 +35,17 @@ export async function updateMemberDetails(memberId: string, formData: FormData) 
     resource: "Member",
     resourceId: memberId,
   });
+
+  if (member.medicaidEligibilityVerified !== false && !medicaidEligibilityVerified && member.assignedCoordinatorId) {
+    await createNotification({
+      clinicId: session.clinicId,
+      userId: member.assignedCoordinatorId,
+      actorId: session.userId,
+      priority: "STANDARD",
+      title: `Eligibility needs verification for ${member.firstName} ${member.lastName}`,
+      memberId,
+    });
+  }
 
   revalidatePath(`/members/${memberId}`);
   revalidatePath("/members");

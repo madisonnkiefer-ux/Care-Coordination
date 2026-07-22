@@ -27,9 +27,10 @@ model Clinic {
   name      String
   createdAt DateTime @default(now())
 
-  users     User[]
-  members   Member[]
-  resources ResourceEntry[]
+  users         User[]
+  members       Member[]
+  resources     ResourceEntry[]
+  notifications Notification[]
 }
 
 model User {
@@ -58,6 +59,7 @@ model User {
   generalCommunications GeneralCommunication[]
   tocRecords            TocRecord[]
   resourceEntries       ResourceEntry[]
+  notifications         Notification[]
 
   cnaAssessmentsSigned        CnaAssessment[]        @relation("CnaSignedBy")
   hraAssessmentsSigned        HraAssessment[]        @relation("HraSignedBy")
@@ -133,6 +135,7 @@ model Member {
   appointments          Appointment[]
   notes                 QuickNote[]
   auditLogs             AuditLog[]
+  notifications         Notification[]
 
   @@index([clinicId])
   @@index([assignedCoordinatorId])
@@ -1048,6 +1051,38 @@ model AuditLog {
   @@index([userId])
   @@index([memberId])
   @@index([createdAt])
+}
+
+// ---------- Notifications ----------
+
+enum NotificationPriority {
+  HIGH
+  STANDARD
+  INFO
+}
+
+model Notification {
+  id       String               @id @default(cuid())
+  clinicId String
+  clinic   Clinic               @relation(fields: [clinicId], references: [id])
+  userId   String
+  user     User                 @relation(fields: [userId], references: [id])
+  priority NotificationPriority @default(STANDARD)
+  title    String
+  body     String?
+
+  // Where clicking the notification should take the user — a member chart
+  // if memberId is set, otherwise linkPath as a fallback for non-member events.
+  memberId String?
+  member   Member?  @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  linkPath String?
+
+  read      Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, read])
+  @@index([clinicId])
 }
 
 // ---------- Resource directory (referral resources, programs, and key contacts) ----------
