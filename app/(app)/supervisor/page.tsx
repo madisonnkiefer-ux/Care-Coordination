@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { getSupervisorData } from "@/lib/data/supervisor";
+import { getPendingStatusChanges } from "@/lib/data/member-status";
+import { approveStatusChange, rejectStatusChange } from "@/app/actions/member-status";
 import { PageHeader, Card, StatTile, Badge } from "@/components/ui";
+import { formatDate, titleCase } from "@/lib/format";
 
 export default async function SupervisorDashboardPage() {
-  const { totalMembers, cnaCompletionPct, hraCompletionPct, carePlanCompletionPct, coordinatorStats, highRiskMembers } =
-    await getSupervisorData();
+  const [{ totalMembers, cnaCompletionPct, hraCompletionPct, carePlanCompletionPct, coordinatorStats, highRiskMembers }, pendingStatusChanges] =
+    await Promise.all([getSupervisorData(), getPendingStatusChanges()]);
 
   return (
     <div>
@@ -17,6 +20,52 @@ export default async function SupervisorDashboardPage() {
           <StatTile label="HRA Completion" value={`${hraCompletionPct}%`} />
           <StatTile label="Care Plans in Place" value={`${carePlanCompletionPct}%`} />
         </div>
+
+        {pendingStatusChanges.length > 0 && (
+          <Card title="Pending Status Change Approvals">
+            <ul className="divide-y divide-stone-100">
+              {pendingStatusChanges.map((change) => (
+                <li key={change.id} className="py-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <div>
+                      <Link href={`/members/${change.member.id}`} className="font-medium text-stone-800 hover:underline">
+                        {change.member.firstName} {change.member.lastName}
+                      </Link>
+                      <p className="text-xs text-stone-500">
+                        {titleCase(change.fromStatus)} → {titleCase(change.toStatus)} · requested by {change.changedBy.name} on{" "}
+                        {formatDate(change.createdAt)}
+                      </p>
+                      <p className="text-xs text-stone-400">{change.reason}</p>
+                    </div>
+                    <form action={approveStatusChange.bind(null, change.member.id, change.id)}>
+                      <button
+                        type="submit"
+                        className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
+                      >
+                        Approve
+                      </button>
+                    </form>
+                  </div>
+                  <form action={rejectStatusChange.bind(null, change.member.id, change.id)} className="mt-2 flex gap-2">
+                    <input
+                      type="text"
+                      name="rejectionReason"
+                      required
+                      placeholder="Reason for rejecting (required)"
+                      className="flex-1 rounded-md border border-stone-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-stone-900"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-800 hover:bg-red-100"
+                    >
+                      Reject
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card title="CNA Completion by Coordinator">

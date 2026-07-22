@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Card, Badge } from "@/components/ui";
 import { formatDate, titleCase } from "@/lib/format";
+import { statusBadgeColor, ALL_STATUSES } from "@/lib/member-status";
 import type { getReportsData } from "@/lib/data/reports";
 
 type ReportsData = Awaited<ReturnType<typeof getReportsData>>;
@@ -104,9 +105,11 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
           <FilterField label="Status">
             <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-stone-900">
               <option value="">All statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="DISCHARGED">Discharged</option>
+              {ALL_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {titleCase(s)}
+                </option>
+              ))}
             </select>
           </FilterField>
         )}
@@ -227,9 +230,7 @@ function ActiveRosterReport({ members }: { members: ReportMember[] }) {
               <td className="py-2 text-stone-600">{m.medicaidId ?? "—"}</td>
               <td className="py-2 text-stone-600">{m.program ?? "—"}</td>
               <td className="py-2">
-                <Badge color={m.status === "ACTIVE" ? "green" : m.status === "INACTIVE" ? "yellow" : "slate"}>
-                  {titleCase(m.status)}
-                </Badge>
+                <Badge color={statusBadgeColor(m.status)}>{titleCase(m.status)}</Badge>
               </td>
               <td className="py-2 text-stone-600">{m.cclLevel ? titleCase(m.cclLevel) : "—"}</td>
               <td className="py-2 text-stone-600">{coordinatorOrUnassigned(m)}</td>

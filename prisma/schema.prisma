@@ -45,21 +45,23 @@ model User {
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
 
-  assignedMembers       Member[]               @relation("AssignedCoordinator")
-  tasks                 Task[]                 @relation("TaskAssignee")
-  touchpoints           Touchpoint[]
-  notes                 QuickNote[]
-  documents             Document[]
-  auditLogs             AuditLog[]
-  cnaAssessments        CnaAssessment[]
-  hraAssessments        HraAssessment[]
-  careCoordinationNotes CareCoordinationNote[]
-  carePlans             CarePlan[]
-  demographicsRecords   Demographics[]
-  generalCommunications GeneralCommunication[]
-  tocRecords            TocRecord[]
-  resourceEntries       ResourceEntry[]
-  notifications         Notification[]
+  assignedMembers        Member[]               @relation("AssignedCoordinator")
+  tasks                  Task[]                 @relation("TaskAssignee")
+  touchpoints            Touchpoint[]
+  notes                  QuickNote[]
+  documents              Document[]
+  auditLogs              AuditLog[]
+  cnaAssessments         CnaAssessment[]
+  hraAssessments         HraAssessment[]
+  careCoordinationNotes  CareCoordinationNote[]
+  carePlans              CarePlan[]
+  demographicsRecords    Demographics[]
+  generalCommunications  GeneralCommunication[]
+  tocRecords             TocRecord[]
+  resourceEntries        ResourceEntry[]
+  notifications          Notification[]
+  statusChangesRequested MemberStatusChange[]   @relation("StatusChangeRequestedBy")
+  statusChangesApproved  MemberStatusChange[]   @relation("StatusChangeApprovedBy")
 
   cnaAssessmentsSigned        CnaAssessment[]        @relation("CnaSignedBy")
   hraAssessmentsSigned        HraAssessment[]        @relation("HraSignedBy")
@@ -80,9 +82,19 @@ enum CclLevel {
 }
 
 enum MemberStatus {
+  PENDING_ENROLLMENT
+  ENROLLED
+  PENDING_ATTRIBUTION
   ACTIVE
-  INACTIVE
-  DISCHARGED
+  OUTREACH_IN_PROGRESS
+  UNABLE_TO_REACH
+  TEMPORARILY_INACTIVE
+  DECLINED
+  TERMED
+  GRADUATED
+  TRANSFERRED
+  DECEASED
+  CLOSED
 }
 
 model Member {
@@ -136,9 +148,51 @@ model Member {
   notes                 QuickNote[]
   auditLogs             AuditLog[]
   notifications         Notification[]
+  statusChanges         MemberStatusChange[]
 
   @@index([clinicId])
   @@index([assignedCoordinatorId])
+}
+
+// Every status transition is recorded permanently (never overwritten), so
+// the member's status history survives even after the case is closed.
+// Terminal-ish statuses (see TERMINAL_STATUSES in lib/member-status.ts)
+// require supervisor approval when a care coordinator requests them — the
+// change sits here with requiresApproval=true and Member.status is left
+// untouched until a supervisor/admin approves or rejects it.
+model MemberStatusChange {
+  id            String       @id @default(cuid())
+  memberId      String
+  member        Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  fromStatus    MemberStatus
+  toStatus      MemberStatus
+  effectiveDate DateTime
+  reason        String
+  note          String?
+  changedById   String
+  changedBy     User         @relation("StatusChangeRequestedBy", fields: [changedById], references: [id])
+
+  requiresApproval Boolean   @default(false)
+  approvedById     String?
+  approvedBy       User?     @relation("StatusChangeApprovedBy", fields: [approvedById], references: [id])
+  approvedAt       DateTime?
+  rejectedAt       DateTime?
+  rejectionReason  String?
+
+  // Closure checklist — required (must all be true) only when toStatus is
+  // CLOSED. The system should not let a coordinator just pick "Closed"
+  // without attesting to each of these first.
+  finalContactDocumented    Boolean?
+  openTasksReviewed         Boolean?
+  openReferralsResolved     Boolean?
+  carePlanGoalsClosed       Boolean?
+  requiredNotificationsSent Boolean?
+  documentsCompleted        Boolean?
+
+  createdAt DateTime @default(now())
+
+  @@index([memberId])
+  @@index([requiresApproval, approvedAt, rejectedAt])
 }
 
 // Versioned Demographics snapshots — every save creates/updates a DRAFT
@@ -1074,7 +1128,7 @@ model Notification {
   // Where clicking the notification should take the user — a member chart
   // if memberId is set, otherwise linkPath as a fallback for non-member events.
   memberId String?
-  member   Member?  @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  member   Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
   linkPath String?
 
   read      Boolean   @default(false)

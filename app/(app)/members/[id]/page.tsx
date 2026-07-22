@@ -1,17 +1,23 @@
 import Link from "next/link";
 import { CheckSquare, Square, ListTree, FileSignature, ArrowRightLeft } from "lucide-react";
 import { getMemberChart } from "@/lib/data/members";
+import { getStatusHistory } from "@/lib/data/member-status";
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { GoalDonut } from "@/components/goal-donut";
 import { DocumentUpload } from "@/components/document-upload";
+import { MemberStatusCard } from "@/components/member-status-card";
 import { formatDate, formatDateTime, titleCase } from "@/lib/format";
 import { saveQuickNote } from "@/app/actions/notes";
 import { toggleTask } from "@/app/actions/tasks";
 import { updateMemberDetails } from "@/app/actions/member-details";
+import { statusBadgeColor } from "@/lib/member-status";
 
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { member, tasks, recentContacts, appointments, documents, notes, goalTotals } = await getMemberChart(id);
+  const [{ member, tasks, recentContacts, appointments, documents, notes, goalTotals }, statusHistory] = await Promise.all([
+    getMemberChart(id),
+    getStatusHistory(id),
+  ]);
 
   const returnPath = `/members/${id}`;
 
@@ -22,7 +28,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
         description={`Medicaid ID: ${member.medicaidId ?? "—"} · Assigned CC: ${
           member.assignedCoordinator?.name ?? "Unassigned"
         }`}
-        action={<Badge color={member.status === "ACTIVE" ? "green" : "slate"}>{titleCase(member.status)}</Badge>}
+        action={<Badge color={statusBadgeColor(member.status)}>{titleCase(member.status)}</Badge>}
       />
 
       <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">
@@ -37,6 +43,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               <Field label="Language" value={member.language ?? "—"} />
             </dl>
           </Card>
+
+          <MemberStatusCard memberId={id} currentStatus={member.status} history={statusHistory} />
 
           <Card title="Insurance &amp; Provider">
             <form

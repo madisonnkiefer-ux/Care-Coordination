@@ -5,12 +5,14 @@ import Link from "next/link";
 import { Search, Check, X } from "lucide-react";
 import { Badge, Avatar } from "@/components/ui";
 import { formatDate, titleCase } from "@/lib/format";
+import { statusBadgeColor } from "@/lib/member-status";
+import type { MemberStatus } from "@/app/generated/prisma/client";
 
 type MemberRow = {
   id: string;
   firstName: string;
   lastName: string;
-  status: "ACTIVE" | "INACTIVE" | "DISCHARGED";
+  status: MemberStatus;
   cclLevel: "CCL1" | "CCL2" | "CCL3" | "HIGH_RISK" | null;
   program: string | null;
   medicaidId: string | null;
@@ -133,7 +135,7 @@ export function MemberList({ members }: { members: MemberRow[] }) {
                 <td className="px-4 py-3 text-stone-600">{member.provider ?? "—"}</td>
                 <td className="px-4 py-3 text-stone-600">{member.assignedCoordinator?.name ?? "Unassigned"}</td>
                 <td className="px-4 py-3">
-                  <Badge color={member.status === "ACTIVE" ? "green" : "slate"}>{titleCase(member.status)}</Badge>
+                  <Badge color={statusBadgeColor(member.status)}>{titleCase(member.status)}</Badge>
                 </td>
               </tr>
             ))}
