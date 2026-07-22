@@ -8,7 +8,21 @@ import { formatDate, titleCase } from "@/lib/format";
 
 export default async function SupervisorDashboardPage() {
   const [
-    { totalMembers, cnaCompletionPct, hraCompletionPct, carePlanCompletionPct, coordinatorStats, highRiskMembers, declinationsCount, graduationsCount, terminationsCount, draftOrUnsignedNotesCount, openTocCasesCount },
+    {
+      totalMembers,
+      cnaCompletionPct,
+      hraCompletionPct,
+      carePlanCompletionPct,
+      coordinatorStats,
+      highRiskMembers,
+      declinationsCount,
+      graduationsCount,
+      terminationsCount,
+      draftOrUnsignedNotesCount,
+      openTocCasesCount,
+      annualCnaDueThisQuarter,
+      annualCnaPastDue,
+    },
     pendingStatusChanges,
     { members: caseloadMembers, coordinators: caseloadCoordinators },
   ] = await Promise.all([getSupervisorData(), getPendingStatusChanges(), getCaseloadForReassignment()]);
@@ -122,6 +136,51 @@ export default async function SupervisorDashboardPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-stone-500">{m.assignedCoordinator?.name ?? "Unassigned"}</span>
                       <Badge color="red">High Risk</Badge>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card title="Annual CNAs Due This Quarter">
+            {annualCnaDueThisQuarter.length === 0 ? (
+              <p className="py-4 text-center text-sm text-stone-400">Nothing due this quarter.</p>
+            ) : (
+              <ul className="divide-y divide-stone-100">
+                {annualCnaDueThisQuarter.map((m) => {
+                  const overdue = m.dueDate ? m.dueDate < new Date() : true;
+                  return (
+                    <li key={m.id} className="flex items-center justify-between py-2 text-sm">
+                      <Link href={`/members/${m.id}`} className="font-medium text-stone-800 hover:underline">
+                        {m.firstName} {m.lastName}
+                      </Link>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-stone-500">{m.coordinatorName}</span>
+                        <Badge color={overdue ? "red" : "yellow"}>{m.dueDate ? formatDate(m.dueDate) : "—"}</Badge>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Card>
+
+          <Card title="Annual CNAs Past Due">
+            {annualCnaPastDue.length === 0 ? (
+              <p className="py-4 text-center text-sm text-stone-400">Nothing past due.</p>
+            ) : (
+              <ul className="divide-y divide-stone-100">
+                {annualCnaPastDue.map((m) => (
+                  <li key={m.id} className="flex items-center justify-between py-2 text-sm">
+                    <Link href={`/members/${m.id}`} className="font-medium text-stone-800 hover:underline">
+                      {m.firstName} {m.lastName}
+                    </Link>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-stone-500">{m.coordinatorName}</span>
+                      <Badge color="red">{m.dueDate ? formatDate(m.dueDate) : "Never completed"}</Badge>
                     </div>
                   </li>
                 ))}
