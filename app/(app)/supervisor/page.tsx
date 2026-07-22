@@ -1,13 +1,17 @@
 import Link from "next/link";
-import { getSupervisorData } from "@/lib/data/supervisor";
+import { getSupervisorData, getCaseloadForReassignment } from "@/lib/data/supervisor";
 import { getPendingStatusChanges } from "@/lib/data/member-status";
 import { approveStatusChange, rejectStatusChange } from "@/app/actions/member-status";
+import { reassignMember } from "@/app/actions/member-assignment";
 import { PageHeader, Card, StatTile, Badge } from "@/components/ui";
 import { formatDate, titleCase } from "@/lib/format";
 
 export default async function SupervisorDashboardPage() {
-  const [{ totalMembers, cnaCompletionPct, hraCompletionPct, carePlanCompletionPct, coordinatorStats, highRiskMembers }, pendingStatusChanges] =
-    await Promise.all([getSupervisorData(), getPendingStatusChanges()]);
+  const [
+    { totalMembers, cnaCompletionPct, hraCompletionPct, carePlanCompletionPct, coordinatorStats, highRiskMembers, declinationsCount, graduationsCount, terminationsCount, draftOrUnsignedNotesCount, openTocCasesCount },
+    pendingStatusChanges,
+    { members: caseloadMembers, coordinators: caseloadCoordinators },
+  ] = await Promise.all([getSupervisorData(), getPendingStatusChanges(), getCaseloadForReassignment()]);
 
   return (
     <div>
@@ -20,6 +24,21 @@ export default async function SupervisorDashboardPage() {
           <StatTile label="HRA Completion" value={`${hraCompletionPct}%`} />
           <StatTile label="Care Plans in Place" value={`${carePlanCompletionPct}%`} />
         </div>
+
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+          <StatTile label="Declinations" value={declinationsCount} />
+          <StatTile label="Graduations" value={graduationsCount} />
+          <StatTile label="Terminations" value={terminationsCount} />
+          <StatTile label="Draft/Unsigned Notes" value={draftOrUnsignedNotesCount} />
+          <StatTile label="Open TOC Cases" value={openTocCasesCount} />
+        </div>
+
+        <p className="text-sm text-stone-500">
+          For caseload distribution, outreach compliance, annual CNA status, and CCP completion breakdowns, see{" "}
+          <Link href="/reports" className="font-medium text-stone-900 hover:underline">
+            Reports →
+          </Link>
+        </p>
 
         {pendingStatusChanges.length > 0 && (
           <Card title="Pending Status Change Approvals">
@@ -70,19 +89,19 @@ export default async function SupervisorDashboardPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card title="CNA Completion by Coordinator">
             {coordinatorStats.length === 0 ? (
-              <p className="py-4 text-center text-sm text-slate-400">No care coordinators yet.</p>
+              <p className="py-4 text-center text-sm text-stone-400">No care coordinators yet.</p>
             ) : (
               <ul className="space-y-3">
                 {coordinatorStats.map((c) => (
                   <li key={c.id}>
                     <div className="mb-1 flex items-center justify-between text-sm">
-                      <span className="font-medium text-slate-800">{c.name}</span>
-                      <span className="text-slate-500">
+                      <span className="font-medium text-stone-800">{c.name}</span>
+                      <span className="text-stone-500">
                         {c.completed}/{c.total} · {c.pct}%
                       </span>
                     </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                      <div className="h-full rounded-full bg-fuchsia-500" style={{ width: `${c.pct}%` }} />
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-stone-100">
+                      <div className="h-full rounded-full bg-stone-900" style={{ width: `${c.pct}%` }} />
                     </div>
                   </li>
                 ))}
@@ -92,16 +111,16 @@ export default async function SupervisorDashboardPage() {
 
           <Card title="High Risk Members">
             {highRiskMembers.length === 0 ? (
-              <p className="py-4 text-center text-sm text-slate-400">No high-risk members flagged.</p>
+              <p className="py-4 text-center text-sm text-stone-400">No high-risk members flagged.</p>
             ) : (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-stone-100">
                 {highRiskMembers.map((m) => (
                   <li key={m.id} className="flex items-center justify-between py-2 text-sm">
-                    <Link href={`/members/${m.id}`} className="font-medium text-slate-800 hover:text-fuchsia-600">
+                    <Link href={`/members/${m.id}`} className="font-medium text-stone-800 hover:underline">
                       {m.firstName} {m.lastName}
                     </Link>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">{m.assignedCoordinator?.name ?? "Unassigned"}</span>
+                      <span className="text-xs text-stone-500">{m.assignedCoordinator?.name ?? "Unassigned"}</span>
                       <Badge color="red">High Risk</Badge>
                     </div>
                   </li>
@@ -110,6 +129,50 @@ export default async function SupervisorDashboardPage() {
             )}
           </Card>
         </div>
+
+        <Card title="Caseload Management">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-stone-400">
+                <th className="pb-2 font-medium">Member</th>
+                <th className="pb-2 font-medium">Assigned Coordinator</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {caseloadMembers.map((m) => (
+                <tr key={m.id}>
+                  <td className="py-2">
+                    <Link href={`/members/${m.id}`} className="font-medium text-stone-800 hover:underline">
+                      {m.firstName} {m.lastName}
+                    </Link>
+                  </td>
+                  <td className="py-2">
+                    <form key={m.assignedCoordinatorId ?? "unassigned"} action={reassignMember.bind(null, m.id)} className="flex items-center gap-2">
+                      <select
+                        name="coordinatorId"
+                        defaultValue={m.assignedCoordinatorId ?? ""}
+                        className="rounded-md border border-stone-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                      >
+                        <option value="">Unassigned</option>
+                        {caseloadCoordinators.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="submit"
+                        className="rounded-md border border-stone-300 bg-white px-3 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+                      >
+                        Save
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
       </div>
     </div>
   );

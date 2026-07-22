@@ -6,31 +6,53 @@ export async function getSupervisorData() {
   const session = await requireRole("SUPERVISOR", "ADMIN");
   const clinicId = session.clinicId;
 
-  const [totalMembers, membersWithCompletedCna, membersWithCompletedHra, membersWithCarePlan, coordinators, highRiskMembers] =
-    await Promise.all([
-      db.member.count({ where: { clinicId } }),
-      db.member.count({ where: { clinicId, cnaAssessments: { some: { status: "COMPLETED" } } } }),
-      db.member.count({ where: { clinicId, hraAssessments: { some: { status: "COMPLETED" } } } }),
-      db.member.count({ where: { clinicId, carePlans: { some: {} } } }),
-      db.user.findMany({
-        where: { clinicId, role: "CARE_COORDINATOR", active: true },
-        select: {
-          id: true,
-          name: true,
-          assignedMembers: {
-            select: {
-              id: true,
-              cnaAssessments: { where: { status: "COMPLETED" }, select: { id: true }, take: 1 },
-            },
+  const [
+    totalMembers,
+    membersWithCompletedCna,
+    membersWithCompletedHra,
+    membersWithCarePlan,
+    coordinators,
+    highRiskMembers,
+    declinationsCount,
+    graduationsCount,
+    terminationsCount,
+    draftDemographics,
+    draftCna,
+    draftHra,
+    draftCcn,
+    openTocCasesCount,
+  ] = await Promise.all([
+    db.member.count({ where: { clinicId } }),
+    db.member.count({ where: { clinicId, cnaAssessments: { some: { status: "COMPLETED" } } } }),
+    db.member.count({ where: { clinicId, hraAssessments: { some: { status: "COMPLETED" } } } }),
+    db.member.count({ where: { clinicId, carePlans: { some: {} } } }),
+    db.user.findMany({
+      where: { clinicId, role: "CARE_COORDINATOR", active: true },
+      select: {
+        id: true,
+        name: true,
+        assignedMembers: {
+          select: {
+            id: true,
+            cnaAssessments: { where: { status: "COMPLETED" }, select: { id: true }, take: 1 },
           },
         },
-      }),
-      db.member.findMany({
-        where: { clinicId, cclLevel: "HIGH_RISK" },
-        select: { id: true, firstName: true, lastName: true, assignedCoordinator: { select: { name: true } } },
-        take: 10,
-      }),
-    ]);
+      },
+    }),
+    db.member.findMany({
+      where: { clinicId, cclLevel: "HIGH_RISK" },
+      select: { id: true, firstName: true, lastName: true, assignedCoordinator: { select: { name: true } } },
+      take: 10,
+    }),
+    db.member.count({ where: { clinicId, status: "DECLINED" } }),
+    db.member.count({ where: { clinicId, status: "GRADUATED" } }),
+    db.member.count({ where: { clinicId, status: "TERMED" } }),
+    db.demographics.count({ where: { member: { clinicId }, OR: [{ status: "DRAFT" }, { signedAt: null }] } }),
+    db.cnaAssessment.count({ where: { member: { clinicId }, OR: [{ status: "DRAFT" }, { signedAt: null }] } }),
+    db.hraAssessment.count({ where: { member: { clinicId }, OR: [{ status: "DRAFT" }, { signedAt: null }] } }),
+    db.careCoordinationNote.count({ where: { member: { clinicId }, OR: [{ status: "DRAFT" }, { signedAt: null }] } }),
+    db.tocRecord.count({ where: { member: { clinicId }, signedAt: null } }),
+  ]);
 
   const coordinatorStats = coordinators.map((c) => {
     const total = c.assignedMembers.length;
@@ -53,5 +75,30 @@ export async function getSupervisorData() {
     carePlanCompletionPct: pct(membersWithCarePlan),
     coordinatorStats,
     highRiskMembers,
+    declinationsCount,
+    graduationsCount,
+    terminationsCount,
+    draftOrUnsignedNotesCount: draftDemographics + draftCna + draftHra + draftCcn,
+    openTocCasesCount,
   };
+}
+
+export async function getCaseloadForReassignment() {
+  const session = await requireRole("SUPERVISOR", "ADMIN");
+  const clinicId = session.clinicId;
+
+  const [members, coordinators] = await Promise.all([
+    db.member.findMany({
+      where: { clinicId },
+      orderBy: { lastName: "asc" },
+      select: { id: true, firstName: true, lastName: true, assignedCoordinatorId: true },
+    }),
+    db.user.findMany({
+      where: { clinicId, role: "CARE_COORDINATOR", active: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
+
+  return { members, coordinators };
 }
