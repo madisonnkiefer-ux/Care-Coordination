@@ -18,7 +18,15 @@ export async function GET(request: NextRequest) {
   if (existing) {
     const admin = await db.user.findFirst({ where: { clinicId: existing.id, role: "ADMIN" } });
     const resourceResult = admin ? await seedResources(db, existing.id, admin.id) : { created: 0, updated: 0, total: 0, skipped: true };
-    return NextResponse.json({ message: "Already seeded — demo-clinic exists.", resources: resourceResult });
+    const [notificationCount, statusChangeCount] = await Promise.all([
+      db.notification.count(),
+      db.memberStatusChange.count(),
+    ]);
+    return NextResponse.json({
+      message: "Already seeded — demo-clinic exists.",
+      resources: resourceResult,
+      schemaCheck: { notificationCount, statusChangeCount },
+    });
   }
 
   const result = await seedDemoData(db);
