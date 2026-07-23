@@ -23,6 +23,7 @@ type MemberRow = {
   medicaidEligibilityRenewalDate: Date | null;
   dueDate: Date | null;
   provider: string | null;
+  assignedCoordinatorId: string | null;
   assignedCoordinator: { name: string } | null;
   lastContactDate: Date | null;
   lastInPersonTouchpointDate: Date | null;
@@ -33,13 +34,21 @@ type MemberRow = {
   lastCcpUpdatedAt: Date | null;
 };
 
-export function MemberList({ members }: { members: MemberRow[] }) {
+export function MemberList({ members, currentUserId }: { members: MemberRow[]; currentUserId: string | null }) {
   const [query, setQuery] = useState("");
+  const [scope, setScope] = useState<"all" | "mine">("all");
+
+  const myMembers = useMemo(
+    () => members.filter((m) => m.assignedCoordinatorId === currentUserId),
+    [members, currentUserId]
+  );
+
+  const scoped = scope === "mine" ? myMembers : members;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return members;
-    return members.filter((m) => {
+    if (!q) return scoped;
+    return scoped.filter((m) => {
       const name = `${m.firstName} ${m.lastName}`.toLowerCase();
       return (
         name.includes(q) ||
@@ -52,10 +61,33 @@ export function MemberList({ members }: { members: MemberRow[] }) {
         m.assignedCoordinator?.name.toLowerCase().includes(q)
       );
     });
-  }, [members, query]);
+  }, [scoped, query]);
 
   return (
     <div>
+      {currentUserId && (
+        <div className="mb-4 flex gap-1 rounded-lg border border-stone-200 bg-stone-100 p-1 text-sm font-medium w-fit">
+          <button
+            type="button"
+            onClick={() => setScope("all")}
+            className={`rounded-md px-3 py-1.5 transition-colors ${
+              scope === "all" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-900"
+            }`}
+          >
+            All Members ({members.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setScope("mine")}
+            className={`rounded-md px-3 py-1.5 transition-colors ${
+              scope === "mine" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-900"
+            }`}
+          >
+            My Members ({myMembers.length})
+          </button>
+        </div>
+      )}
+
       <div className="relative mb-4 max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
         <input
@@ -142,7 +174,11 @@ export function MemberList({ members }: { members: MemberRow[] }) {
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={19} className="px-4 py-10 text-center text-stone-400">
-                  {members.length === 0 ? "No members yet." : "No members match your search."}
+                  {scoped.length === 0
+                    ? scope === "mine"
+                      ? "No members assigned to you."
+                      : "No members yet."
+                    : "No members match your search."}
                 </td>
               </tr>
             )}

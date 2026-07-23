@@ -7,13 +7,8 @@ import { writeAuditLog } from "@/lib/audit";
 export async function listMembers() {
   const session = await verifySession();
 
-  const where =
-    session.role === "CARE_COORDINATOR"
-      ? { clinicId: session.clinicId, assignedCoordinatorId: session.userId }
-      : { clinicId: session.clinicId };
-
   const members = await db.member.findMany({
-    where,
+    where: { clinicId: session.clinicId },
     orderBy: { lastName: "asc" },
     select: {
       id: true,
@@ -30,6 +25,7 @@ export async function listMembers() {
       medicaidEligibilityVerified: true,
       edd: true,
       provider: true,
+      assignedCoordinatorId: true,
       assignedCoordinator: { select: { name: true } },
       demographicsRecords: {
         orderBy: { createdAt: "desc" },
@@ -81,6 +77,7 @@ export async function listMembers() {
       medicaidEligibilityRenewalDate: m.demographicsRecords[0]?.medicaidEligibilityRenewalDate ?? null,
       dueDate: m.edd,
       provider: m.provider,
+      assignedCoordinatorId: m.assignedCoordinatorId,
       assignedCoordinator: m.assignedCoordinator,
       lastContactDate: m.generalCommunications[0]?.createdAt ?? null,
       lastInPersonTouchpointDate: lastInPersonContact,
@@ -90,6 +87,15 @@ export async function listMembers() {
       initialCcpStartDate,
       lastCcpUpdatedAt,
     };
+  });
+}
+
+export async function listActiveCoordinators() {
+  const session = await verifySession();
+  return db.user.findMany({
+    where: { clinicId: session.clinicId, role: "CARE_COORDINATOR", active: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
   });
 }
 

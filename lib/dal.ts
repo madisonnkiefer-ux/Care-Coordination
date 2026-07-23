@@ -37,8 +37,9 @@ export async function requireRole(...roles: Role[]) {
 }
 
 // Authorization (not just authentication): confirms the caller may access
-// this specific member record — same clinic always, and for care
-// coordinators, only members assigned to them (minimum-necessary access).
+// this specific member record — same clinic, any role. Care coordinators
+// can view any clinic member's chart (needed for coverage/warm hand-offs
+// via the "Member Charts" all-patients view), not just their own caseload.
 export async function authorizeMemberAccess(memberId: string) {
   const session = await verifySession();
   const member = await db.member.findUnique({
@@ -47,12 +48,6 @@ export async function authorizeMemberAccess(memberId: string) {
   });
 
   if (!member || member.clinicId !== session.clinicId) {
-    return { session, member: null };
-  }
-  if (
-    session.role === "CARE_COORDINATOR" &&
-    member.assignedCoordinatorId !== session.userId
-  ) {
     return { session, member: null };
   }
   return { session, member };
