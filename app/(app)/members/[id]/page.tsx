@@ -8,15 +8,19 @@ import { DocumentUpload } from "@/components/document-upload";
 import { MemberStatusCard } from "@/components/member-status-card";
 import { formatDate, formatDateTime, titleCase } from "@/lib/format";
 import { saveQuickNote } from "@/app/actions/notes";
-import { toggleTask } from "@/app/actions/tasks";
+import { toggleTask, createTask } from "@/app/actions/tasks";
 import { updateMemberDetails } from "@/app/actions/member-details";
 import { statusBadgeColor } from "@/lib/member-status";
+import { QuickActionsBar } from "@/components/quick-actions-bar";
+import { AlertBanner } from "@/components/alert-banner";
+import { getPatientSnapshot } from "@/lib/data/patient-snapshot";
 
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [{ member, tasks, recentContacts, appointments, documents, notes, goalTotals }, statusHistory] = await Promise.all([
+  const [{ member, tasks, recentContacts, appointments, documents, notes, goalTotals }, statusHistory, snapshot] = await Promise.all([
     getMemberChart(id),
     getStatusHistory(id),
+    getPatientSnapshot(id),
   ]);
 
   const returnPath = `/members/${id}`;
@@ -30,6 +34,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
         }`}
         action={<Badge color={statusBadgeColor(member.status)}>{titleCase(member.status)}</Badge>}
       />
+      <AlertBanner alerts={snapshot?.alerts ?? []} />
+      <QuickActionsBar memberId={id} phone={snapshot?.member.phone ?? member.phone ?? null} />
 
       <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -164,11 +170,11 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
         </div>
 
         <div className="space-y-6">
-          <Card title="Tasks">
+          <Card id="tasks" title="Tasks">
             {tasks.length === 0 ? (
               <EmptyState label="No tasks for this member." />
             ) : (
-              <ul className="space-y-1">
+              <ul className="mb-3 space-y-1">
                 {tasks.map((task) => {
                   const toggle = toggleTask.bind(null, task.id, returnPath);
                   return (
@@ -191,9 +197,25 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 })}
               </ul>
             )}
+            <form action={createTask} className="flex gap-2 border-t border-stone-100 pt-3">
+              <input type="hidden" name="memberId" value={id} />
+              <input type="hidden" name="returnPath" value={returnPath} />
+              <input
+                name="title"
+                required
+                placeholder="Add a task..."
+                className="min-w-0 flex-1 rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+              />
+              <button
+                type="submit"
+                className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
+              >
+                Add
+              </button>
+            </form>
           </Card>
 
-          <Card title="Quick Notes">
+          <Card id="quick-notes" title="Quick Notes">
             <form action={saveQuickNote.bind(null, id)} className="space-y-2">
               <textarea
                 name="body"
@@ -232,7 +254,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
             )}
           </Card>
 
-          <Card title="Documents">
+          <Card id="documents" title="Documents">
             <DocumentUpload memberId={id} />
             {documents.length === 0 ? (
               <EmptyState label="No documents uploaded." />

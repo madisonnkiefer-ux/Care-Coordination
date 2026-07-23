@@ -8,8 +8,15 @@ import { CcpTab } from "@/components/care-plan/ccp-tab";
 import { HedisTab } from "@/components/care-plan/hedis-tab";
 import { GeneralCommunicationTab } from "@/components/care-plan/general-communication-tab";
 
-export default async function CarePlanPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CarePlanPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { id } = await params;
+  const { tab } = await searchParams;
 
   const [carePlanData, commData, hedisData] = await Promise.all([
     getCarePlanFormData(id),
@@ -25,6 +32,7 @@ export default async function CarePlanPage({ params }: { params: Promise<{ id: s
     <div>
       <PageHeader title="Care Plan" description={`${member.firstName} ${member.lastName}`} />
       <Tabs
+        defaultTabId={tab}
         tabs={[
           { id: "ccp", label: "CCP", content: <CcpTab memberId={id} records={carePlans} /> },
           { id: "hedis", label: "HEDIS Measures", content: <HedisTab memberId={id} record={hedisData.record} /> },

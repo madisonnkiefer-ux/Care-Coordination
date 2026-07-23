@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 
@@ -6,7 +7,12 @@ import { authorizeMemberAccess } from "@/lib/dal";
 // app (Care Plan, General Communication, Tasks, HEDIS, CNA) — nothing new is
 // stored just for this panel, so it can never drift out of sync with the
 // forms coordinators already fill out.
-export async function getPatientSnapshot(memberId: string) {
+//
+// Wrapped in React's cache() because both the shared member layout (side
+// panel) and individual pages (quick actions, alert banner) call this for
+// the same memberId within one request — cache() dedupes those into a
+// single set of queries instead of running them twice.
+export const getPatientSnapshot = cache(async (memberId: string) => {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) return null;
 
@@ -85,7 +91,7 @@ export async function getPatientSnapshot(memberId: string) {
 
   return {
     session,
-    member: { id: member.id, firstName: member.firstName, lastName: member.lastName },
+    member: { id: member.id, firstName: member.firstName, lastName: member.lastName, phone: member.phone },
     pregnancy,
     nextTouchpointDue,
     ccpDueDate,
@@ -96,4 +102,4 @@ export async function getPatientSnapshot(memberId: string) {
     openTasksCount,
     alerts,
   };
-}
+});

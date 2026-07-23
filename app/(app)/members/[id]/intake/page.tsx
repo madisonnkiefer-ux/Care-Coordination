@@ -11,8 +11,15 @@ import { HraTab } from "@/components/intake/hra-tab";
 import { CnaTab } from "@/components/intake/cna-tab";
 import { CareCoordinationNotesTab } from "@/components/intake/care-coordination-notes-tab";
 
-export default async function IntakePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function IntakePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { id } = await params;
+  const { tab } = await searchParams;
 
   const [demographicsData, hraData, cnaData, notesData, currentUser] = await Promise.all([
     getDemographicsFormData(id),
@@ -31,6 +38,7 @@ export default async function IntakePage({ params }: { params: Promise<{ id: str
     <div>
       <PageHeader title="Intake" description={`${member.firstName} ${member.lastName}`} />
       <Tabs
+        defaultTabId={tab}
         tabs={[
           {
             id: "demographics",

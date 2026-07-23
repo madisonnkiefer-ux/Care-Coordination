@@ -6,14 +6,16 @@ export function Card({
   action,
   children,
   className = "",
+  id,
 }: {
   title?: string;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  id?: string;
 }) {
   return (
-    <div className={`rounded-2xl border border-stone-100 bg-white p-5 shadow-sm ${className}`}>
+    <div id={id} className={`rounded-2xl border border-stone-100 bg-white p-5 shadow-sm ${className}`}>
       {(title || action) && (
         <div className="mb-3 flex items-center justify-between">
           {title && <h2 className="text-sm font-semibold text-stone-900">{title}</h2>}
