@@ -36,7 +36,7 @@ type MemberRow = {
 
 export function MemberList({ members, currentUserId }: { members: MemberRow[]; currentUserId: string | null }) {
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<"all" | "mine">("all");
+  const [scope, setScope] = useState<"all" | "mine">("mine");
 
   const myMembers = useMemo(
     () => members.filter((m) => m.assignedCoordinatorId === currentUserId),
