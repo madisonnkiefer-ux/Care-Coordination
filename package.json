@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "prebuild": "prisma db push --accept-data-loss",
+    "prebuild": "node scripts/prebuild-db-sync.mjs",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate"
