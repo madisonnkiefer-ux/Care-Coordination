@@ -14,6 +14,7 @@ import { statusBadgeColor } from "@/lib/member-status";
 import { QuickActionsBar } from "@/components/quick-actions-bar";
 import { AlertBanner } from "@/components/alert-banner";
 import { getPatientSnapshot } from "@/lib/data/patient-snapshot";
+import { PrintButton } from "@/components/print-button";
 
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,10 +33,17 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
         description={`Medicaid ID: ${member.medicaidId ?? "—"} · Assigned CC: ${
           member.assignedCoordinator?.name ?? "Unassigned"
         }`}
-        action={<Badge color={statusBadgeColor(member.status)}>{titleCase(member.status)}</Badge>}
+        action={
+          <div className="flex items-center gap-3">
+            <PrintButton label="Print Full Chart" />
+            <Badge color={statusBadgeColor(member.status)}>{titleCase(member.status)}</Badge>
+          </div>
+        }
       />
-      <AlertBanner alerts={snapshot?.alerts ?? []} />
-      <QuickActionsBar memberId={id} phone={snapshot?.member.phone ?? member.phone ?? null} />
+      <div className="print:hidden">
+        <AlertBanner alerts={snapshot?.alerts ?? []} />
+        <QuickActionsBar memberId={id} phone={snapshot?.member.phone ?? member.phone ?? null} />
+      </div>
 
       <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -100,7 +108,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 />
                 Medicaid Eligibility Verified
               </label>
-              <div className="flex items-end justify-end">
+              <div className="flex items-end justify-end print:hidden">
                 <button
                   type="submit"
                   className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
@@ -111,7 +119,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
             </form>
           </Card>
 
-          <Card title="Quick Access">
+          <Card title="Quick Access" className="print:hidden">
             <div className="grid grid-cols-2 gap-3">
               <QuickAccessTile
                 href={`/members/${id}/intake`}
@@ -197,7 +205,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 })}
               </ul>
             )}
-            <form action={createTask} className="flex gap-2 border-t border-stone-100 pt-3">
+            <form action={createTask} className="flex gap-2 border-t border-stone-100 pt-3 print:hidden">
               <input type="hidden" name="memberId" value={id} />
               <input type="hidden" name="returnPath" value={returnPath} />
               <input
@@ -216,7 +224,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
           </Card>
 
           <Card id="quick-notes" title="Quick Notes">
-            <form action={saveQuickNote.bind(null, id)} className="space-y-2">
+            <form action={saveQuickNote.bind(null, id)} className="space-y-2 print:hidden">
               <textarea
                 name="body"
                 rows={3}

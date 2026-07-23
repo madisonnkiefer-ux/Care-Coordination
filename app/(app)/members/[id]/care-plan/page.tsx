@@ -7,6 +7,7 @@ import { Tabs } from "@/components/tabs";
 import { CcpTab } from "@/components/care-plan/ccp-tab";
 import { HedisTab } from "@/components/care-plan/hedis-tab";
 import { GeneralCommunicationTab } from "@/components/care-plan/general-communication-tab";
+import { PrintButton } from "@/components/print-button";
 
 export default async function CarePlanPage({
   params,
@@ -30,7 +31,11 @@ export default async function CarePlanPage({
 
   return (
     <div>
-      <PageHeader title="Care Plan" description={`${member.firstName} ${member.lastName}`} />
+      <PageHeader
+        title="Care Plan"
+        description={`${member.firstName} ${member.lastName}`}
+        action={<PrintButton label="Print This Form" />}
+      />
       <Tabs
         defaultTabId={tab}
         tabs={[

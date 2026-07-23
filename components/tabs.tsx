@@ -13,7 +13,7 @@ export function Tabs({
 
   return (
     <div>
-      <div className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-8">
+      <div className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-8 print:hidden">
         {tabs.map((tab) => (
           <button
             key={tab.id}

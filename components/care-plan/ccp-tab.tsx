@@ -282,7 +282,7 @@ export function CcpTab({ memberId, records }: { memberId: string; records: CareP
               </div>
             </Card>
 
-            <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
+            <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden">
               Save Care Plan
             </button>
           </form>
@@ -293,7 +293,7 @@ export function CcpTab({ memberId, records }: { memberId: string; records: CareP
               {plan.goals.map((goal) => (
                 <GoalCard key={goal.id} memberId={memberId} carePlanId={plan.id} goal={goal} />
               ))}
-              <form action={addGoal.bind(null, memberId, plan.id)}>
+              <form action={addGoal.bind(null, memberId, plan.id)} className="print:hidden">
                 <button type="submit" className="rounded-md border border-dashed border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-stone-900">
                   + Add Opportunity/Goal
                 </button>

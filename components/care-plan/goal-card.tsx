@@ -12,7 +12,9 @@ import type { CarePlanGoal, CarePlanProgressNote, GoalStatus } from "@/app/gener
 type Goal = CarePlanGoal & { progressNotes: CarePlanProgressNote[] };
 
 export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; carePlanId: string; goal: Goal }) {
-  const [expanded, setExpanded] = useState(false);
+  // Defaults to expanded so a full CCP print picks up every goal's detail
+  // without the coordinator having to click through each one first.
+  const [expanded, setExpanded] = useState(true);
   const memberNotes = goal.progressNotes.filter((n) => n.track === "MEMBER");
   const coordinatorNotes = goal.progressNotes.filter((n) => n.track === "COORDINATOR");
 
@@ -24,7 +26,11 @@ export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; car
           {goal.priority && <p className="text-xs text-stone-500">{goal.priority}</p>}
         </button>
         <GoalStatusSelect memberId={memberId} goalId={goal.id} status={goal.status as GoalStatus} />
-        <button type="button" onClick={() => setExpanded((v) => !v)} className="text-xs font-medium text-stone-900 hover:underline">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="text-xs font-medium text-stone-900 hover:underline print:hidden"
+        >
           {expanded ? "Collapse" : "Expand"}
         </button>
       </div>
@@ -93,7 +99,7 @@ export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; car
               </div>
             </div>
 
-            <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
+            <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden">
               Save Goal
             </button>
           </form>
@@ -141,7 +147,7 @@ function ProgressNoteColumn({
           </li>
         ))}
       </ul>
-      <form action={action} className="space-y-2">
+      <form action={action} className="space-y-2 print:hidden">
         <input type="hidden" name="track" value={track} />
         <TextArea name="note" label="Progress Update" rows={2} />
         <DateField name="date" label="Date" />

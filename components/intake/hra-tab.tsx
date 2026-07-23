@@ -281,7 +281,7 @@ export function HraTab({ memberId, records, currentUserIsAdmin }: { memberId: st
       </fieldset>
 
       {!locked && (
-        <div className="flex gap-3">
+        <div className="flex gap-3 print:hidden">
           <button
             type="submit"
             name="intent"

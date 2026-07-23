@@ -10,6 +10,7 @@ import { DemographicsTab } from "@/components/intake/demographics-tab";
 import { HraTab } from "@/components/intake/hra-tab";
 import { CnaTab } from "@/components/intake/cna-tab";
 import { CareCoordinationNotesTab } from "@/components/intake/care-coordination-notes-tab";
+import { PrintButton } from "@/components/print-button";
 
 export default async function IntakePage({
   params,
@@ -36,7 +37,11 @@ export default async function IntakePage({
 
   return (
     <div>
-      <PageHeader title="Intake" description={`${member.firstName} ${member.lastName}`} />
+      <PageHeader
+        title="Intake"
+        description={`${member.firstName} ${member.lastName}`}
+        action={<PrintButton label="Print This Form" />}
+      />
       <Tabs
         defaultTabId={tab}
         tabs={[

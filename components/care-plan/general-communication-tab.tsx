@@ -105,7 +105,7 @@ export function GeneralCommunicationTab({ memberId, records }: { memberId: strin
               className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
             />
           </Card>
-          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
+          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden">
             Save
           </button>
         </form>

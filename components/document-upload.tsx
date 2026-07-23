@@ -48,7 +48,7 @@ export function DocumentUpload({ memberId }: { memberId: string }) {
   }
 
   return (
-    <div className="mb-4 space-y-2 border-b border-stone-100 pb-4">
+    <div className="mb-4 space-y-2 border-b border-stone-100 pb-4 print:hidden">
       <div className="flex items-center gap-2">
         <select
           value={category}

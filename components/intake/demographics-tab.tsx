@@ -232,7 +232,7 @@ export function DemographicsTab({
           </fieldset>
 
           {!locked && (
-            <div className="flex gap-3">
+            <div className="flex gap-3 print:hidden">
               <button
                 type="submit"
                 name="intent"

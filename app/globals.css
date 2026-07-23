@@ -18,3 +18,39 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Printing a chart/form: sticky nav shouldn't repeat or clip on paper, and
+   the still-editable inputs/selects/textareas showing a record's current
+   values should read as plain document text, not as an interactive form. */
+@media print {
+  .sticky {
+    position: static !important;
+  }
+
+  input,
+  select,
+  textarea {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    color: black !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  textarea {
+    resize: none;
+    overflow: visible;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    -webkit-appearance: auto;
+    appearance: auto;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    display: none;
+  }
+}

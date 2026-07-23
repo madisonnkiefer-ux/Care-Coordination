@@ -18,7 +18,7 @@ export function PatientSnapshotPanel({ snapshot }: { snapshot: Snapshot }) {
     snapshot;
 
   return (
-    <aside className="sticky top-0 h-screen w-72 shrink-0 space-y-4 overflow-y-auto border-l border-stone-200 bg-white p-5">
+    <aside className="sticky top-0 h-screen w-72 shrink-0 space-y-4 overflow-y-auto border-l border-stone-200 bg-white p-5 print:hidden">
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-stone-400">Snapshot</p>
         <p className="font-serif text-lg text-stone-900">

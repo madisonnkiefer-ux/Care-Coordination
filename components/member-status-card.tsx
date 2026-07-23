@@ -42,7 +42,11 @@ export function MemberStatusCard({
     <Card title="Member Status">
       <div className="flex items-center justify-between">
         <Badge color={statusBadgeColor(currentStatus)}>{titleCase(currentStatus)}</Badge>
-        <button type="button" onClick={() => setShowForm((v) => !v)} className="text-xs font-medium text-stone-900 hover:underline">
+        <button
+          type="button"
+          onClick={() => setShowForm((v) => !v)}
+          className="text-xs font-medium text-stone-900 hover:underline print:hidden"
+        >
           {showForm ? "Cancel" : "Change Status"}
         </button>
       </div>
@@ -60,7 +64,7 @@ export function MemberStatusCard({
             await changeMemberStatus(memberId, formData);
             setShowForm(false);
           }}
-          className="mt-4 space-y-3 border-t border-stone-100 pt-4"
+          className="mt-4 space-y-3 border-t border-stone-100 pt-4 print:hidden"
         >
           <div>
             <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">New Status</label>
