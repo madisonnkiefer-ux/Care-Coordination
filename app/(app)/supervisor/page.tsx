@@ -32,6 +32,16 @@ export default async function SupervisorDashboardPage() {
     { members: caseloadMembers, coordinators: caseloadCoordinators },
   ] = await Promise.all([getSupervisorData(), getPendingStatusChanges(), getCaseloadForReassignment()]);
 
+  const caseloadCounts = new Map<string, number>();
+  let unassignedCount = 0;
+  for (const m of caseloadMembers) {
+    if (m.assignedCoordinatorId) {
+      caseloadCounts.set(m.assignedCoordinatorId, (caseloadCounts.get(m.assignedCoordinatorId) ?? 0) + 1);
+    } else {
+      unassignedCount++;
+    }
+  }
+
   return (
     <div>
       <PageHeader title="Supervisor Dashboard" description="Clinic-wide performance across all care coordinators" />
@@ -296,6 +306,21 @@ export default async function SupervisorDashboardPage() {
         </Card>
 
         <Card title="Caseload Management">
+          <div className="mb-4 flex flex-wrap gap-2">
+            {caseloadCoordinators.map((c) => (
+              <span
+                key={c.id}
+                className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700"
+              >
+                {c.name}: {caseloadCounts.get(c.id) ?? 0}
+              </span>
+            ))}
+            {unassignedCount > 0 && (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
+                Unassigned: {unassignedCount}
+              </span>
+            )}
+          </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-stone-400">
@@ -321,7 +346,7 @@ export default async function SupervisorDashboardPage() {
                         <option value="">Unassigned</option>
                         {caseloadCoordinators.map((c) => (
                           <option key={c.id} value={c.id}>
-                            {c.name}
+                            {c.name} ({caseloadCounts.get(c.id) ?? 0})
                           </option>
                         ))}
                       </select>
