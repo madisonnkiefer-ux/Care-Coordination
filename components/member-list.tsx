@@ -2,11 +2,76 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, Check, X } from "lucide-react";
+import { Search, Check, X, Download } from "lucide-react";
 import { Badge, Avatar } from "@/components/ui";
 import { formatDate, titleCase } from "@/lib/format";
 import { statusBadgeColor } from "@/lib/member-status";
 import type { MemberStatus } from "@/app/generated/prisma/client";
+
+const CSV_HEADERS = [
+  "Patient Name",
+  "Chart ID",
+  "Type of Patient",
+  "Last Contact",
+  "Medicaid ID",
+  "Subscriber ID",
+  "Availity ID",
+  "Medicaid Elig. Verified",
+  "Medicaid Renewal",
+  "Due Date",
+  "CCL",
+  "Initial CNA Date",
+  "Initial CCP Start Date",
+  "Most Recent CNA Date",
+  "Type (Initial/Annual)",
+  "CCP Last Updated",
+  "Last In-Person Touchpoint",
+  "Provider",
+  "Assigned CC",
+  "Status",
+];
+
+function csvCell(value: string) {
+  return /[",\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+}
+
+function downloadCsv(rows: MemberRow[], filenamePrefix: string) {
+  const lines = rows.map((m) =>
+    [
+      `${m.firstName} ${m.lastName}`,
+      m.chartId ?? "",
+      m.program ?? "",
+      formatDate(m.lastContactDate),
+      m.medicaidId ?? "",
+      m.subscriberId ?? "",
+      m.availityId ?? "",
+      m.medicaidEligibilityVerified ? "Yes" : "No",
+      formatDate(m.medicaidEligibilityRenewalDate),
+      formatDate(m.dueDate),
+      m.cclLevel ? titleCase(m.cclLevel) : "",
+      formatDate(m.initialCnaDate),
+      formatDate(m.initialCcpStartDate),
+      formatDate(m.mostRecentCnaDate),
+      m.mostRecentCnaType ?? "",
+      formatDate(m.lastCcpUpdatedAt),
+      formatDate(m.lastInPersonTouchpointDate),
+      m.provider ?? "",
+      m.assignedCoordinator?.name ?? "Unassigned",
+      titleCase(m.status),
+    ]
+      .map(csvCell)
+      .join(",")
+  );
+
+  const csv = [CSV_HEADERS.join(","), ...lines].join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${filenamePrefix}-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 type MemberRow = {
   id: string;
@@ -88,15 +153,26 @@ export function MemberList({ members, currentUserId }: { members: MemberRow[]; c
         </div>
       )}
 
-      <div className="relative mb-4 max-w-sm">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by name, IDs, provider, program…"
-          className="w-full rounded-lg border border-stone-300 bg-white py-2 pl-9 pr-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
-        />
+      <div className="mb-4 flex items-center gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name, IDs, provider, program…"
+            className="w-full rounded-lg border border-stone-300 bg-white py-2 pl-9 pr-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => downloadCsv(filtered, scope === "mine" ? "my-members" : "all-members")}
+          disabled={filtered.length === 0}
+          className="flex shrink-0 items-center gap-2 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </button>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-stone-100 bg-white shadow-sm">
