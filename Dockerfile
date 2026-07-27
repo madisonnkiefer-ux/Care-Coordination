@@ -28,6 +28,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
+# rds.tf forces sslmode=require, which pg-connection-string treats as
+# verify-full — Amazon RDS's CA chain isn't in Node's default trust store,
+# so both the app and the migration/seed overrides need it explicitly.
+COPY certs/rds-global-bundle.pem ./certs/rds-global-bundle.pem
+ENV NODE_EXTRA_CA_CERTS=/app/certs/rds-global-bundle.pem
+
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static

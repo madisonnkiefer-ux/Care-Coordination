@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+# public AWS CA bundle, not a secret — the Dockerfile needs it in the build context
+!/certs/rds-global-bundle.pem
 
 # debug
 npm-debug.log*
