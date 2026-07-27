@@ -6,6 +6,9 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
+# postinstall runs `prisma generate`, which needs the schema present.
+COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
 RUN npm ci
 
 FROM node:22-alpine AS builder
@@ -21,7 +24,11 @@ RUN npx prisma generate
 # it's server-only code, never inlined into the client bundle — the ECS task
 # definition injects the real secret from Secrets Manager at container start.
 ENV SESSION_SECRET="build-time-placeholder-not-used-at-runtime"
-RUN npm run build
+# `npm run build` would also trigger the "prebuild" script (scripts/prebuild-db-sync.mjs),
+# which connects directly to Postgres — not reachable from wherever this image
+# is built, and not how this image applies schema changes anyway (see the
+# migration/seed override note below). Call next build directly to skip it.
+RUN npx next build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
@@ -39,14 +46,18 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # The standalone output's traced node_modules omits the Prisma CLI (nothing
-# in the server bundle imports it, only `npx prisma` invokes it directly) —
-# but infra/README.md's migration/seed path runs this same image with its
-# command overridden to `npx prisma db push`/`db seed`. Pull in the full
+# in the server bundle imports it, only `npx prisma`/scripts/prebuild-db-sync.mjs
+# invoke it directly) — but infra/README.md's migration/seed path runs this
+# same image with its command overridden to run those. Pull in the full
 # node_modules plus the schema so that override actually has something to run.
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+# scripts/prebuild-db-sync.mjs works around a Prisma schema-engine bug
+# (P1014) that a single-pass `prisma db push` can hit on this schema — the
+# migration override should run this instead of a raw `db push`.
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 # schema.prisma's generator writes the client to app/generated/prisma (a
 # source directory, not node_modules) — prisma/seed.ts imports it directly.
 COPY --from=builder --chown=nextjs:nodejs /app/app/generated ./app/generated

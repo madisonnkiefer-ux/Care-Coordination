@@ -91,10 +91,12 @@ After you've pushed a real app image (see "Deploying the app" above), run:
 terraform output -raw run_migration_command | bash
 ```
 
-That runs `npx prisma db push` inside a throwaway task using the
-`DATABASE_URL` secret already wired into the task definition, then exits.
-Watch it finish in the ECS console (or `aws ecs describe-tasks`) — a schema
-sync against an empty database only takes a few seconds.
+That runs `scripts/prebuild-db-sync.mjs` (a `prisma db push` wrapper that
+works around a Prisma schema-engine bug — P1014 — this schema can hit on a
+single-pass push) inside a throwaway task using the `DATABASE_URL` secret
+already wired into the task definition, then exits. Watch it finish in the
+ECS console (or `aws ecs describe-tasks`) — a schema sync against an empty
+database only takes a few seconds.
 
 To load the fake demo dataset too (never real PHI — see `prisma/seed.ts`),
 swap the container override's command for `["npx","prisma","db","seed"]` and
