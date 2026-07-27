@@ -16,6 +16,11 @@ COPY . .
 # generated client needs no DATABASE_URL at build time — it only reads the
 # schema to generate types, and connects at runtime via the adapter.
 RUN npx prisma generate
+# lib/session.ts reads SESSION_SECRET at module scope, so `next build`'s
+# static page-data collection needs a value present. This one is discarded —
+# it's server-only code, never inlined into the client bundle — the ECS task
+# definition injects the real secret from Secrets Manager at container start.
+ENV SESSION_SECRET="build-time-placeholder-not-used-at-runtime"
 RUN npm run build
 
 FROM node:22-alpine AS runner
