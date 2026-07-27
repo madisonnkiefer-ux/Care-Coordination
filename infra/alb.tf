@@ -1,3 +1,38 @@
+# ALB access logging needs the target bucket to explicitly grant the ELB
+# log-delivery service write access — not covered by the bucket's own
+# ownership, and not the same grant as S3 server access logging.
+data "aws_elb_service_account" "main" {}
+
+resource "aws_s3_bucket_policy" "access_logs" {
+  bucket = aws_s3_bucket.access_logs.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "ALBLogDeliveryLegacy"
+        Effect    = "Allow"
+        Principal = { AWS = data.aws_elb_service_account.main.arn }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.access_logs.arn}/alb/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+      },
+      {
+        Sid       = "ALBLogDelivery"
+        Effect    = "Allow"
+        Principal = { Service = "logdelivery.elasticloadbalancing.amazonaws.com" }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.access_logs.arn}/alb/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+      },
+      {
+        Sid       = "ALBLogDeliveryAclCheck"
+        Effect    = "Allow"
+        Principal = { Service = "logdelivery.elasticloadbalancing.amazonaws.com" }
+        Action    = "s3:GetBucketAcl"
+        Resource  = aws_s3_bucket.access_logs.arn
+      }
+    ]
+  })
+}
+
 resource "aws_lb" "main" {
   name               = "${local.name_prefix}-alb"
   internal           = false
@@ -13,6 +48,8 @@ resource "aws_lb" "main" {
     prefix  = "alb"
     enabled = true
   }
+
+  depends_on = [aws_s3_bucket_policy.access_logs]
 
   tags = { Name = "${local.name_prefix}-alb" }
 }

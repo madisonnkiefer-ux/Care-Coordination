@@ -18,7 +18,7 @@ single_nat_gateway = true # ~$32/mo instead of ~$64/mo; flip to false before go-
 
 db_instance_class        = "db.t4g.micro" # bump for real load: db.t4g.medium+
 db_multi_az              = false          # flip to true before go-live for automatic failover
-db_backup_retention_days = 14
+db_backup_retention_days = 7              # brand-new/free-tier AWS accounts can reject higher values with FreeTierRestrictionError; raise once the account is past that restriction
 
 app_desired_count = 1 # bump to 2+ once zero-downtime deploys matter
 app_cpu           = 512
