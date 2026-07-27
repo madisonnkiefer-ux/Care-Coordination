@@ -41,6 +41,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+# schema.prisma's generator writes the client to app/generated/prisma (a
+# source directory, not node_modules) — prisma/seed.ts imports it directly.
+COPY --from=builder --chown=nextjs:nodejs /app/app/generated ./app/generated
 
 USER nextjs
 EXPOSE 3000
