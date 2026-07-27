@@ -32,6 +32,16 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# The standalone output's traced node_modules omits the Prisma CLI (nothing
+# in the server bundle imports it, only `npx prisma` invokes it directly) —
+# but infra/README.md's migration/seed path runs this same image with its
+# command overridden to `npx prisma db push`/`db seed`. Pull in the full
+# node_modules plus the schema so that override actually has something to run.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
