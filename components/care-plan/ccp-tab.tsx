@@ -186,7 +186,7 @@ export function CcpTab({ memberId, records }: { memberId: string; records: CareP
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="mt-4 space-y-3">
                 <TextField name="disasterDmeNeedsProvider" label="DME needs/provider" defaultValue={plan.disasterDmeNeedsProvider} />
                 <TextField name="disasterTransportationCo" label="Transportation needs/company" defaultValue={plan.disasterTransportationCo} />
                 <TextField name="disasterMedicationPickup" label="I can get my medication/drugs at" defaultValue={plan.disasterMedicationPickup} />

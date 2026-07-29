@@ -30,12 +30,14 @@ export function TextArea({
   defaultValue,
   className = "",
   rows = 2,
+  form,
 }: {
   name: string;
   label: string;
   defaultValue?: string | null;
   className?: string;
   rows?: number;
+  form?: string;
 }) {
   return (
     <div className={className}>
@@ -45,6 +47,7 @@ export function TextArea({
       <textarea
         id={name}
         name={name}
+        form={form}
         rows={rows}
         defaultValue={defaultValue ?? ""}
         className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
@@ -53,7 +56,17 @@ export function TextArea({
   );
 }
 
-export function DateField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: string | null }) {
+export function DateField({
+  name,
+  label,
+  defaultValue,
+  form,
+}: {
+  name: string;
+  label: string;
+  defaultValue?: string | null;
+  form?: string;
+}) {
   return (
     <div>
       <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
@@ -63,6 +76,7 @@ export function DateField({ name, label, defaultValue }: { name: string; label: 
         type="date"
         id={name}
         name={name}
+        form={form}
         defaultValue={defaultValue ?? ""}
         className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
       />

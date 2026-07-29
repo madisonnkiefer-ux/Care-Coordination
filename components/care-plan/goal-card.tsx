@@ -39,6 +39,7 @@ export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; car
         <div className="mt-5 space-y-6 border-t border-stone-100 pt-5">
           <form
             key={`${goal.id}-${goal.updatedAt.getTime()}`}
+            id={`goal-form-${goal.id}`}
             action={saveGoal.bind(null, memberId, carePlanId, goal.id)}
             className="space-y-5"
           >
@@ -57,12 +58,12 @@ export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; car
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-4">
               <TextArea name="strengths" label="Strengths" defaultValue={goal.strengths} rows={3} />
               <TextArea name="barriers" label="Barriers" defaultValue={goal.barriers} rows={3} />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-4">
               <div>
                 <Checkbox name="memberDeferredDiscussion" label="Member deferred discussion" defaultChecked={goal.memberDeferredDiscussion ?? false} />
                 <div className="mt-2">
@@ -82,42 +83,53 @@ export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; car
             <div className="rounded-lg border border-stone-100 bg-stone-50 p-4">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-500">Action I will take (Member)</p>
               <TextArea name="memberActionText" label="Action I will take to achieve this goal" defaultValue={goal.memberActionText} rows={2} />
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="mt-3 space-y-3">
                 <DateField name="memberActionBeginDate" label="Begin Date" defaultValue={toInputDate(goal.memberActionBeginDate)} />
                 <DateField name="memberActionTargetEndDate" label="Target End Date" defaultValue={toInputDate(goal.memberActionTargetEndDate)} />
                 <DateField name="memberActionAccomplishedDate" label="Date Goal Accomplished" defaultValue={toInputDate(goal.memberActionAccomplishedDate)} />
               </div>
             </div>
-
-            <div className="rounded-lg border border-stone-100 bg-stone-50 p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-500">Action my care coordinator will take</p>
-              <TextArea name="coordinatorActionText" label="Action my care coordinator will take to help me achieve this goal" defaultValue={goal.coordinatorActionText} rows={2} />
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <DateField name="coordinatorActionBeginDate" label="Begin Date" defaultValue={toInputDate(goal.coordinatorActionBeginDate)} />
-                <DateField name="coordinatorActionTargetEndDate" label="Target End Date" defaultValue={toInputDate(goal.coordinatorActionTargetEndDate)} />
-                <DateField name="coordinatorActionAccomplishedDate" label="Date Goal Accomplished" defaultValue={toInputDate(goal.coordinatorActionAccomplishedDate)} />
-              </div>
-            </div>
-
-            <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden">
-              Save Goal
-            </button>
           </form>
 
-          <div className="grid grid-cols-1 gap-6 border-t border-stone-100 pt-5 sm:grid-cols-2">
+          <div className="border-t border-stone-100 pt-5">
             <ProgressNoteColumn
               label="Member Progress Updates"
               notes={memberNotes}
               action={addProgressNote.bind(null, memberId, carePlanId, goal.id)}
               track="MEMBER"
             />
-            <ProgressNoteColumn
-              label="Care Coordinator Progress Updates"
-              notes={coordinatorNotes}
-              action={addProgressNote.bind(null, memberId, carePlanId, goal.id)}
-              track="COORDINATOR"
-            />
           </div>
+
+          <div className="rounded-lg border border-stone-100 bg-stone-50 p-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-500">Action my care coordinator will take</p>
+            <TextArea
+              name="coordinatorActionText"
+              label="Action my care coordinator will take to help me achieve this goal"
+              defaultValue={goal.coordinatorActionText}
+              rows={2}
+              form={`goal-form-${goal.id}`}
+            />
+            <div className="mt-3 space-y-3">
+              <DateField name="coordinatorActionBeginDate" label="Begin Date" defaultValue={toInputDate(goal.coordinatorActionBeginDate)} form={`goal-form-${goal.id}`} />
+              <DateField name="coordinatorActionTargetEndDate" label="Target End Date" defaultValue={toInputDate(goal.coordinatorActionTargetEndDate)} form={`goal-form-${goal.id}`} />
+              <DateField name="coordinatorActionAccomplishedDate" label="Date Goal Accomplished" defaultValue={toInputDate(goal.coordinatorActionAccomplishedDate)} form={`goal-form-${goal.id}`} />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            form={`goal-form-${goal.id}`}
+            className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden"
+          >
+            Save Goal
+          </button>
+
+          <ProgressNoteColumn
+            label="Care Coordinator Progress Updates"
+            notes={coordinatorNotes}
+            action={addProgressNote.bind(null, memberId, carePlanId, goal.id)}
+            track="COORDINATOR"
+          />
         </div>
       )}
     </Card>
