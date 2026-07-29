@@ -24,6 +24,32 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
 
   const returnPath = `/members/${id}`;
 
+  const chartEntries = [
+    ...chartHistory.map((v) => {
+      const allComplete = [v.demographics, v.hra, v.cna, v.note].every((s) => s?.status === "COMPLETED");
+      return {
+        key: `enrollment-${v.id}`,
+        type: "enrollment" as const,
+        date: v.createdAt,
+        href: `/members/${id}/intake?version=${v.id}`,
+        name: "Enrollment",
+        badge: v.signedAt
+          ? { label: "🔒 Signed", color: "slate" as const }
+          : allComplete
+            ? { label: "Completed", color: "green" as const }
+            : { label: "Draft", color: "yellow" as const },
+      };
+    }),
+    ...documents.map((doc) => ({
+      key: `document-${doc.id}`,
+      type: "document" as const,
+      date: doc.createdAt,
+      href: doc.storageKey ?? "#",
+      name: doc.name,
+      badge: { label: "Document", color: "slate" as const },
+    })),
+  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
   return (
     <div>
       <PageHeader
@@ -122,7 +148,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               <QuickAccessTile
                 href={`/members/${id}/intake`}
                 icon={FileSignature}
-                label="Chart (Demographics, HRA, CNA, Notes)"
+                label="Enrollment (Demographics, HRA, CNA, Notes)"
               />
               <QuickAccessTile
                 href={`/members/${id}/care-plan`}
@@ -138,28 +164,41 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
           </Card>
 
           <Card title="Charts" className="print:hidden">
-            {chartHistory.length === 0 ? (
+            {chartEntries.length === 0 ? (
               <EmptyState label="No charts yet." />
             ) : (
               <ul className="divide-y divide-stone-100">
-                {chartHistory.map((v) => {
-                  const allComplete = [v.demographics, v.hra, v.cna, v.note].every((s) => s?.status === "COMPLETED");
-                  return (
-                    <li key={v.id}>
-                      <Link
-                        href={`/members/${id}/intake?version=${v.id}`}
+                {chartEntries.map((entry) =>
+                  entry.type === "document" ? (
+                    <li key={entry.key}>
+                      <a
+                        href={entry.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="flex items-center justify-between gap-3 py-2 text-sm text-stone-700 hover:text-charcoal"
                       >
-                        <span>{formatDate(v.createdAt)}</span>
-                        {v.signedAt ? (
-                          <Badge color="slate">🔒 Signed</Badge>
-                        ) : (
-                          <Badge color={allComplete ? "green" : "yellow"}>{allComplete ? "Completed" : "Draft"}</Badge>
-                        )}
+                        <span className="min-w-0 truncate">
+                          <span className="font-medium">{entry.name}</span>
+                          <span className="ml-2 text-stone-400">{formatDate(entry.date)}</span>
+                        </span>
+                        <Badge color={entry.badge.color}>{entry.badge.label}</Badge>
+                      </a>
+                    </li>
+                  ) : (
+                    <li key={entry.key}>
+                      <Link
+                        href={entry.href}
+                        className="flex items-center justify-between gap-3 py-2 text-sm text-stone-700 hover:text-charcoal"
+                      >
+                        <span className="min-w-0 truncate">
+                          <span className="font-medium">{entry.name}</span>
+                          <span className="ml-2 text-stone-400">{formatDate(entry.date)}</span>
+                        </span>
+                        <Badge color={entry.badge.color}>{entry.badge.label}</Badge>
                       </Link>
                     </li>
-                  );
-                })}
+                  )
+                )}
               </ul>
             )}
           </Card>

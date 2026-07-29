@@ -56,14 +56,14 @@ export function IntakeShell({
           selectedId={version?.id ?? null}
           onSelect={setSelectedId}
           newAction={createNewIntakeVersion.bind(null, memberId)}
-          newLabel="+ New Chart"
+          newLabel="+ New Enrollment"
         />
 
         {version && <SignPanel memberId={memberId} version={version} currentUserIsAdmin={currentUserIsAdmin} />}
       </div>
 
       {!version ? (
-        <p className="p-8 text-sm text-stone-500">No chart yet — click &quot;+ New Chart&quot; to start one.</p>
+        <p className="p-8 text-sm text-stone-500">No enrollment yet — click &quot;+ New Enrollment&quot; to start one.</p>
       ) : (
         <Tabs
           defaultTabId={defaultSubTab}
@@ -153,7 +153,7 @@ function SignPanel({
         <SignButton action={signIntakeVersion.bind(null, memberId, version.id)} />
       ) : (
         <span className="text-xs text-stone-400">
-          {allComplete ? "Only an admin can sign." : "All four sections must be Completed before this chart can be signed."}
+          {allComplete ? "Only an admin can sign." : "All four sections must be Completed before this enrollment can be signed."}
         </span>
       )}
     </div>
@@ -161,5 +161,5 @@ function SignPanel({
 }
 
 function MissingSection({ label }: { label: string }) {
-  return <p className="p-8 text-sm text-stone-500">This chart is missing its {label} section.</p>;
+  return <p className="p-8 text-sm text-stone-500">This enrollment is missing its {label} section.</p>;
 }

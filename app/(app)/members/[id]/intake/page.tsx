@@ -25,7 +25,7 @@ export default async function IntakePage({
   return (
     <div>
       <PageHeader
-        title="Chart"
+        title="Enrollment"
         description={`${member.firstName} ${member.lastName}`}
         action={<PrintButton label="Print This Form" />}
       />
