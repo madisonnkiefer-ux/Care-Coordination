@@ -1,15 +1,8 @@
 import { notFound } from "next/navigation";
-import { getDemographicsFormData } from "@/lib/data/demographics";
-import { getHraFormData } from "@/lib/data/hra";
-import { getCnaFormData } from "@/lib/data/cna";
-import { getCareCoordinationNoteFormData } from "@/lib/data/care-coordination-notes";
+import { getIntakeFormData } from "@/lib/data/intake";
 import { getCurrentUser } from "@/lib/dal";
 import { PageHeader } from "@/components/ui";
-import { Tabs } from "@/components/tabs";
-import { DemographicsTab } from "@/components/intake/demographics-tab";
-import { HraTab } from "@/components/intake/hra-tab";
-import { CnaTab } from "@/components/intake/cna-tab";
-import { CareCoordinationNotesTab } from "@/components/intake/care-coordination-notes-tab";
+import { IntakeShell } from "@/components/intake/intake-shell";
 import { PrintButton } from "@/components/print-button";
 
 export default async function IntakePage({
@@ -17,47 +10,31 @@ export default async function IntakePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; version?: string }>;
 }) {
   const { id } = await params;
-  const { tab } = await searchParams;
+  const { tab, version } = await searchParams;
 
-  const [demographicsData, hraData, cnaData, notesData, currentUser] = await Promise.all([
-    getDemographicsFormData(id),
-    getHraFormData(id),
-    getCnaFormData(id),
-    getCareCoordinationNoteFormData(id),
-    getCurrentUser(),
-  ]);
+  const [intakeData, currentUser] = await Promise.all([getIntakeFormData(id), getCurrentUser()]);
 
-  if (!demographicsData || !hraData || !cnaData || !notesData) notFound();
+  if (!intakeData) notFound();
 
-  const { member } = demographicsData;
+  const { member, versions } = intakeData;
   const currentUserIsAdmin = currentUser?.role === "ADMIN";
 
   return (
     <div>
       <PageHeader
-        title="Intake"
+        title="Chart"
         description={`${member.firstName} ${member.lastName}`}
         action={<PrintButton label="Print This Form" />}
       />
-      <Tabs
-        defaultTabId={tab}
-        tabs={[
-          {
-            id: "demographics",
-            label: "Demographics",
-            content: <DemographicsTab memberId={id} records={demographicsData.records} currentUserIsAdmin={currentUserIsAdmin} />,
-          },
-          { id: "hra", label: "HRA", content: <HraTab memberId={id} records={hraData.records} currentUserIsAdmin={currentUserIsAdmin} /> },
-          { id: "cna", label: "CNA", content: <CnaTab memberId={id} records={cnaData.records} currentUserIsAdmin={currentUserIsAdmin} /> },
-          {
-            id: "notes",
-            label: "Care Coordination Notes",
-            content: <CareCoordinationNotesTab memberId={id} records={notesData.records} currentUserIsAdmin={currentUserIsAdmin} />,
-          },
-        ]}
+      <IntakeShell
+        memberId={id}
+        versions={versions}
+        currentUserIsAdmin={currentUserIsAdmin}
+        defaultSubTab={tab}
+        defaultVersionId={version}
       />
     </div>
   );

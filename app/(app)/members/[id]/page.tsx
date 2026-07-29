@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckSquare, Square, ListTree, FileSignature, ArrowRightLeft } from "lucide-react";
 import { getMemberChart } from "@/lib/data/members";
 import { getStatusHistory } from "@/lib/data/member-status";
+import { getChartHistorySummary } from "@/lib/data/intake";
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { GoalDonut } from "@/components/goal-donut";
 import { DocumentUpload } from "@/components/document-upload";
@@ -18,11 +19,8 @@ import { PrintButton } from "@/components/print-button";
 
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [{ member, tasks, recentContacts, appointments, documents, notes, goalTotals }, statusHistory, snapshot] = await Promise.all([
-    getMemberChart(id),
-    getStatusHistory(id),
-    getPatientSnapshot(id),
-  ]);
+  const [{ member, tasks, recentContacts, appointments, documents, notes, goalTotals }, statusHistory, snapshot, chartHistory] =
+    await Promise.all([getMemberChart(id), getStatusHistory(id), getPatientSnapshot(id), getChartHistorySummary(id)]);
 
   const returnPath = `/members/${id}`;
 
@@ -124,7 +122,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               <QuickAccessTile
                 href={`/members/${id}/intake`}
                 icon={FileSignature}
-                label="Intake (Demographics, HRA, CNA, Notes)"
+                label="Chart (Demographics, HRA, CNA, Notes)"
               />
               <QuickAccessTile
                 href={`/members/${id}/care-plan`}
@@ -137,6 +135,33 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 label="Transition of Care (TOC)"
               />
             </div>
+          </Card>
+
+          <Card title="Charts" className="print:hidden">
+            {chartHistory.length === 0 ? (
+              <EmptyState label="No charts yet." />
+            ) : (
+              <ul className="divide-y divide-stone-100">
+                {chartHistory.map((v) => {
+                  const allComplete = [v.demographics, v.hra, v.cna, v.note].every((s) => s?.status === "COMPLETED");
+                  return (
+                    <li key={v.id}>
+                      <Link
+                        href={`/members/${id}/intake?version=${v.id}`}
+                        className="flex items-center justify-between gap-3 py-2 text-sm text-stone-700 hover:text-charcoal"
+                      >
+                        <span>{formatDate(v.createdAt)}</span>
+                        {v.signedAt ? (
+                          <Badge color="slate">🔒 Signed</Badge>
+                        ) : (
+                          <Badge color={allComplete ? "green" : "yellow"}>{allComplete ? "Completed" : "Draft"}</Badge>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </Card>
 
           <Card title="Care Plan Goals">

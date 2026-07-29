@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { Card, Badge } from "@/components/ui";
-import { saveCna, createNewCna, signCna } from "@/app/actions/cna";
+import { saveCna } from "@/app/actions/cna";
 import { toDateInputValue } from "@/lib/format";
 import { computeBmi, computePhq2Total, computePhq9Total, computeCageTotal, getSafetyConcernReasons } from "@/lib/cna-computed";
 import type { CnaAssessment } from "@/app/generated/prisma/client";
-import { HistoryBar, SignedBanner, SignButton, type HistoryItem } from "@/components/intake/versioning";
 import {
   TextField,
   TextArea,
@@ -31,40 +29,20 @@ import {
   PHQ_DIFFICULTY_OPTIONS,
 } from "@/components/intake/options";
 
-type CnaRecord = CnaAssessment & { signedBy: { name: string } | null };
-
-export function CnaTab({ memberId, records, currentUserIsAdmin }: { memberId: string; records: CnaRecord[]; currentUserIsAdmin: boolean }) {
-  const [selectedId, setSelectedId] = useState<string | null>(records[0]?.id ?? null);
-  const draft = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
-  const locked = Boolean(draft?.signedAt);
-  const safetyReasons = draft ? getSafetyConcernReasons(draft) : [];
-  const bmi = draft ? computeBmi(draft.heightInches, draft.weightLbs) : null;
-  const phq2Total = draft ? computePhq2Total(draft) : null;
-  const phq9Total = draft ? computePhq9Total(draft) : null;
-  const cageTotal = draft ? computeCageTotal(draft) : null;
-
-  const historyItems: HistoryItem[] = records.map((r) => ({
-    id: r.id,
-    dateLabel: r.assessmentDate,
-    status: r.status,
-    signedAt: r.signedAt,
-    signedByName: r.signedBy?.name ?? null,
-  }));
+export function CnaTab({ memberId, record: draft, locked }: { memberId: string; record: CnaAssessment; locked: boolean }) {
+  const safetyReasons = getSafetyConcernReasons(draft);
+  const bmi = computeBmi(draft.heightInches, draft.weightLbs);
+  const phq2Total = computePhq2Total(draft);
+  const phq9Total = computePhq9Total(draft);
+  const cageTotal = computeCageTotal(draft);
 
   return (
     <div className="p-8">
-      <HistoryBar items={historyItems} selectedId={draft?.id ?? null} onSelect={setSelectedId} newAction={createNewCna.bind(null, memberId)} newLabel="+ New CNA" />
-
-      {!draft ? (
-        <p className="text-sm text-stone-500">No CNA yet — click &quot;+ New CNA&quot; to start one.</p>
-      ) : (
       <form
         key={`${draft.id}-${draft.updatedAt.getTime()}`}
         action={saveCna.bind(null, memberId, draft.id)}
         className="max-w-3xl space-y-6"
       >
-      {locked && <SignedBanner signedByName={draft.signedBy?.name ?? null} signedAt={draft.signedAt as Date} />}
-
       {safetyReasons.length > 0 && (
         <Card className="border-red-300 bg-red-50">
           <Badge color="red">Safety Concern</Badge>
@@ -819,13 +797,6 @@ export function CnaTab({ memberId, records, currentUserIsAdmin }: { memberId: st
         </div>
       )}
       </form>
-      )}
-
-      {draft && !locked && draft.status === "COMPLETED" && currentUserIsAdmin && (
-        <div className="mt-4 max-w-3xl">
-          <SignButton action={signCna.bind(null, memberId, draft.id)} />
-        </div>
-      )}
     </div>
   );
 }

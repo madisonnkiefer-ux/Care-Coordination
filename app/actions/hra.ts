@@ -5,70 +5,15 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
-import { createNotification } from "@/lib/notifications";
 import type { AssessmentStatus } from "@/app/generated/prisma/client";
-
-export async function createNewHra(memberId: string) {
-  const { session, member } = await authorizeMemberAccess(memberId);
-  if (!member) throw new Error("Forbidden");
-
-  const record = await db.hraAssessment.create({ data: { memberId, assessorId: session.userId } });
-
-  await writeAuditLog({
-    userId: session.userId,
-    memberId,
-    action: "CREATE",
-    resource: "HraAssessment",
-    resourceId: record.id,
-  });
-
-  revalidatePath(`/members/${memberId}/intake`);
-  redirect(`/members/${memberId}/intake?tab=hra`);
-}
-
-export async function signHra(memberId: string, hraId: string) {
-  const { session, member } = await authorizeMemberAccess(memberId);
-  if (!member) throw new Error("Forbidden");
-  if (session.role !== "ADMIN") throw new Error("Forbidden: only admins can sign");
-
-  const existing = await db.hraAssessment.findUnique({ where: { id: hraId } });
-  if (!existing || existing.memberId !== memberId) throw new Error("Not found");
-  if (existing.signedAt) throw new Error("Already signed");
-  if (existing.status !== "COMPLETED") throw new Error("Only completed records can be signed");
-
-  await db.hraAssessment.update({ where: { id: hraId }, data: { signedAt: new Date(), signedById: session.userId } });
-
-  await writeAuditLog({
-    userId: session.userId,
-    memberId,
-    action: "UPDATE",
-    resource: "HraAssessment",
-    resourceId: hraId,
-    metadata: { signed: true },
-  });
-
-  if (member.assignedCoordinatorId) {
-    await createNotification({
-      clinicId: session.clinicId,
-      userId: member.assignedCoordinatorId,
-      actorId: session.userId,
-      priority: "HIGH",
-      title: `HRA signed off for ${member.firstName} ${member.lastName}`,
-      memberId,
-    });
-  }
-
-  revalidatePath(`/members/${memberId}/intake`);
-  redirect(`/members/${memberId}/intake?tab=hra`);
-}
 
 export async function saveHra(memberId: string, hraId: string, formData: FormData) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
 
-  const existing = await db.hraAssessment.findUnique({ where: { id: hraId } });
+  const existing = await db.hraAssessment.findUnique({ where: { id: hraId }, include: { intakeVersion: true } });
   if (!existing || existing.memberId !== memberId) throw new Error("Not found");
-  if (existing.signedAt) throw new Error("This record is signed and locked");
+  if (existing.intakeVersion?.signedAt) throw new Error("This record is signed and locked");
 
   const str = (key: string) => {
     const value = formData.get(key);
