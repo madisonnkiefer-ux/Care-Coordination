@@ -5,10 +5,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 type GoalTotals = { onTrack: number; inProgress: number; notStarted: number; complete: number };
 
 const COLORS = {
-  onTrack: "#1c1917",
-  inProgress: "#d4a574",
-  complete: "#a8a29e",
-  notStarted: "#e8b4b8",
+  onTrack: "#3a3532", // charcoal
+  inProgress: "#8c4a55", // deep-rose
+  complete: "#b7afa3", // taupe
+  notStarted: "#d9a8ae", // blush
 };
 
 export function GoalDonut({ totals }: { totals: GoalTotals }) {
