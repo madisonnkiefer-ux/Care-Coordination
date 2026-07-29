@@ -17,3 +17,13 @@ export async function getTocFormData(memberId: string) {
 
   return { member, records };
 }
+
+// Lightweight summary for the member page's "Charts" list — just enough to
+// render a dated, clickable history of past TOC records.
+export async function getTocHistorySummary(memberId: string) {
+  return db.tocRecord.findMany({
+    where: { memberId },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, createdAt: true, status: true, signedAt: true },
+  });
+}

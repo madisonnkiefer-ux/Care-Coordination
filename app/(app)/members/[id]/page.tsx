@@ -3,6 +3,8 @@ import { CheckSquare, Square, ListTree, FileSignature, ArrowRightLeft } from "lu
 import { getMemberChart } from "@/lib/data/members";
 import { getStatusHistory } from "@/lib/data/member-status";
 import { getChartHistorySummary } from "@/lib/data/intake";
+import { getCarePlanHistorySummary } from "@/lib/data/care-plan";
+import { getTocHistorySummary } from "@/lib/data/toc";
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { GoalDonut } from "@/components/goal-donut";
 import { DocumentUpload } from "@/components/document-upload";
@@ -19,8 +21,21 @@ import { PrintButton } from "@/components/print-button";
 
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [{ member, tasks, recentContacts, appointments, documents, notes, goalTotals }, statusHistory, snapshot, chartHistory] =
-    await Promise.all([getMemberChart(id), getStatusHistory(id), getPatientSnapshot(id), getChartHistorySummary(id)]);
+  const [
+    { member, tasks, recentContacts, appointments, documents, notes, goalTotals },
+    statusHistory,
+    snapshot,
+    chartHistory,
+    carePlanHistory,
+    tocHistory,
+  ] = await Promise.all([
+    getMemberChart(id),
+    getStatusHistory(id),
+    getPatientSnapshot(id),
+    getChartHistorySummary(id),
+    getCarePlanHistorySummary(id),
+    getTocHistorySummary(id),
+  ]);
 
   const returnPath = `/members/${id}`;
 
@@ -29,7 +44,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
       const allComplete = [v.demographics, v.hra, v.cna, v.note].every((s) => s?.status === "COMPLETED");
       return {
         key: `enrollment-${v.id}`,
-        type: "enrollment" as const,
+        type: "internal" as const,
         date: v.createdAt,
         href: `/members/${id}/intake?version=${v.id}`,
         name: "Enrollment",
@@ -40,9 +55,30 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
             : { label: "Draft", color: "yellow" as const },
       };
     }),
+    ...carePlanHistory.map((cp) => ({
+      key: `careplan-${cp.id}`,
+      type: "internal" as const,
+      date: cp.createdAt,
+      href: `/members/${id}/care-plan?tab=ccp`,
+      name: "Care Plan",
+      badge:
+        cp.status === "COMPLETED" ? { label: "Completed", color: "green" as const } : { label: "Draft", color: "yellow" as const },
+    })),
+    ...tocHistory.map((t) => ({
+      key: `toc-${t.id}`,
+      type: "internal" as const,
+      date: t.createdAt,
+      href: `/members/${id}/toc`,
+      name: "Transition of Care",
+      badge: t.signedAt
+        ? { label: "🔒 Signed", color: "slate" as const }
+        : t.status === "COMPLETED"
+          ? { label: "Completed", color: "green" as const }
+          : { label: "Draft", color: "yellow" as const },
+    })),
     ...documents.map((doc) => ({
       key: `document-${doc.id}`,
-      type: "document" as const,
+      type: "external" as const,
       date: doc.createdAt,
       href: doc.storageKey ?? "#",
       name: doc.name,
@@ -169,7 +205,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
             ) : (
               <ul className="divide-y divide-stone-100">
                 {chartEntries.map((entry) =>
-                  entry.type === "document" ? (
+                  entry.type === "external" ? (
                     <li key={entry.key}>
                       <a
                         href={entry.href}
