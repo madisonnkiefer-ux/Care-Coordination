@@ -25,6 +25,9 @@ enum Role {
 model Clinic {
   id        String   @id @default(cuid())
   name      String
+  // Facility/office code — a second factor at login scoping a user to their
+  // clinic, distinct from the account's (globally unique) email.
+  code      String   @unique
   createdAt DateTime @default(now())
 
   users         User[]

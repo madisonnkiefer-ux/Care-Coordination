@@ -13,7 +13,7 @@ export async function seedDemoData(db: PrismaClient) {
   const clinic = await db.clinic.upsert({
     where: { id: "demo-clinic" },
     update: {},
-    create: { id: "demo-clinic", name: "Rio Pecos Care Coordination (Demo)" },
+    create: { id: "demo-clinic", name: "Rio Pecos Care Coordination (Demo)", code: "DEMO1000" },
   });
 
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
@@ -233,6 +233,7 @@ export async function seedDemoData(db: PrismaClient) {
   console.log(`Seeded clinic "${clinic.name}" with ${memberSeeds.length} demo members.`);
   return {
     clinicName: clinic.name,
+    clinicCode: clinic.code,
     memberCount: memberSeeds.length,
     demoPassword: DEMO_PASSWORD,
     users: [jessica, amanda, michael, supervisor, admin].map((u) => ({ email: u.email, role: u.role })),

@@ -8,6 +8,7 @@ const db = new PrismaClient({ adapter });
 
 seedDemoData(db)
   .then((result) => {
+    console.log(`Office code: ${result.clinicCode}`);
     console.log(`Demo login password for all users: ${result.demoPassword}`);
     console.log("Users:", result.users.map((u) => `${u.email} (${u.role})`).join(", "));
   })
