@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Lora, Bodoni_Moda } from "next/font/google";
+import { Geist, Geist_Mono, Lora } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,13 +17,6 @@ const lora = Lora({
   subsets: ["latin"],
 });
 
-// Display serif for the Avanza Care wordmark/monogram (components/avanza-logo.tsx) —
-// distinct from the body serif (Lora) above.
-const bodoniModa = Bodoni_Moda({
-  variable: "--font-bodoni",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
   title: "CareCoord Hub",
   description: "Care coordination workspace",
@@ -37,7 +30,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} ${bodoniModa.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

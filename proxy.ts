@@ -47,5 +47,10 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // Static files in public/ (e.g. avanza-logo.png) are served at the root
+  // path, not under a shared prefix — favicon.ico was the only one
+  // excluded, so any other public/ asset fell through to the auth check
+  // and got redirected when unauthenticated. Exclude by file extension
+  // instead, the standard Next.js pattern for this matcher.
+  matcher: ["/((?!api|_next/static|_next/image|.*\\.(?:ico|png|jpg|jpeg|svg|webp|gif|css|js|woff2?|ttf|map)$).*)"],
 };
