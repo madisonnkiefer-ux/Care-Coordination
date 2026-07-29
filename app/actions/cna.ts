@@ -23,7 +23,7 @@ export async function createNewCna(memberId: string) {
   });
 
   revalidatePath(`/members/${memberId}/intake`);
-  redirect(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake?tab=cna`);
 }
 
 export async function signCna(memberId: string, cnaId: string) {
@@ -59,7 +59,7 @@ export async function signCna(memberId: string, cnaId: string) {
   }
 
   revalidatePath(`/members/${memberId}/intake`);
-  redirect(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake?tab=cna`);
 }
 
 export async function saveCna(memberId: string, cnaId: string, formData: FormData) {
@@ -327,5 +327,5 @@ export async function saveCna(memberId: string, cnaId: string, formData: FormDat
   });
 
   revalidatePath(`/members/${memberId}/intake`);
-  redirect(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake?tab=cna`);
 }

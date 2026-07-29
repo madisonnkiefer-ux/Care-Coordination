@@ -23,7 +23,7 @@ export async function createNewHra(memberId: string) {
   });
 
   revalidatePath(`/members/${memberId}/intake`);
-  redirect(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake?tab=hra`);
 }
 
 export async function signHra(memberId: string, hraId: string) {
@@ -59,7 +59,7 @@ export async function signHra(memberId: string, hraId: string) {
   }
 
   revalidatePath(`/members/${memberId}/intake`);
-  redirect(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake?tab=hra`);
 }
 
 export async function saveHra(memberId: string, hraId: string, formData: FormData) {
@@ -169,5 +169,5 @@ export async function saveHra(memberId: string, hraId: string, formData: FormDat
   });
 
   revalidatePath(`/members/${memberId}/intake`);
-  redirect(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake?tab=hra`);
 }

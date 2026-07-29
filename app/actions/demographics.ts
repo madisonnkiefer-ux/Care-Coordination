@@ -67,7 +67,7 @@ export async function createNewDemographics(memberId: string) {
   });
 
   revalidatePath(`/members/${memberId}/intake`);
-  redirect(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake?tab=demographics`);
 }
 
 export async function saveDemographics(memberId: string, demographicsId: string, formData: FormData) {
@@ -183,7 +183,7 @@ export async function saveDemographics(memberId: string, demographicsId: string,
   });
 
   revalidatePath(`/members/${memberId}/intake`);
-  redirect(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake?tab=demographics`);
 }
 
 export async function signDemographics(memberId: string, demographicsId: string) {
@@ -222,5 +222,5 @@ export async function signDemographics(memberId: string, demographicsId: string)
   }
 
   revalidatePath(`/members/${memberId}/intake`);
-  redirect(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake?tab=demographics`);
 }

@@ -23,7 +23,7 @@ export async function createNewCareCoordinationNote(memberId: string) {
   });
 
   revalidatePath(`/members/${memberId}/intake`);
-  redirect(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake?tab=notes`);
 }
 
 export async function signCareCoordinationNote(memberId: string, noteId: string) {
@@ -59,7 +59,7 @@ export async function signCareCoordinationNote(memberId: string, noteId: string)
   }
 
   revalidatePath(`/members/${memberId}/intake`);
-  redirect(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake?tab=notes`);
 }
 
 export async function saveCareCoordinationNote(memberId: string, noteId: string, formData: FormData) {
@@ -142,5 +142,5 @@ export async function saveCareCoordinationNote(memberId: string, noteId: string,
   });
 
   revalidatePath(`/members/${memberId}/intake`);
-  redirect(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake?tab=notes`);
 }
