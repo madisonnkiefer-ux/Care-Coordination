@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
 import { TERMINAL_STATUSES } from "@/lib/member-status";
+import { getComplianceCadence, getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
 
 export async function getSupervisorData() {
   const session = await requireRole("SUPERVISOR", "ADMIN");
@@ -11,8 +12,11 @@ export async function getSupervisorData() {
   const dayOfWeek = now.getDay();
   const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMonday);
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+  // Widest window either cadence (monthly or quarterly) ever needs — quarters
+  // always fully contain their months, so fetching from quarter-start covers
+  // both without a per-member query.
+  const currentQuarterStart = getWindowStart("quarter", now);
 
   const [
     totalMembers,
@@ -31,7 +35,6 @@ export async function getSupervisorData() {
     membersNeedingAssignment,
     membersForCcpDueDates,
     membersForContactCadence,
-    membersForSuccessfulContact,
   ] = await Promise.all([
     db.member.count({ where: { clinicId } }),
     db.member.count({ where: { clinicId, cnaAssessments: { some: { status: "COMPLETED" } } } }),
@@ -105,15 +108,9 @@ export async function getSupervisorData() {
         id: true,
         firstName: true,
         lastName: true,
+        program: true,
         assignedCoordinator: { select: { name: true } },
-        generalCommunications: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
-      },
-    }),
-    db.member.findMany({
-      where: { clinicId },
-      select: {
-        id: true,
-        generalCommunications: { where: { successful: true }, orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
+        generalCommunications: { where: { createdAt: { gte: currentQuarterStart } }, select: { createdAt: true, successful: true } },
       },
     }),
   ]);
@@ -186,36 +183,37 @@ export async function getSupervisorData() {
       return a.lastCcpDate.getTime() - b.lastCcpDate.getTime();
     });
 
-  // "Touchpoint" = any logged contact attempt (successful or not) — nobody
-  // has even tried reaching them in 30+ days. "No contact" is the stricter
-  // signal: no *successful* contact in 30+ days, even if attempts were made.
-  const successfulContactById = new Map(
-    membersForSuccessfulContact.map((m) => [m.id, m.generalCommunications[0]?.createdAt ?? null])
-  );
-
-  const contactCadenceRows = membersForContactCadence.map((m) => ({
-    id: m.id,
-    firstName: m.firstName,
-    lastName: m.lastName,
-    coordinatorName: m.assignedCoordinator?.name ?? "Unassigned",
-    lastAnyContact: m.generalCommunications[0]?.createdAt ?? null,
-    lastSuccessfulContact: successfulContactById.get(m.id) ?? null,
-  }));
-
-  const touchpointsOverdue = contactCadenceRows
-    .filter((m) => !m.lastAnyContact || m.lastAnyContact < thirtyDaysAgo)
+  // Touchpoint compliance is program-based: Prenatal/Postpartum members need
+  // 1 successful contact (or 3 attempts) every month; everyone else needs
+  // the same every quarter. See lib/touchpoint-compliance.ts.
+  const touchpointGaps = membersForContactCadence
+    .map((m) => {
+      const cadence = getComplianceCadence(m.program);
+      const windowStart = getWindowStart(cadence.unit, now);
+      const inWindow = m.generalCommunications.filter((c) => c.createdAt >= windowStart);
+      const successfulInWindow = inWindow.filter((c) => c.successful).length;
+      const lastAnyContact = m.generalCommunications.reduce<Date | null>(
+        (latest, c) => (!latest || c.createdAt > latest ? c.createdAt : latest),
+        null
+      );
+      return {
+        id: m.id,
+        firstName: m.firstName,
+        lastName: m.lastName,
+        coordinatorName: m.assignedCoordinator?.name ?? "Unassigned",
+        cadenceUnit: cadence.unit,
+        requiredAttempts: cadence.requiredAttempts,
+        attemptsInWindow: inWindow.length,
+        successfulInWindow,
+        lastAnyContact,
+        compliant: isTouchpointCompliant(m.generalCommunications, m.program, now),
+      };
+    })
+    .filter((m) => !m.compliant)
     .sort((a, b) => {
       if (!a.lastAnyContact) return -1;
       if (!b.lastAnyContact) return 1;
       return a.lastAnyContact.getTime() - b.lastAnyContact.getTime();
-    });
-
-  const noContact30Days = contactCadenceRows
-    .filter((m) => !m.lastSuccessfulContact || m.lastSuccessfulContact < thirtyDaysAgo)
-    .sort((a, b) => {
-      if (!a.lastSuccessfulContact) return -1;
-      if (!b.lastSuccessfulContact) return 1;
-      return a.lastSuccessfulContact.getTime() - b.lastSuccessfulContact.getTime();
     });
 
   return {
@@ -235,8 +233,7 @@ export async function getSupervisorData() {
     dischargedThisWeek,
     membersNeedingAssignment,
     overdueCcps,
-    touchpointsOverdue,
-    noContact30Days,
+    touchpointGaps,
   };
 }
 

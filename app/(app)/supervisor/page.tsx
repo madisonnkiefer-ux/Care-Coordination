@@ -25,8 +25,7 @@ export default async function SupervisorDashboardPage() {
       dischargedThisWeek,
       membersNeedingAssignment,
       overdueCcps,
-      touchpointsOverdue,
-      noContact30Days,
+      touchpointGaps,
     },
     pendingStatusChanges,
     { members: caseloadMembers, coordinators: caseloadCoordinators },
@@ -264,19 +263,22 @@ export default async function SupervisorDashboardPage() {
             )}
           </Card>
 
-          <Card title="Touchpoints Overdue (30+ days, no attempt)">
-            {touchpointsOverdue.length === 0 ? (
-              <p className="py-4 text-center text-sm text-stone-400">Everyone has a recent outreach attempt logged.</p>
+          <Card title="Touchpoint Compliance Gaps">
+            {touchpointGaps.length === 0 ? (
+              <p className="py-4 text-center text-sm text-stone-400">Everyone is meeting their touchpoint cadence.</p>
             ) : (
               <ul className="divide-y divide-stone-100">
-                {touchpointsOverdue.map((m) => (
+                {touchpointGaps.map((m) => (
                   <li key={m.id} className="flex items-center justify-between py-2 text-sm">
                     <Link href={`/members/${m.id}`} className="font-medium text-stone-800 hover:underline">
                       {m.firstName} {m.lastName}
                     </Link>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-stone-500">{m.coordinatorName}</span>
-                      <Badge color="red">{m.lastAnyContact ? formatDate(m.lastAnyContact) : "Never"}</Badge>
+                      <Badge color="slate">{m.cadenceUnit === "month" ? "Monthly" : "Quarterly"}</Badge>
+                      <Badge color="red">
+                        {m.successfulInWindow} successful · {m.attemptsInWindow}/{m.requiredAttempts} attempts
+                      </Badge>
                     </div>
                   </li>
                 ))}
@@ -284,26 +286,6 @@ export default async function SupervisorDashboardPage() {
             )}
           </Card>
         </div>
-
-        <Card title="Members With No Successful Contact in 30+ Days">
-          {noContact30Days.length === 0 ? (
-            <p className="py-4 text-center text-sm text-stone-400">Everyone has been successfully reached in the last 30 days.</p>
-          ) : (
-            <ul className="divide-y divide-stone-100">
-              {noContact30Days.map((m) => (
-                <li key={m.id} className="flex items-center justify-between py-2 text-sm">
-                  <Link href={`/members/${m.id}`} className="font-medium text-stone-800 hover:underline">
-                    {m.firstName} {m.lastName}
-                  </Link>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-stone-500">{m.coordinatorName}</span>
-                    <Badge color="red">{m.lastSuccessfulContact ? formatDate(m.lastSuccessfulContact) : "Never"}</Badge>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
 
         <Card title="Caseload Management">
           <div className="mb-4 flex flex-wrap gap-2">

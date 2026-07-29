@@ -8,32 +8,50 @@ import { SimpleHistoryBar } from "@/components/intake/versioning";
 import { SelectField, DateField } from "@/components/intake/form-fields";
 import { CONTACT_METHOD_OPTIONS, PERSON_CONTACTED_OPTIONS, UNSUCCESSFUL_REASON_OPTIONS } from "@/components/care-plan/outreach-options";
 import { formatDateTime, toDateInputValue } from "@/lib/format";
+import { getComplianceCadence, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
 
 type CommRecord = GeneralCommunication & { author: { name: string } | null };
 
-export function GeneralCommunicationTab({ memberId, records }: { memberId: string; records: CommRecord[] }) {
+export function GeneralCommunicationTab({
+  memberId,
+  records,
+  program,
+}: {
+  memberId: string;
+  records: CommRecord[];
+  program: string | null;
+}) {
   const [selectedId, setSelectedId] = useState<string | null>(records[0]?.id ?? null);
   const record = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
 
   const historyItems = records.map((r) => ({ id: r.id, dateLabel: r.createdAt }));
 
-  const { daysSinceLastSuccessful, attemptsThisMonth } = useMemo(() => {
+  const { daysSinceLastSuccessful, cadence, attemptsInWindow, successfulInWindow, compliant } = useMemo(() => {
     const now = new Date();
     const successfulDates = records.filter((r) => r.successful).map((r) => r.createdAt);
     const lastSuccessful = successfulDates.length ? new Date(Math.max(...successfulDates.map((d) => d.getTime()))) : null;
     const days = lastSuccessful ? Math.floor((now.getTime() - lastSuccessful.getTime()) / (1000 * 60 * 60 * 24)) : null;
 
-    const thisMonth = records.filter(
-      (r) => r.contactMethod && r.createdAt.getFullYear() === now.getFullYear() && r.createdAt.getMonth() === now.getMonth()
-    ).length;
+    const windowCadence = getComplianceCadence(program);
+    const windowStart =
+      windowCadence.unit === "month"
+        ? new Date(now.getFullYear(), now.getMonth(), 1)
+        : new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+    const inWindow = records.filter((r) => r.createdAt >= windowStart);
 
-    return { daysSinceLastSuccessful: days, attemptsThisMonth: thisMonth };
-  }, [records]);
+    return {
+      daysSinceLastSuccessful: days,
+      cadence: windowCadence,
+      attemptsInWindow: inWindow.length,
+      successfulInWindow: inWindow.filter((r) => r.successful).length,
+      compliant: isTouchpointCompliant(records, program, now),
+    };
+  }, [records, program]);
 
   return (
     <div className="p-8">
       {records.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-4 text-xs text-stone-500">
+        <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-stone-500">
           <span>
             <span className="font-semibold text-stone-700">
               {daysSinceLastSuccessful === null ? "No successful contact yet" : `${daysSinceLastSuccessful} day${daysSinceLastSuccessful === 1 ? "" : "s"}`}
@@ -41,7 +59,12 @@ export function GeneralCommunicationTab({ memberId, records }: { memberId: strin
             since last successful contact
           </span>
           <span>
-            <span className="font-semibold text-stone-700">{attemptsThisMonth}</span> contact attempt{attemptsThisMonth === 1 ? "" : "s"} this month
+            <span className="font-semibold text-stone-700">{successfulInWindow}</span> successful ·{" "}
+            <span className="font-semibold text-stone-700">{attemptsInWindow}</span>/{cadence.requiredAttempts} attempts this{" "}
+            {cadence.unit}
+          </span>
+          <span className={`rounded-full px-2 py-0.5 font-medium ${compliant ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
+            {compliant ? "Compliant" : "Not compliant"}
           </span>
         </div>
       )}

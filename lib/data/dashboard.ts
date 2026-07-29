@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
+import { getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
 
 export async function getDashboardData() {
   const session = await verifySession();
@@ -78,11 +79,10 @@ export async function getDashboardData() {
         id: true,
         firstName: true,
         lastName: true,
+        program: true,
         generalCommunications: {
-          where: { successful: true },
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          select: { createdAt: true },
+          where: { createdAt: { gte: getWindowStart("quarter", new Date()) } },
+          select: { createdAt: true, successful: true },
         },
       },
     }),
@@ -116,19 +116,19 @@ export async function getDashboardData() {
       return a.dueDate.getTime() - b.dueDate.getTime();
     });
 
-  // "This quarter" = the current calendar quarter (Jan-Mar, Apr-Jun, etc.) —
-  // members with no successful contact since it started are a care-gap
-  // signal, sorted with never-contacted / longest-stale first.
-  const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
-  const quarterStart = new Date(now.getFullYear(), quarterStartMonth, 1);
-  const notContactedThisQuarter = membersForContactCheck
+  // Touchpoint compliance is program-based (see lib/touchpoint-compliance.ts):
+  // Prenatal/Postpartum members need 1 successful contact (or 3 attempts)
+  // every month; everyone else needs the same every quarter.
+  const touchpointGaps = membersForContactCheck
     .map((m) => ({
       id: m.id,
       firstName: m.firstName,
       lastName: m.lastName,
-      lastSuccessfulContactDate: m.generalCommunications[0]?.createdAt ?? null,
+      lastSuccessfulContactDate:
+        m.generalCommunications.filter((c) => c.successful).reduce<Date | null>((latest, c) => (!latest || c.createdAt > latest ? c.createdAt : latest), null),
+      compliant: isTouchpointCompliant(m.generalCommunications, m.program, now),
     }))
-    .filter((m) => !m.lastSuccessfulContactDate || m.lastSuccessfulContactDate < quarterStart)
+    .filter((m) => !m.compliant)
     .sort((a, b) => {
       if (!a.lastSuccessfulContactDate) return -1;
       if (!b.lastSuccessfulContactDate) return 1;
@@ -148,6 +148,6 @@ export async function getDashboardData() {
     goalTotals,
     recentContacts,
     annualCnaDue,
-    notContactedThisQuarter,
+    touchpointGaps,
   };
 }

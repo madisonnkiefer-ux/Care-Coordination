@@ -6,7 +6,7 @@ import { GoalDonut } from "@/components/goal-donut";
 import { formatDate, formatDateTime, titleCase } from "@/lib/format";
 
 export default async function DashboardPage() {
-  const { session, stats, myTasks, upcomingAppointments, goalTotals, recentContacts, annualCnaDue, notContactedThisQuarter } =
+  const { session, stats, myTasks, upcomingAppointments, goalTotals, recentContacts, annualCnaDue, touchpointGaps } =
     await getDashboardData();
 
   return (
@@ -97,12 +97,12 @@ export default async function DashboardPage() {
             <GoalDonut totals={goalTotals} />
           </Card>
 
-          <Card title="Not Contacted This Quarter">
-            {notContactedThisQuarter.length === 0 ? (
-              <EmptyState label="Everyone's been reached this quarter." />
+          <Card title="Touchpoint Compliance Gaps">
+            {touchpointGaps.length === 0 ? (
+              <EmptyState label="Everyone is meeting their touchpoint cadence." />
             ) : (
               <ul className="divide-y divide-stone-100">
-                {notContactedThisQuarter.map((m) => (
+                {touchpointGaps.map((m) => (
                   <li key={m.id} className="flex items-center justify-between py-2.5 text-sm">
                     <Link href={`/members/${m.id}/care-plan`} className="font-medium text-stone-800 hover:text-charcoal hover:underline">
                       {m.firstName} {m.lastName}

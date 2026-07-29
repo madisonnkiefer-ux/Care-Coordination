@@ -31,7 +31,7 @@ export function NotificationBell({
 }: {
   unreadCount: number;
   recent: NotificationItem[];
-  needsAttention: { tasksDueCount: number; annualCnaDueCount: number; notContactedThisQuarterCount: number };
+  needsAttention: { tasksDueCount: number; annualCnaDueCount: number; touchpointGapCount: number };
 }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -72,8 +72,8 @@ export function NotificationBell({
               <AttentionTile icon={FileText} label="CNAs Due" value={needsAttention.annualCnaDueCount} href="/reports" onNavigate={() => setOpen(false)} />
               <AttentionTile
                 icon={PhoneOff}
-                label="Not Contacted"
-                value={needsAttention.notContactedThisQuarterCount}
+                label="Touchpoint Gaps"
+                value={needsAttention.touchpointGapCount}
                 href="/reports"
                 onNavigate={() => setOpen(false)}
               />

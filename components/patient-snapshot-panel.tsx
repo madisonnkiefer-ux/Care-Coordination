@@ -14,8 +14,20 @@ function daysAgo(date: Date | null) {
 }
 
 export function PatientSnapshotPanel({ snapshot }: { snapshot: Snapshot }) {
-  const { member, pregnancy, nextTouchpointDue, ccpDueDate, ccpLastUpdated, lastContactDate, activeGoalsCount, topBarriers, openTasksCount, alerts } =
-    snapshot;
+  const {
+    member,
+    pregnancy,
+    touchpointDueDate,
+    touchpointCompliant,
+    touchpointCadenceUnit,
+    ccpDueDate,
+    ccpLastUpdated,
+    lastContactDate,
+    activeGoalsCount,
+    topBarriers,
+    openTasksCount,
+    alerts,
+  } = snapshot;
 
   return (
     <aside className="sticky top-0 h-screen w-72 shrink-0 space-y-4 overflow-y-auto border-l border-stone-200 bg-white p-5 print:hidden">
@@ -50,9 +62,9 @@ export function PatientSnapshotPanel({ snapshot }: { snapshot: Snapshot }) {
           />
         )}
         <SnapshotRow
-          label="Next Touchpoint Due"
-          value={nextTouchpointDue ? formatDate(nextTouchpointDue) : "—"}
-          warn={!!nextTouchpointDue && nextTouchpointDue < new Date()}
+          label={`Touchpoint Due (${touchpointCadenceUnit === "month" ? "Monthly" : "Quarterly"})`}
+          value={formatDate(touchpointDueDate)}
+          warn={!touchpointCompliant}
         />
         <SnapshotRow
           label="CCP Due"

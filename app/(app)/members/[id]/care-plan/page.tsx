@@ -44,7 +44,7 @@ export default async function CarePlanPage({
           {
             id: "general-communication",
             label: "General Communication",
-            content: <GeneralCommunicationTab memberId={id} records={commData.records} />,
+            content: <GeneralCommunicationTab memberId={id} records={commData.records} program={member.program} />,
           },
         ]}
       />

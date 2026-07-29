@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
+import { getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
 
 // Counts only — this runs on every page via the persistent layout, so it
 // deliberately avoids the full dashboard query (goal totals, appointments,
@@ -13,8 +14,6 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
 
   const now = new Date();
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-  const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
-  const quarterStart = new Date(now.getFullYear(), quarterStartMonth, 1);
 
   const [tasksDueCount, membersForAnnualCna, membersForContactCheck] = await Promise.all([
     db.task.count({ where: { assigneeId: session.userId, status: "OPEN" } }),
@@ -34,11 +33,10 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
       where: memberScope,
       select: {
         id: true,
+        program: true,
         generalCommunications: {
-          where: { successful: true },
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          select: { createdAt: true },
+          where: { createdAt: { gte: getWindowStart("quarter", now) } },
+          select: { createdAt: true, successful: true },
         },
       },
     }),
@@ -52,12 +50,12 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
     return !dueDate || dueDate <= endOfMonth;
   }).length;
 
-  const notContactedThisQuarterCount = membersForContactCheck.filter((m) => {
-    const lastSuccessfulContactDate = m.generalCommunications[0]?.createdAt ?? null;
-    return !lastSuccessfulContactDate || lastSuccessfulContactDate < quarterStart;
-  }).length;
+  // Touchpoint compliance is program-based — see lib/touchpoint-compliance.ts.
+  const touchpointGapCount = membersForContactCheck.filter(
+    (m) => !isTouchpointCompliant(m.generalCommunications, m.program, now)
+  ).length;
 
-  return { tasksDueCount, annualCnaDueCount, notContactedThisQuarterCount };
+  return { tasksDueCount, annualCnaDueCount, touchpointGapCount };
 }
 
 export async function getNotificationBellData() {

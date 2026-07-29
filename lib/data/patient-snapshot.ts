@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
+import { getComplianceCadence, getWindowEnd, getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
 
 // Everything here is derived from data that already exists elsewhere in the
 // app (Care Plan, General Communication, Tasks, HEDIS, CNA) — nothing new is
@@ -17,8 +18,11 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
   if (!member) return null;
 
   const now = new Date();
+  const cadence = getComplianceCadence(member.program);
+  const windowStart = getWindowStart(cadence.unit, now);
+  const windowEnd = getWindowEnd(cadence.unit, now);
 
-  const [latestCarePlan, lastAnyContact, lastSuccessfulContact, openTasksCount, hedis, latestCna, pendingStatusChange] =
+  const [latestCarePlan, lastAnyContact, contactsInWindow, openTasksCount, hedis, latestCna, pendingStatusChange] =
     await Promise.all([
       db.carePlan.findFirst({
         where: { memberId },
@@ -26,10 +30,9 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
         include: { goals: true },
       }),
       db.generalCommunication.findFirst({ where: { memberId }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
-      db.generalCommunication.findFirst({
-        where: { memberId, successful: true },
-        orderBy: { createdAt: "desc" },
-        select: { createdAt: true },
+      db.generalCommunication.findMany({
+        where: { memberId, createdAt: { gte: windowStart } },
+        select: { createdAt: true, successful: true },
       }),
       db.task.count({ where: { memberId, status: "OPEN" } }),
       db.hedisMeasures.findUnique({ where: { memberId }, select: { deliveryDate: true } }),
@@ -43,6 +46,9 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
         select: { toStatus: true },
       }),
     ]);
+
+  const touchpointCompliant = isTouchpointCompliant(contactsInWindow, member.program, now);
+  const successfulInWindow = contactsInWindow.filter((c) => c.successful).length;
 
   // Pregnancy/postpartum status — reuses Member.edd and the HEDIS tab's
   // Delivery Date rather than introducing new fields.
@@ -62,11 +68,10 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
     ? new Date(ccpReferenceDate.getFullYear() + 1, ccpReferenceDate.getMonth(), ccpReferenceDate.getDate())
     : null;
 
-  // Next touchpoint due mirrors the dashboard's "not contacted in 30 days"
-  // cadence — 30 days after the last successful contact.
-  const nextTouchpointDue = lastSuccessfulContact
-    ? new Date(lastSuccessfulContact.createdAt.getTime() + 30 * 24 * 60 * 60 * 1000)
-    : null;
+  // Touchpoint due date is the end of the member's current compliance
+  // window (month for Prenatal/Postpartum, quarter otherwise) — see
+  // lib/touchpoint-compliance.ts.
+  const touchpointDueDate = windowEnd;
 
   const activeGoals = latestCarePlan?.goals.filter((g) => g.status !== "COMPLETE") ?? [];
   const topBarriers = Array.from(
@@ -84,8 +89,15 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
   if (!cnaDueDate || cnaDueDate < now) alerts.push({ text: cnaDueDate ? "Annual CNA overdue" : "CNA never completed", level: "warning" });
   if (!ccpDueDate || ccpDueDate < now) alerts.push({ text: ccpDueDate ? "CCP overdue" : "No care plan on file", level: "warning" });
   else if (ccpDueDate.getTime() - now.getTime() < 7 * 24 * 60 * 60 * 1000) alerts.push({ text: "CCP due within 7 days", level: "warning" });
-  if (!lastSuccessfulContact || lastSuccessfulContact.createdAt < new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)) {
-    alerts.push({ text: lastSuccessfulContact ? "No successful contact in 30+ days" : "Never successfully contacted", level: "warning" });
+  if (!touchpointCompliant) {
+    const period = cadence.unit === "month" ? "month" : "quarter";
+    alerts.push({
+      text:
+        successfulInWindow > 0 || contactsInWindow.length > 0
+          ? `Touchpoint cadence not met this ${period} (${successfulInWindow} successful, ${contactsInWindow.length}/${cadence.requiredAttempts} attempts)`
+          : `No touchpoints logged this ${period}`,
+      level: "warning",
+    });
   }
   if (member.medicaidEligibilityVerified === false) alerts.push({ text: "Eligibility unverified", level: "warning" });
 
@@ -93,7 +105,9 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
     session,
     member: { id: member.id, firstName: member.firstName, lastName: member.lastName, phone: member.phone },
     pregnancy,
-    nextTouchpointDue,
+    touchpointDueDate,
+    touchpointCompliant,
+    touchpointCadenceUnit: cadence.unit,
     ccpDueDate,
     lastContactDate: lastAnyContact?.createdAt ?? null,
     ccpLastUpdated: latestCarePlan?.updatedAt ?? null,
