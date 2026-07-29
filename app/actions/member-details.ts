@@ -21,6 +21,7 @@ export async function updateMemberDetails(memberId: string, formData: FormData) 
     where: { id: memberId },
     data: {
       memberIdExternal: str("memberIdExternal"),
+      program: str("program"),
       subscriberId: str("subscriberId"),
       availityId: str("availityId"),
       provider: str("provider"),

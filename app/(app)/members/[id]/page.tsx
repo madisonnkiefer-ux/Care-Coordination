@@ -113,7 +113,6 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               <Field label="Date of Birth" value={formatDate(member.dateOfBirth)} />
               <Field label="EDD" value={member.edd ? formatDate(member.edd) : "—"} />
               <Field label="CCL Level" value={member.cclLevel ? titleCase(member.cclLevel) : "—"} />
-              <Field label="Program" value={member.program ?? "—"} />
               <Field label="Language" value={member.language ?? "—"} />
             </dl>
           </Card>
@@ -131,6 +130,15 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 <input
                   name="memberIdExternal"
                   defaultValue={member.memberIdExternal ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Program</label>
+                <input
+                  name="program"
+                  placeholder="e.g. Prenatal, Postpartum, GYN"
+                  defaultValue={member.program ?? ""}
                   className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>
