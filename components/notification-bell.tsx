@@ -53,7 +53,7 @@ export function NotificationBell({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="Notifications"
-        className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-stone-900"
+        className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-charcoal"
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
@@ -104,11 +104,11 @@ export function NotificationBell({
             </div>
 
             <div className="flex items-center justify-between border-t border-stone-100 px-4 py-2">
-              <a href="/notifications" className="text-xs font-medium text-stone-900 hover:underline" onClick={() => setOpen(false)}>
+              <a href="/notifications" className="text-xs font-medium text-charcoal hover:underline" onClick={() => setOpen(false)}>
                 View all
               </a>
               {unreadCount > 0 && (
-                <button type="button" onClick={handleMarkAllRead} className="text-xs font-medium text-stone-500 hover:text-stone-900 hover:underline">
+                <button type="button" onClick={handleMarkAllRead} className="text-xs font-medium text-stone-500 hover:text-charcoal hover:underline">
                   Mark all as read
                 </button>
               )}
@@ -140,7 +140,7 @@ function AttentionTile({
       className="flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-center hover:bg-stone-50"
     >
       <Icon className="h-4 w-4 text-stone-400" />
-      <span className="text-sm font-semibold text-stone-900">{value}</span>
+      <span className="text-sm font-semibold text-charcoal">{value}</span>
       <span className="text-[10px] uppercase tracking-wide text-stone-400">{label}</span>
     </a>
   );

@@ -29,7 +29,7 @@ export function RepeatableRows<T extends Record<string, string | null>>({
       <button
         type="button"
         onClick={() => setCount((c) => c + 1)}
-        className="rounded-md border border-dashed border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-stone-900 print:hidden"
+        className="rounded-md border border-dashed border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-charcoal print:hidden"
       >
         {addLabel}
       </button>

@@ -36,7 +36,7 @@ export function HistoryBar({
             onClick={() => onSelect(item.id)}
             className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
               active
-                ? "border-stone-900 bg-stone-100 text-stone-900"
+                ? "border-charcoal bg-stone-100 text-charcoal"
                 : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
             }`}
           >
@@ -52,7 +52,7 @@ export function HistoryBar({
       <form action={newAction}>
         <button
           type="submit"
-          className="rounded-full border border-dashed border-stone-300 px-3 py-1 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-stone-900"
+          className="rounded-full border border-dashed border-stone-300 px-3 py-1 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-charcoal"
         >
           {newLabel}
         </button>
@@ -100,7 +100,7 @@ export function SimpleHistoryBar({
             onClick={() => onSelect(item.id)}
             className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
               active
-                ? "border-stone-900 bg-stone-100 text-stone-900"
+                ? "border-charcoal bg-stone-100 text-charcoal"
                 : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
             }`}
           >
@@ -111,7 +111,7 @@ export function SimpleHistoryBar({
       <button
         type="button"
         onClick={handleNew}
-        className="rounded-full border border-dashed border-stone-300 px-3 py-1 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-stone-900"
+        className="rounded-full border border-dashed border-stone-300 px-3 py-1 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-charcoal"
       >
         {newLabel}
       </button>

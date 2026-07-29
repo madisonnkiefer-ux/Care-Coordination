@@ -64,7 +64,7 @@ export default async function SupervisorDashboardPage() {
 
         <p className="text-sm text-stone-500">
           For caseload distribution, outreach compliance, annual CNA status, and CCP completion breakdowns, see{" "}
-          <Link href="/reports" className="font-medium text-stone-900 hover:underline">
+          <Link href="/reports" className="font-medium text-charcoal hover:underline">
             Reports →
           </Link>
         </p>
@@ -100,7 +100,7 @@ export default async function SupervisorDashboardPage() {
                       name="rejectionReason"
                       required
                       placeholder="Reason for rejecting (required)"
-                      className="flex-1 rounded-md border border-stone-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-stone-900"
+                      className="flex-1 rounded-md border border-stone-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-deep-rose"
                     />
                     <button
                       type="submit"
@@ -130,7 +130,7 @@ export default async function SupervisorDashboardPage() {
                       </span>
                     </div>
                     <div className="h-2 w-full overflow-hidden rounded-full bg-stone-100">
-                      <div className="h-full rounded-full bg-stone-900" style={{ width: `${c.pct}%` }} />
+                      <div className="h-full rounded-full bg-charcoal" style={{ width: `${c.pct}%` }} />
                     </div>
                   </li>
                 ))}
@@ -341,7 +341,7 @@ export default async function SupervisorDashboardPage() {
                       <select
                         name="coordinatorId"
                         defaultValue={m.assignedCoordinatorId ?? ""}
-                        className="rounded-md border border-stone-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                        className="rounded-md border border-stone-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                       >
                         <option value="">Unassigned</option>
                         {caseloadCoordinators.map((c) => (

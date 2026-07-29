@@ -139,7 +139,7 @@ export function TocForm({
                         name={`followUp${n}Notes`}
                         placeholder="Additional Needs/Notes"
                         defaultValue={draft[`followUp${n}Notes` as "followUp1Notes"] ?? ""}
-                        className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                        className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                       />
                     </div>
                   ))}
@@ -157,7 +157,7 @@ export function TocForm({
                 >
                   Save Draft
                 </button>
-                <button type="submit" name="intent" value="complete" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
+                <button type="submit" name="intent" value="complete" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
                   Complete
                 </button>
               </div>

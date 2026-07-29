@@ -70,7 +70,7 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
             type="button"
             onClick={() => setActive(r.id)}
             className={`shrink-0 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-              active === r.id ? "border-stone-900 text-stone-900" : "border-transparent text-stone-500 hover:text-stone-700"
+              active === r.id ? "border-charcoal text-charcoal" : "border-transparent text-stone-500 hover:text-stone-700"
             }`}
           >
             {r.label}
@@ -80,7 +80,7 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
 
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <FilterField label="Coordinator">
-          <select value={coordinatorId} onChange={(e) => setCoordinatorId(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-stone-900">
+          <select value={coordinatorId} onChange={(e) => setCoordinatorId(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose">
             <option value="">All coordinators</option>
             {coordinators.map((c) => (
               <option key={c.id} value={c.id}>
@@ -91,7 +91,7 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
         </FilterField>
 
         <FilterField label="Program">
-          <select value={program} onChange={(e) => setProgram(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-stone-900">
+          <select value={program} onChange={(e) => setProgram(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose">
             <option value="">All programs</option>
             {programs.map((p) => (
               <option key={p} value={p}>
@@ -103,7 +103,7 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
 
         {active === "roster" && (
           <FilterField label="Status">
-            <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-stone-900">
+            <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose">
               <option value="">All statuses</option>
               {ALL_STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -117,10 +117,10 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
         {active === "outreach" && (
           <>
             <FilterField label="From">
-              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-stone-900" />
+              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose" />
             </FilterField>
             <FilterField label="To">
-              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-stone-900" />
+              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose" />
             </FilterField>
           </>
         )}

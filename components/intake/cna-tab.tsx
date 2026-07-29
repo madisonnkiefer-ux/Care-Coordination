@@ -104,7 +104,7 @@ export function CnaTab({ memberId, records, currentUserIsAdmin }: { memberId: st
       <Card>
         <div className="space-y-6">
           <div>
-            <p className="mb-2 text-sm font-semibold text-stone-900">
+            <p className="mb-2 text-sm font-semibold text-charcoal">
               1. Before beginning, are you experiencing an emergency right now, or thoughts of hurting yourself or someone else?
             </p>
             <YesNoField name="hasImminentRisk" label="" defaultValue={draft?.hasImminentRisk} />
@@ -119,7 +119,7 @@ export function CnaTab({ memberId, records, currentUserIsAdmin }: { memberId: st
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-stone-900">3. Do you have a language need other than English?</p>
+            <p className="mb-2 text-sm font-semibold text-charcoal">3. Do you have a language need other than English?</p>
             <YesNoWithDetail
               name="languageNeedOtherThanEnglish"
               label=""
@@ -134,7 +134,7 @@ export function CnaTab({ memberId, records, currentUserIsAdmin }: { memberId: st
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-stone-900">4. Do you have any special preferences we should be aware of?</p>
+            <p className="mb-2 text-sm font-semibold text-charcoal">4. Do you have any special preferences we should be aware of?</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <SelectField name="specialPreferences" label="" options={CNA_SPECIAL_PREFERENCES_OPTIONS} defaultValue={draft?.specialPreferences} />
               <TextField name="specialPreferencesDescribe" label="Describe" defaultValue={draft?.specialPreferencesDescribe} />
@@ -142,7 +142,7 @@ export function CnaTab({ memberId, records, currentUserIsAdmin }: { memberId: st
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-stone-900">5. How many times have you been in the Emergency Room in the last 12 months?</p>
+            <p className="mb-2 text-sm font-semibold text-charcoal">5. How many times have you been in the Emergency Room in the last 12 months?</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <SelectField name="erVisitsLast12Months" label="" options={ER_VISITS_OPTIONS} defaultValue={draft?.erVisitsLast12Months} />
               <TextField name="erVisitsDescribe" label="Describe" defaultValue={draft?.erVisitsDescribe} />
@@ -158,7 +158,7 @@ export function CnaTab({ memberId, records, currentUserIsAdmin }: { memberId: st
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-stone-900">7. How many times have you been in the hospital in the last 6 months?</p>
+            <p className="mb-2 text-sm font-semibold text-charcoal">7. How many times have you been in the hospital in the last 6 months?</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <SelectField name="hospitalStaysLast6Months" label="" options={HOSPITAL_STAYS_OPTIONS} defaultValue={draft?.hospitalStaysLast6Months} />
               <TextField name="hospitalStaysDescribe" label="Describe if appropriate" defaultValue={draft?.hospitalStaysDescribe} />
@@ -224,7 +224,7 @@ export function CnaTab({ memberId, records, currentUserIsAdmin }: { memberId: st
       <Card title="Pregnancy (if applicable)">
         <div className="space-y-6">
           <div>
-            <p className="mb-2 text-sm font-semibold text-stone-900">17. Are you currently pregnant?</p>
+            <p className="mb-2 text-sm font-semibold text-charcoal">17. Are you currently pregnant?</p>
             <YesNoField name="isCurrentlyPregnant" label="" defaultValue={draft?.isCurrentlyPregnant} />
             <div className="mt-3 space-y-3 border-l-2 border-stone-100 pl-4">
               <YesNoNaField name="hadPerinatalCare" label="If yes, have they had perinatal care?" defaultValue={draft?.hadPerinatalCare} />
@@ -303,7 +303,7 @@ export function CnaTab({ memberId, records, currentUserIsAdmin }: { memberId: st
           />
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-stone-900">What physical health conditions/diagnoses do you have?</p>
+            <p className="mb-2 text-sm font-semibold text-charcoal">What physical health conditions/diagnoses do you have?</p>
             <div className="mb-2 flex gap-6">
               <Checkbox name="physicalHealthConditionsDiagnosed" label="Diagnosed" defaultChecked={draft?.physicalHealthConditionsDiagnosed ?? false} />
               <Checkbox
@@ -459,7 +459,7 @@ export function CnaTab({ memberId, records, currentUserIsAdmin }: { memberId: st
       <Card title="Behavioral Health Needs (BH)">
         <div className="space-y-6">
           <div>
-            <p className="mb-2 text-sm font-semibold text-stone-900">What behavioral health conditions/diagnoses do you have?</p>
+            <p className="mb-2 text-sm font-semibold text-charcoal">What behavioral health conditions/diagnoses do you have?</p>
             <div className="mb-2 flex gap-6">
               <Checkbox name="behavioralHealthConditionsDiagnosed" label="Diagnosed" defaultChecked={draft?.behavioralHealthConditionsDiagnosed ?? false} />
               <Checkbox
@@ -812,7 +812,7 @@ export function CnaTab({ memberId, records, currentUserIsAdmin }: { memberId: st
             type="submit"
             name="intent"
             value="complete"
-            className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
+            className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
           >
             Complete Assessment
           </button>
@@ -871,7 +871,7 @@ function CageRow({
           <input
             name={specifyName}
             defaultValue={specifyDefault ?? ""}
-            className="flex-1 rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+            className="flex-1 rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
           />
         </div>
       </div>
@@ -883,7 +883,7 @@ function ComputedTotal({ label, value }: { label: string; value: number | null }
   return (
     <div className="flex items-center gap-3 rounded-md bg-stone-50 px-3 py-2">
       <span className="text-sm font-medium text-stone-700">{label}:</span>
-      <span className="text-sm text-stone-900">{value ?? "—"}</span>
+      <span className="text-sm text-charcoal">{value ?? "—"}</span>
     </div>
   );
 }

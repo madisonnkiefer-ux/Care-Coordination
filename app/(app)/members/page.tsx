@@ -16,7 +16,7 @@ export default async function MembersPage() {
         action={
           <Link
             href="/members/new"
-            className="flex items-center gap-2 rounded-md bg-stone-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-stone-800"
+            className="flex items-center gap-2 rounded-md bg-charcoal px-3 py-1.5 text-sm font-medium text-white hover:bg-stone-800"
           >
             <UserPlus className="h-4 w-4" />
             Add New Patient

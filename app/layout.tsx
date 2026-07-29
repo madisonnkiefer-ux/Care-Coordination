@@ -18,8 +18,8 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "CareCoord Hub",
-  description: "Care coordination workspace",
+  title: "Avanza Care",
+  description: "Coordinated care, covered.",
 };
 
 export default function RootLayout({

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Home,
@@ -9,7 +10,6 @@ import {
   ShieldCheck,
   ClipboardList,
   LogOut,
-  HeartHandshake,
   BookOpen,
   BarChart3,
   Bell,
@@ -66,10 +66,8 @@ export function Sidebar({
     <aside className="w-64 shrink-0 border-r border-stone-200 bg-white flex flex-col h-screen sticky top-0 print:hidden">
       <div className="flex items-center justify-between gap-1.5 px-4 h-16 border-b border-stone-200">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-900">
-            <HeartHandshake className="h-4 w-4 text-white" />
-          </div>
-          <span className="truncate text-sm font-bold text-stone-900">CARECOORD HUB</span>
+          <Image src="/avanza-mark.png" alt="" width={32} height={26} className="h-8 w-auto shrink-0" />
+          <span className="truncate font-serif text-sm font-bold tracking-wide text-charcoal">AVANZA CARE</span>
         </div>
         <NotificationBell
           unreadCount={notificationData.unreadCount}
@@ -89,8 +87,8 @@ export function Sidebar({
                 href={item.href}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-stone-900 text-white"
-                    : "text-stone-600 hover:bg-stone-100 hover:text-stone-900"
+                    ? "bg-charcoal text-white"
+                    : "text-stone-600 hover:bg-stone-100 hover:text-charcoal"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -105,14 +103,14 @@ export function Sidebar({
         <div className="flex items-center gap-3 rounded-lg px-2 py-2">
           <Avatar name={user.name} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-stone-900">{user.name}</p>
+            <p className="truncate text-sm font-medium text-charcoal">{user.name}</p>
             <p className="truncate text-xs text-stone-500">{roleLabel(user.role)}</p>
           </div>
         </div>
         <form action={logout}>
           <button
             type="submit"
-            className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-900"
+            className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-stone-500 hover:bg-stone-100 hover:text-charcoal"
           >
             <LogOut className="h-4 w-4" />
             Sign out

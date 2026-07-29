@@ -18,7 +18,7 @@ export function TextField({
         id={name}
         name={name}
         defaultValue={defaultValue ?? ""}
-        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
       />
     </div>
   );
@@ -47,7 +47,7 @@ export function TextArea({
         name={name}
         rows={rows}
         defaultValue={defaultValue ?? ""}
-        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
       />
     </div>
   );
@@ -64,7 +64,7 @@ export function DateField({ name, label, defaultValue }: { name: string; label: 
         id={name}
         name={name}
         defaultValue={defaultValue ?? ""}
-        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
       />
     </div>
   );
@@ -94,7 +94,7 @@ export function SelectField({
         id={name}
         name={name}
         defaultValue={isCustom ? "" : defaultValue ?? ""}
-        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
       >
         <option value="">—</option>
         {options.map((opt) => (
@@ -107,7 +107,7 @@ export function SelectField({
         name={`${name}Custom`}
         defaultValue={isCustom ? (defaultValue as string) : ""}
         placeholder="Not listed? Type it here instead"
-        className="mt-1 w-full rounded-md border border-stone-200 px-3 py-1.5 text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-stone-900"
+        className="mt-1 w-full rounded-md border border-stone-200 px-3 py-1.5 text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-deep-rose"
       />
     </div>
   );
@@ -128,7 +128,7 @@ export function NumberScaleField({
       id={name}
       name={name}
       defaultValue={defaultValue ?? ""}
-      className="w-full max-w-sm rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+      className="w-full max-w-sm rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
     >
       <option value="">—</option>
       {options.map((opt) => (
@@ -254,7 +254,7 @@ export function YesNoWithDetail({
           <input
             name={detailName}
             defaultValue={detailDefault ?? ""}
-            className="flex-1 rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+            className="flex-1 rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
           />
         </div>
       </div>

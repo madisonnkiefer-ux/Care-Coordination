@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex flex-1 min-w-0 flex-col">
         <main className="min-w-0">{children}</main>
         <footer className="border-t border-stone-200 px-8 py-4 text-center text-xs text-stone-400">
-          © {new Date().getFullYear()} CareCoord Hub. All rights reserved.
+          © {new Date().getFullYear()} Avanza Care. All rights reserved.
         </footer>
       </div>
     </div>

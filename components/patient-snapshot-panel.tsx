@@ -21,7 +21,7 @@ export function PatientSnapshotPanel({ snapshot }: { snapshot: Snapshot }) {
     <aside className="sticky top-0 h-screen w-72 shrink-0 space-y-4 overflow-y-auto border-l border-stone-200 bg-white p-5 print:hidden">
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-stone-400">Snapshot</p>
-        <p className="font-serif text-lg text-stone-900">
+        <p className="font-serif text-lg text-charcoal">
           {member.firstName} {member.lastName}
         </p>
       </div>
@@ -66,11 +66,11 @@ export function PatientSnapshotPanel({ snapshot }: { snapshot: Snapshot }) {
       <div className="border-t border-stone-100 pt-3">
         <div className="flex items-center justify-between text-sm">
           <span className="text-stone-500">Active Goals</span>
-          <span className="font-medium text-stone-900">{activeGoalsCount}</span>
+          <span className="font-medium text-charcoal">{activeGoalsCount}</span>
         </div>
         <div className="mt-1.5 flex items-center justify-between text-sm">
           <span className="text-stone-500">Open Tasks</span>
-          <span className="font-medium text-stone-900">{openTasksCount}</span>
+          <span className="font-medium text-charcoal">{openTasksCount}</span>
         </div>
       </div>
 
@@ -89,7 +89,7 @@ export function PatientSnapshotPanel({ snapshot }: { snapshot: Snapshot }) {
 
       <Link
         href={`/members/${member.id}`}
-        className="block border-t border-stone-100 pt-3 text-xs font-medium text-stone-900 hover:underline"
+        className="block border-t border-stone-100 pt-3 text-xs font-medium text-charcoal hover:underline"
       >
         Open full chart →
       </Link>
@@ -101,7 +101,7 @@ function SnapshotRow({ label, value, warn }: { label: string; value: string; war
   return (
     <div className="flex items-center justify-between gap-2">
       <dt className="text-stone-500">{label}</dt>
-      <dd className={`text-right font-medium ${warn ? "text-red-600" : "text-stone-900"}`}>{value}</dd>
+      <dd className={`text-right font-medium ${warn ? "text-red-600" : "text-charcoal"}`}>{value}</dd>
     </div>
   );
 }

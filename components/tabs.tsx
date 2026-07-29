@@ -21,7 +21,7 @@ export function Tabs({
             onClick={() => setActive(tab.id)}
             className={`shrink-0 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
               active === tab.id
-                ? "border-stone-900 text-stone-900"
+                ? "border-charcoal text-charcoal"
                 : "border-transparent text-stone-500 hover:text-stone-700"
             }`}
           >

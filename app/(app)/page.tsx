@@ -25,7 +25,7 @@ export default async function DashboardPage() {
           <Card
             title="My Tasks"
             action={
-              <Link href="/tasks" className="text-xs font-medium text-stone-900 hover:underline">
+              <Link href="/tasks" className="text-xs font-medium text-charcoal hover:underline">
                 View my tasks →
               </Link>
             }
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
                   const overdue = m.dueDate ? m.dueDate < new Date() : true;
                   return (
                     <li key={m.id} className="flex items-center justify-between py-2.5 text-sm">
-                      <Link href={`/members/${m.id}/intake`} className="font-medium text-stone-800 hover:text-stone-900 hover:underline">
+                      <Link href={`/members/${m.id}/intake`} className="font-medium text-stone-800 hover:text-charcoal hover:underline">
                         {m.firstName} {m.lastName}
                       </Link>
                       <Badge color={overdue ? "red" : "yellow"}>{m.dueDate ? formatDate(m.dueDate) : "Never completed"}</Badge>
@@ -104,7 +104,7 @@ export default async function DashboardPage() {
               <ul className="divide-y divide-stone-100">
                 {notContactedThisQuarter.map((m) => (
                   <li key={m.id} className="flex items-center justify-between py-2.5 text-sm">
-                    <Link href={`/members/${m.id}/care-plan`} className="font-medium text-stone-800 hover:text-stone-900 hover:underline">
+                    <Link href={`/members/${m.id}/care-plan`} className="font-medium text-stone-800 hover:text-charcoal hover:underline">
                       {m.firstName} {m.lastName}
                     </Link>
                     <Badge color={m.lastSuccessfulContactDate ? "yellow" : "red"}>

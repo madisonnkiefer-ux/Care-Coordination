@@ -218,7 +218,7 @@ export function CareCoordinationNotesTab({
             type="submit"
             name="intent"
             value="complete"
-            className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
+            className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
           >
             Complete
           </button>

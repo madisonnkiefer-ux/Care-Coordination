@@ -23,7 +23,7 @@ export default async function NewMemberPage() {
                 <input
                   name="firstName"
                   required
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>
               <div>
@@ -33,7 +33,7 @@ export default async function NewMemberPage() {
                 <input
                   name="lastName"
                   required
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>
               <div>
@@ -44,14 +44,14 @@ export default async function NewMemberPage() {
                   type="date"
                   name="dateOfBirth"
                   required
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Phone</label>
                 <input
                   name="phone"
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>
               <div>
@@ -60,7 +60,7 @@ export default async function NewMemberPage() {
                 </label>
                 <input
                   name="medicaidId"
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>
               <div>
@@ -69,7 +69,7 @@ export default async function NewMemberPage() {
                 </label>
                 <input
                   name="memberIdExternal"
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>
               <div>
@@ -77,7 +77,7 @@ export default async function NewMemberPage() {
                 <input
                   name="program"
                   placeholder="e.g. Prenatal"
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>
               <div>
@@ -87,7 +87,7 @@ export default async function NewMemberPage() {
                 <input
                   type="date"
                   name="edd"
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>
               <div>
@@ -95,7 +95,7 @@ export default async function NewMemberPage() {
                 <select
                   name="status"
                   defaultValue="PENDING_ENROLLMENT"
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 >
                   {ALL_STATUSES.map((s) => (
                     <option key={s} value={s}>
@@ -111,7 +111,7 @@ export default async function NewMemberPage() {
                 <select
                   name="cclLevel"
                   defaultValue=""
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 >
                   <option value="">—</option>
                   <option value="CCL1">CCL1</option>
@@ -127,7 +127,7 @@ export default async function NewMemberPage() {
                 <select
                   name="assignedCoordinatorId"
                   defaultValue={currentUser?.role === "CARE_COORDINATOR" ? currentUser.id : ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 >
                   <option value="">Unassigned</option>
                   {coordinators.map((c) => (
@@ -142,7 +142,7 @@ export default async function NewMemberPage() {
             <div className="flex justify-end gap-2 border-t border-stone-100 pt-4">
               <button
                 type="submit"
-                className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
+                className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
               >
                 Create Patient
               </button>

@@ -57,13 +57,13 @@ export function ResourceList({ resources, canEdit }: { resources: ResourceEntry[
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search resources, contacts, programs…"
-            className="w-full rounded-lg border border-stone-300 bg-white py-2 pl-9 pr-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+            className="w-full rounded-lg border border-stone-300 bg-white py-2 pl-9 pr-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
           />
         </div>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+          className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
         >
           <option value="">All categories</option>
           {categories.map((c) => (
@@ -76,7 +76,7 @@ export function ResourceList({ resources, canEdit }: { resources: ResourceEntry[
           <button
             type="button"
             onClick={() => setAddingNew((v) => !v)}
-            className="ml-auto rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
+            className="ml-auto rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
           >
             {addingNew ? "Cancel" : "+ Add Resource"}
           </button>
@@ -130,12 +130,12 @@ function ResourceCard({ resource, canEdit }: { resource: ResourceEntry; canEdit:
     <Card>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-stone-900">{resource.name}</p>
+          <p className="text-sm font-semibold text-charcoal">{resource.name}</p>
           <Badge color="fuchsia">{resource.category}</Badge>
         </div>
         {canEdit && (
           <div className="flex shrink-0 gap-2">
-            <button type="button" onClick={() => setEditing(true)} className="text-xs font-medium text-stone-900 hover:underline">
+            <button type="button" onClick={() => setEditing(true)} className="text-xs font-medium text-charcoal hover:underline">
               Edit
             </button>
             <form
@@ -198,7 +198,7 @@ function ResourceForm({
               name="name"
               required
               defaultValue={resource?.name ?? ""}
-              className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+              className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
             />
           </div>
           <div>
@@ -206,7 +206,7 @@ function ResourceForm({
             <select
               name="category"
               defaultValue={resource?.category ?? ""}
-              className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+              className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
             >
               <option value="">—</option>
               {CATEGORY_OPTIONS.map((c) => (
@@ -224,7 +224,7 @@ function ResourceForm({
             name="description"
             rows={2}
             defaultValue={resource?.description ?? ""}
-            className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+            className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
           />
         </div>
 
@@ -234,7 +234,7 @@ function ResourceForm({
             <input
               name="contactName"
               defaultValue={resource?.contactName ?? ""}
-              className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+              className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
             />
           </div>
           <div>
@@ -242,7 +242,7 @@ function ResourceForm({
             <input
               name="contactPhone"
               defaultValue={resource?.contactPhone ?? ""}
-              className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+              className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
             />
           </div>
           <div>
@@ -250,7 +250,7 @@ function ResourceForm({
             <input
               name="contactEmail"
               defaultValue={resource?.contactEmail ?? ""}
-              className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+              className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
             />
           </div>
         </div>
@@ -260,7 +260,7 @@ function ResourceForm({
           <input
             name="eligibility"
             defaultValue={resource?.eligibility ?? ""}
-            className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+            className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
           />
         </div>
 
@@ -270,12 +270,12 @@ function ResourceForm({
             name="notes"
             rows={2}
             defaultValue={resource?.notes ?? ""}
-            className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+            className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
           />
         </div>
 
         <div className="flex gap-2">
-          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
+          <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
             Save
           </button>
           <button

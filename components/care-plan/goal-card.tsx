@@ -22,14 +22,14 @@ export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; car
     <Card>
       <div className="flex items-start justify-between gap-4">
         <button type="button" onClick={() => setExpanded((v) => !v)} className="flex-1 text-left">
-          <p className="text-sm font-semibold text-stone-900">{goal.opportunity || goal.goalText || "Untitled goal"}</p>
+          <p className="text-sm font-semibold text-charcoal">{goal.opportunity || goal.goalText || "Untitled goal"}</p>
           {goal.priority && <p className="text-xs text-stone-500">{goal.priority}</p>}
         </button>
         <GoalStatusSelect memberId={memberId} goalId={goal.id} status={goal.status as GoalStatus} />
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="text-xs font-medium text-stone-900 hover:underline print:hidden"
+          className="text-xs font-medium text-charcoal hover:underline print:hidden"
         >
           {expanded ? "Collapse" : "Expand"}
         </button>
@@ -99,7 +99,7 @@ export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; car
               </div>
             </div>
 
-            <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden">
+            <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden">
               Save Goal
             </button>
           </form>

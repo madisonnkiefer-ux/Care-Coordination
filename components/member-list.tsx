@@ -136,7 +136,7 @@ export function MemberList({ members, currentUserId }: { members: MemberRow[]; c
             type="button"
             onClick={() => setScope("all")}
             className={`rounded-md px-3 py-1.5 transition-colors ${
-              scope === "all" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-900"
+              scope === "all" ? "bg-white text-charcoal shadow-sm" : "text-stone-500 hover:text-charcoal"
             }`}
           >
             All Members ({members.length})
@@ -145,7 +145,7 @@ export function MemberList({ members, currentUserId }: { members: MemberRow[]; c
             type="button"
             onClick={() => setScope("mine")}
             className={`rounded-md px-3 py-1.5 transition-colors ${
-              scope === "mine" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-900"
+              scope === "mine" ? "bg-white text-charcoal shadow-sm" : "text-stone-500 hover:text-charcoal"
             }`}
           >
             My Members ({myMembers.length})
@@ -207,7 +207,7 @@ export function MemberList({ members, currentUserId }: { members: MemberRow[]; c
                 <td className="sticky left-0 z-10 bg-white px-4 py-3 group-hover:bg-stone-50">
                   <Link href={`/members/${member.id}`} className="group flex items-center gap-3">
                     <Avatar name={`${member.firstName} ${member.lastName}`} size="sm" />
-                    <span className="whitespace-nowrap font-medium text-stone-900 group-hover:text-fuchsia-600">
+                    <span className="whitespace-nowrap font-medium text-charcoal group-hover:text-fuchsia-600">
                       {member.firstName} {member.lastName}
                     </span>
                   </Link>

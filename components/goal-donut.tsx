@@ -45,7 +45,7 @@ export function GoalDonut({ totals }: { totals: GoalTotals }) {
           </PieChart>
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-semibold text-stone-900">{total}</span>
+          <span className="text-xl font-semibold text-charcoal">{total}</span>
           <span className="text-[10px] text-stone-500">Total Goals</span>
         </div>
       </div>

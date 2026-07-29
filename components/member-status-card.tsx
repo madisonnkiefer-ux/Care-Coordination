@@ -45,7 +45,7 @@ export function MemberStatusCard({
         <button
           type="button"
           onClick={() => setShowForm((v) => !v)}
-          className="text-xs font-medium text-stone-900 hover:underline print:hidden"
+          className="text-xs font-medium text-charcoal hover:underline print:hidden"
         >
           {showForm ? "Cancel" : "Change Status"}
         </button>
@@ -72,7 +72,7 @@ export function MemberStatusCard({
               name="toStatus"
               value={toStatus}
               onChange={(e) => setToStatus(e.target.value as MemberStatus)}
-              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
             >
               {ALL_STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -93,7 +93,7 @@ export function MemberStatusCard({
                 name="effectiveDate"
                 defaultValue={toDateInputValue(new Date())}
                 required
-                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
               />
             </div>
             <div>
@@ -102,7 +102,7 @@ export function MemberStatusCard({
                 type="text"
                 name="reason"
                 required
-                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
               />
             </div>
           </div>
@@ -112,7 +112,7 @@ export function MemberStatusCard({
             <textarea
               name="note"
               rows={2}
-              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
             />
           </div>
 
@@ -132,7 +132,7 @@ export function MemberStatusCard({
             </div>
           )}
 
-          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
+          <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
             Submit Status Change
           </button>
         </form>

@@ -18,7 +18,7 @@ export function Card({
     <div id={id} className={`rounded-2xl border border-stone-100 bg-white p-5 shadow-sm ${className}`}>
       {(title || action) && (
         <div className="mb-3 flex items-center justify-between">
-          {title && <h2 className="text-sm font-semibold text-stone-900">{title}</h2>}
+          {title && <h2 className="text-sm font-semibold text-charcoal">{title}</h2>}
           {action}
         </div>
       )}
@@ -47,7 +47,7 @@ export function StatTile({
       )}
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-stone-500">{label}</p>
-        <p className="mt-1 text-2xl font-semibold text-stone-900">{value}</p>
+        <p className="mt-1 text-2xl font-semibold text-charcoal">{value}</p>
         {sub && <p className="mt-1 text-xs text-stone-400">{sub}</p>}
       </div>
     </div>
@@ -104,7 +104,7 @@ export function PageHeader({ title, description, action }: { title: string; desc
   return (
     <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-stone-50/95 px-8 py-5 backdrop-blur-sm">
       <div>
-        <h1 className="font-serif text-2xl font-medium text-stone-900">{title}</h1>
+        <h1 className="font-serif text-2xl font-medium text-charcoal">{title}</h1>
         {description && <p className="text-sm text-stone-500">{description}</p>}
       </div>
       {action}

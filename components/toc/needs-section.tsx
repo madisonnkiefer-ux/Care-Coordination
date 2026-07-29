@@ -40,7 +40,7 @@ export function NeedsSection({ config, existingNeeds }: { config: NeedsSectionCo
                 name={needFieldName(config.section, need.key, "actions")}
                 placeholder="If yes, describe / Actions"
                 defaultValue={existing?.actions ?? ""}
-                className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900 sm:col-span-1"
+                className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose sm:col-span-1"
               />
             </div>
           );

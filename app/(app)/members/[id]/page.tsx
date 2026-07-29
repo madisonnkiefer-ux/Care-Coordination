@@ -71,7 +71,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 <input
                   name="memberIdExternal"
                   defaultValue={member.memberIdExternal ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>
               <div>
@@ -79,7 +79,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 <input
                   name="subscriberId"
                   defaultValue={member.subscriberId ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>
               <div>
@@ -87,7 +87,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 <input
                   name="availityId"
                   defaultValue={member.availityId ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -96,7 +96,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                   name="provider"
                   placeholder="Member's outside doctor"
                   defaultValue={member.provider ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>
               <label className="flex items-center gap-2 text-sm text-stone-700">
@@ -111,7 +111,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               <div className="flex items-end justify-end print:hidden">
                 <button
                   type="submit"
-                  className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
+                  className="rounded-md bg-charcoal px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
                 >
                   Save
                 </button>
@@ -188,7 +188,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                   return (
                     <li key={task.id} className="flex items-center gap-2 py-1.5 text-sm">
                       <form action={toggle}>
-                        <button type="submit" className="text-stone-400 hover:text-stone-900" aria-label="Toggle complete">
+                        <button type="submit" className="text-stone-400 hover:text-charcoal" aria-label="Toggle complete">
                           {task.status === "COMPLETED" ? (
                             <CheckSquare className="h-4 w-4 text-emerald-500" />
                           ) : (
@@ -212,11 +212,11 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 name="title"
                 required
                 placeholder="Add a task..."
-                className="min-w-0 flex-1 rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                className="min-w-0 flex-1 rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
               />
               <button
                 type="submit"
-                className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
+                className="rounded-md bg-charcoal px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
               >
                 Add
               </button>
@@ -229,11 +229,11 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 name="body"
                 rows={3}
                 placeholder="Type note here..."
-                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900"
+                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
               />
               <button
                 type="submit"
-                className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
+                className="rounded-md bg-charcoal px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
               >
                 Save Note
               </button>
@@ -274,7 +274,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                       href={doc.storageKey ?? "#"}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="truncate text-stone-700 hover:text-stone-900 hover:underline"
+                      className="truncate text-stone-700 hover:text-charcoal hover:underline"
                     >
                       {doc.name}
                     </a>
