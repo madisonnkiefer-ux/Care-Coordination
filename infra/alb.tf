@@ -103,6 +103,10 @@ resource "aws_lb_listener" "http" {
     for_each = local.has_https ? [1] : []
     content {
       type = "redirect"
+      # Explicitly null — without it, Terraform can leave the previous
+      # forward action's target_group_arn "stuck" as unchanged across the
+      # type flip, which the ELBv2 API then rejects for a redirect action.
+      target_group_arn = null
       redirect {
         port        = "443"
         protocol    = "HTTPS"
