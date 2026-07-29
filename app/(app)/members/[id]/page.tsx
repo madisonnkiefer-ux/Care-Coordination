@@ -42,7 +42,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
       />
       <div className="print:hidden">
         <AlertBanner alerts={snapshot?.alerts ?? []} />
-        <QuickActionsBar memberId={id} phone={snapshot?.member.phone ?? member.phone ?? null} />
+        <QuickActionsBar memberId={id} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">

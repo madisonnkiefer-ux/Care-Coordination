@@ -1,7 +1,5 @@
 import Link from "next/link";
 import {
-  Phone,
-  MessageSquare,
   StickyNote,
   PhoneCall,
   ListTree,
@@ -12,10 +10,8 @@ import {
   HeartHandshake,
 } from "lucide-react";
 
-export function QuickActionsBar({ memberId, phone }: { memberId: string; phone: string | null }) {
+export function QuickActionsBar({ memberId }: { memberId: string }) {
   const actions: { label: string; href: string; icon: React.ComponentType<{ className?: string }>; disabled?: boolean }[] = [
-    { label: "Call", href: phone ? `tel:${phone}` : "#", icon: Phone, disabled: !phone },
-    { label: "Text", href: phone ? `sms:${phone}` : "#", icon: MessageSquare, disabled: !phone },
     { label: "Add Note", href: `/members/${memberId}#quick-notes`, icon: StickyNote },
     { label: "Log Touchpoint", href: `/members/${memberId}/care-plan?tab=general-communication`, icon: PhoneCall },
     { label: "Update CCP", href: `/members/${memberId}/care-plan?tab=ccp`, icon: ListTree },
