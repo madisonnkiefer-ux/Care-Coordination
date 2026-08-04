@@ -25,10 +25,16 @@ enum Role {
 model Clinic {
   id        String   @id @default(cuid())
   name      String
+  // Facility/office code — a second factor at login scoping a user to their
+  // clinic, distinct from the account's (globally unique) email.
+  code      String   @unique
   createdAt DateTime @default(now())
 
-  users   User[]
-  members Member[]
+  users          User[]
+  members        Member[]
+  resources      ResourceEntry[]
+  notifications  Notification[]
+  billingExports BillingExport[]
 }
 
 model User {
@@ -43,15 +49,27 @@ model User {
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
 
-  assignedMembers Member[]        @relation("AssignedCoordinator")
-  tasks           Task[]          @relation("TaskAssignee")
-  touchpoints     Touchpoint[]
-  notes           QuickNote[]
-  documents       Document[]
-  auditLogs       AuditLog[]
-  cnaAssessments  CnaAssessment[]
-  hraAssessments  HraAssessment[]
-  carePlans       CarePlan[]
+  assignedMembers        Member[]               @relation("AssignedCoordinator")
+  tasks                  Task[]                 @relation("TaskAssignee")
+  touchpoints            Touchpoint[]
+  notes                  QuickNote[]
+  documents              Document[]
+  auditLogs              AuditLog[]
+  cnaAssessments         CnaAssessment[]
+  hraAssessments         HraAssessment[]
+  careCoordinationNotes  CareCoordinationNote[]
+  carePlans              CarePlan[]
+  demographicsRecords    Demographics[]
+  generalCommunications  GeneralCommunication[]
+  tocRecords             TocRecord[]
+  resourceEntries        ResourceEntry[]
+  notifications          Notification[]
+  statusChangesRequested MemberStatusChange[]   @relation("StatusChangeRequestedBy")
+  statusChangesApproved  MemberStatusChange[]   @relation("StatusChangeApprovedBy")
+  billingExports         BillingExport[]
+
+  intakeVersionsSigned IntakeVersion[] @relation("IntakeVersionSignedBy")
+  tocRecordsSigned     TocRecord[]     @relation("TocRecordSignedBy")
 
   @@index([clinicId])
 }
@@ -66,9 +84,19 @@ enum CclLevel {
 }
 
 enum MemberStatus {
+  PENDING_ENROLLMENT
+  ENROLLED
+  PENDING_ATTRIBUTION
   ACTIVE
-  INACTIVE
-  DISCHARGED
+  OUTREACH_IN_PROGRESS
+  UNABLE_TO_REACH
+  TEMPORARILY_INACTIVE
+  DECLINED
+  TERMED
+  GRADUATED
+  TRANSFERRED
+  DECEASED
+  CLOSED
 }
 
 model Member {
@@ -80,6 +108,7 @@ model Member {
 
   // Demographics
   firstName   String
+  middleName  String?
   lastName    String
   dateOfBirth DateTime
   phone       String?
@@ -90,50 +119,199 @@ model Member {
 
   // Program / plan
   medicaidId       String?      @unique
-  memberIdExternal String?
+  memberIdExternal String? // "Chart ID" on the coordinator's tracking sheet
   program          String? // e.g. "Prenatal"
   status           MemberStatus @default(ACTIVE)
   cclLevel         CclLevel?
   edd              DateTime? // Estimated Due Date, for prenatal program
   attributedDate   DateTime?
 
+  // Insurance / provider tracking (coordinator-editable, not versioned)
+  subscriberId                String?
+  availityId                  String?
+  insurancePlan               String? // e.g. "Blue Cross", "Molina" — plan name for the billing roster
+  medicaidEligibilityVerified Boolean?
+  provider                    String? // member's outside doctor, free text
+
+  // Billing — a standing include/exclude flag (not per billing-month), set
+  // by a supervisor from the Billing roster. See lib/billing.ts for how this
+  // combines with activity status to compute billing eligibility.
+  billingExcluded        Boolean @default(false)
+  billingExclusionReason String?
+
   assignedCoordinatorId String?
   assignedCoordinator   User?   @relation("AssignedCoordinator", fields: [assignedCoordinatorId], references: [id])
 
-  demographics   Demographics?
-  cnaAssessments CnaAssessment[]
-  hraAssessments HraAssessment[]
-  carePlans      CarePlan[]
-  tasks          Task[]
-  touchpoints    Touchpoint[]
-  documents      Document[]
-  appointments   Appointment[]
-  notes          QuickNote[]
-  auditLogs      AuditLog[]
+  demographicsRecords   Demographics[]
+  cnaAssessments        CnaAssessment[]
+  hraAssessments        HraAssessment[]
+  careCoordinationNotes CareCoordinationNote[]
+  intakeVersions        IntakeVersion[]
+  carePlans             CarePlan[]
+  generalCommunications GeneralCommunication[]
+  hedisMeasures         HedisMeasures?
+  tocRecords            TocRecord[]
+  tasks                 Task[]
+  touchpoints           Touchpoint[]
+  documents             Document[]
+  appointments          Appointment[]
+  notes                 QuickNote[]
+  auditLogs             AuditLog[]
+  notifications         Notification[]
+  statusChanges         MemberStatusChange[]
 
   @@index([clinicId])
   @@index([assignedCoordinatorId])
 }
 
-// Extended demographics/intake fields kept separate from the core Member
-// record so the Member Chart "Demographics" tab can be versioned/edited
-// independently of the identity fields used everywhere else in the UI.
+// Every status transition is recorded permanently (never overwritten), so
+// the member's status history survives even after the case is closed.
+// Activity status is supervisor/admin-editable only: any change a care
+// coordinator submits is a request (requiresApproval=true) and Member.status
+// is left untouched until a supervisor/admin approves or rejects it.
+// Supervisor/admin-initiated changes apply immediately.
+model MemberStatusChange {
+  id            String       @id @default(cuid())
+  memberId      String
+  member        Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  fromStatus    MemberStatus
+  toStatus      MemberStatus
+  effectiveDate DateTime
+  reason        String
+  note          String?
+  changedById   String
+  changedBy     User         @relation("StatusChangeRequestedBy", fields: [changedById], references: [id])
+
+  requiresApproval Boolean   @default(false)
+  approvedById     String?
+  approvedBy       User?     @relation("StatusChangeApprovedBy", fields: [approvedById], references: [id])
+  approvedAt       DateTime?
+  rejectedAt       DateTime?
+  rejectionReason  String?
+
+  // Closure checklist — required (must all be true) only when toStatus is
+  // CLOSED. The system should not let a coordinator just pick "Closed"
+  // without attesting to each of these first.
+  finalContactDocumented    Boolean?
+  openTasksReviewed         Boolean?
+  openReferralsResolved     Boolean?
+  carePlanGoalsClosed       Boolean?
+  requiredNotificationsSent Boolean?
+  documentsCompleted        Boolean?
+
+  createdAt DateTime @default(now())
+
+  @@index([memberId])
+  @@index([requiresApproval, approvedAt, rejectedAt])
+}
+
+// The intake chart is one form made of four sections (Demographics, HRA,
+// CNA, Care Coordination Notes) that are always created together as a new
+// IntakeVersion and, once every section is marked Completed, signed
+// (admin-only) as a single unit — signing locks all four sections at once
+// rather than each individually. Each section still keeps its own
+// DRAFT/COMPLETED status so a coordinator can work through them in any
+// order before the whole chart is ready to sign.
+model IntakeVersion {
+  id         String    @id @default(cuid())
+  memberId   String
+  member     Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  signedAt   DateTime?
+  signedById String?
+  signedBy   User?     @relation("IntakeVersionSignedBy", fields: [signedById], references: [id])
+
+  demographics Demographics?
+  hra          HraAssessment?
+  cna          CnaAssessment?
+  note         CareCoordinationNote?
+
+  @@index([memberId])
+}
+
+// Versioned Demographics snapshot — one section of an IntakeVersion (see
+// above). Member's own identity fields (firstName, address, etc.) are kept
+// in sync with the latest save as a convenience "current value" cache read
+// by the rest of the app, but the full historical record lives here.
 model Demographics {
-  id       String @id @default(cuid())
-  memberId String @unique
-  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  id              String           @id @default(cuid())
+  memberId        String
+  member          Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assessorId      String
+  assessor        User             @relation(fields: [assessorId], references: [id])
+  status          AssessmentStatus @default(DRAFT)
+  intakeVersionId String?          @unique
+  intakeVersion   IntakeVersion?   @relation(fields: [intakeVersionId], references: [id], onDelete: Cascade)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Identity snapshot (mirrors Member's identity fields as of this record)
+  firstName   String?
+  middleName  String?
+  lastName    String?
+  dateOfBirth DateTime?
+  medicaidId  String?
+  address     String?
+  email       String?
+  language    String?
+
+  // Identity / demographics
+  race                String?
+  ethnicity           String?
+  tribalAffiliation   String?
+  sexAssignedAtBirth  String?
+  currentGender       String?
+  currentGenderOther  String?
+  sexualIdentity      String?
+  sexualIdentityOther String?
+
+  // Form completion / permission
+  permissionForOtherToComplete Boolean?
+  formCompletedByName          String?
+  formCompletedByRelationship  String?
+
+  // Member contact
+  phoneCell             String?
+  phoneHome             String?
+  preferredContactVoice Boolean?
+  preferredContactText  Boolean?
 
   emergencyContactName  String?
   emergencyContactPhone String?
   emergencyContactRel   String?
-  race                  String?
-  ethnicity             String?
-  primaryPayer          String?
-  householdSize         Int?
-  incomeLevel           String?
-  housingStatus         String?
-  transportationAccess  Boolean?
-  updatedAt             DateTime @updatedAt
+
+  // MCO / Medicaid eligibility
+  mcoEnrollmentDate              DateTime?
+  eligibilityCategory            String?
+  medicaidEligibilityBeginDate   DateTime?
+  medicaidEligibilityRenewalDate DateTime?
+
+  // Screening flags
+  justiceInvolved        Boolean?
+  justiceInvolvedDetails String?
+  caraIndividual         Boolean?
+  cyfdInvolved           Boolean?
+  cyfdInvolvedDetails    String?
+  hasOtherInsurance      Boolean?
+  otherInsuranceDetails  String?
+  onWaiver               Boolean?
+  waiverType             String?
+
+  // Authorized representative / decision maker
+  cnaCompletedByNameRelation           String?
+  representativeName                   String?
+  representativePhone                  String?
+  representativeEmail                  String?
+  decisionMaker                        String?
+  representativeDocumentationSubmitted Boolean?
+  representativeDocumentationType      String?
+  permissionToContactRepWithoutMember  Boolean?
+
+  primaryPayer         String?
+  householdSize        Int?
+  incomeLevel          String?
+  housingStatus        String?
+  transportationAccess Boolean?
 }
 
 // ---------- CNA (Comprehensive Needs Assessment) ----------
@@ -143,75 +321,369 @@ enum AssessmentStatus {
   COMPLETED
 }
 
-enum LifeDomain {
-  PHYSICAL_HEALTH
-  BEHAVIORAL_HEALTH
-  SOCIAL_RELATIONSHIPS
-  PRACTICAL_NEEDS
-  SAFETY
-  PREGNANCY_POSTPARTUM
-}
-
 model CnaAssessment {
-  id             String           @id @default(cuid())
-  memberId       String
-  member         Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  assessorId     String
-  assessor       User             @relation(fields: [assessorId], references: [id])
-  assessmentType String           @default("Initial CNA")
-  assessmentDate DateTime         @default(now())
-  status         AssessmentStatus @default(DRAFT)
-  summaryNotes   String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  id               String           @id @default(cuid())
+  memberId         String
+  member           Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assessorId       String
+  assessor         User             @relation(fields: [assessorId], references: [id])
+  assessmentDate   DateTime         @default(now())
+  assessmentType   String[] // Initial / Annual / Semi-Annual / Change in Condition / Treat First (check all that apply)
+  assessmentMethod String? // In-person in-home / In-person (alternate location) / Telephonic / Video
+  status           AssessmentStatus @default(DRAFT)
+  intakeVersionId  String?          @unique
+  intakeVersion    IntakeVersion?   @relation(fields: [intakeVersionId], references: [id], onDelete: Cascade)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  domains CnaDomainResult[]
+  // Introduction
+  hasImminentRisk              Boolean?
+  meetsCbsqCbma                Boolean?
+  languageNeedOtherThanEnglish Boolean?
+  needsTranslationServices     Boolean?
+  needsTranslationDescribe     String?
+  specialPreferences           String?
+  specialPreferencesDescribe   String?
+  erVisitsLast12Months         String? // 0 / 1 / 2 / 3 / 4 or more / unknown
+  erVisitsDescribe             String?
+  needsEdAlternativesInfo      Boolean?
+  hospitalStaysLast6Months     String? // 0 / 1 / 2 / 3 or more
+  hospitalStaysDescribe        String?
+  waitingForTransplant         Boolean?
+  waitingForTransplantSpecify  String?
+
+  // Vision / Hearing / Dental
+  hasVisionIssues              Boolean?
+  visionIssuesDescribe         String?
+  lastVisionCheck              String?
+  needsEyeCareAppointmentHelp  Boolean?
+  hasHearingIssues             Boolean?
+  hearingIssuesDescribe        String?
+  lastHearingTest              String?
+  needsHearingApptHelp         Boolean?
+  needsHearingApptHelpDescribe String?
+  lastDentalVisit              String?
+  needsDentalApptHelp          Boolean?
+  needsDentalApptHelpDescribe  String?
+
+  // Pregnancy (if applicable)
+  isCurrentlyPregnant                Boolean?
+  hadPerinatalCare                   String? // yes / no / na
+  pregnancyDueDate                   DateTime?
+  pregnancyDueDateNa                 Boolean?
+  pregnancyHighRisk                  String? // yes / no / na
+  needsMaternalProviderHelp          String? // yes / no / na
+  pregnantWithinLast12Months         String? // yes / no / na
+  hadPostpartumDepression            String? // yes / no / na
+  timesPregnant                      String?
+  viableBirths                       String?
+  historyOfMultipleBirths            String? // yes / no / unknown
+  everHadCSection                    String? // yes / no / na
+  priorPregnancyComplications        String? // yes / no / na
+  priorPregnancyComplicationsSpecify String?
+  interestedInHomeVisiting           String? // yes / no / na
+  homeVisitingProviderReferredTo     String?
+
+  // Physical Health
+  overallHealthVsYearAgo               String? // Excellent / Good / Fair / Poor
+  physicalHealthConditionsDiagnosed    Boolean?
+  physicalHealthConditionsSelfReported Boolean?
+  physicalHealthConditionsDescribe     String?
+  heightInches                         String?
+  weightLbs                            String?
+  hasNonMedicationAllergies            Boolean?
+  nonMedicationAllergiesSpecify        String?
+  seenProviderLast12Months             Boolean?
+  seenProviderLast12MonthsSpecify      String?
+  needsPcpAppointmentHelp              Boolean?
+  hadWellChildVisit                    Boolean?
+  wellChildVisitDate                   DateTime?
+  lastMammogram                        String?
+  lastPapSmear                         String?
+  hadColorectalScreening               Boolean?
+  colorectalScreeningYesSpecify        String?
+  colorectalScreeningNoSpecify         String?
+  pastSurgeriesProceduresTreatments    String?
+  upcomingMedicalServices              Boolean?
+  upcomingMedicalServicesSpecify       String?
+  needsSchedulingHelp                  Boolean?
+  usesOrNeedsDme                       Boolean?
+  usesOrNeedsDmeSpecify                String?
+  needsDmeObtainingHelp                Boolean?
+  needsDmeObtainingHelpSpecify         String?
+  hasNeurologicalDiagnoses             Boolean?
+  hasNeurologicalDiagnosesSpecify      String?
+  usesTobaccoNicotine                  Boolean?
+  interestedInCessationProgram         Boolean?
+
+  // Medication
+  takesMedications                      Boolean?
+  takesMedicationsSpecify               String?
+  ableToObtainAllMedications            Boolean?
+  ableToObtainAllMedicationsSpecify     String?
+  hasDiscontinuedMedications            Boolean?
+  hasDiscontinuedMedicationsSpecify     String?
+  hasMedicationAllergies                Boolean?
+  hasMedicationAllergiesSpecify         String?
+  takesLifeSustainingMedications        Boolean?
+  takesLifeSustainingMedicationsSpecify String?
+
+  // Behavioral Health Needs
+  behavioralHealthConditionsDiagnosed    Boolean?
+  behavioralHealthConditionsSelfReported Boolean?
+  behavioralHealthConditionsNa           Boolean?
+  behavioralHealthConditionsDescribe     String?
+  bhAdmissionsLast12Months               Boolean?
+  bhAdmissionsSpecify                    String?
+  lastBhProviderVisit                    String?
+  needsBhProviderHelp                    Boolean?
+  needsBhProviderHelpSpecify             String?
+  understandsBhCondition                 Boolean?
+  hasSubstanceUseIssues                  Boolean?
+  hasSubstanceUseIssuesSpecify           String?
+
+  // PHQ-2/PHQ-9 (each 0-3: Not At All / Several Days / More Than Half The Days / Nearly Every Day)
+  phqLittleInterest       Int?
+  phqFeelingDown          Int?
+  phqTroubleSleeping      Int?
+  phqTiredLowEnergy       Int?
+  phqAppetite             Int?
+  phqFeelingBad           Int?
+  phqTroubleConcentrating Int?
+  phqMovingSpeaking       Int?
+  phqSelfHarmThoughts     Int?
+  phqDifficultyLevel      String? // Not difficult at all / Somewhat difficult / Very difficult / Extremely difficult
+
+  // CAGE (each yes = 1 point)
+  cageCutDown          Boolean?
+  cageCutDownSpecify   String?
+  cageAnnoyed          Boolean?
+  cageAnnoyedSpecify   String?
+  cageGuilty           Boolean?
+  cageGuiltySpecify    String?
+  cageEyeOpener        Boolean?
+  cageEyeOpenerSpecify String?
+
+  // Health Related Social Needs (HRSN)
+  hasHousingInsecurity                Boolean?
+  hasHousingInsecuritySpecify         String?
+  livingArrangement                   String? // Alone / With others
+  livingArrangementSpecify            String?
+  feelsSafeWhereLiving                Boolean?
+  feelsSafeWhereLivingSpecify         String?
+  hasUrgentNeeds                      Boolean?
+  hasUrgentNeedsSpecify               String?
+  wantsHousingSpecialistReferral      Boolean?
+  householdReceivesCbServices         Boolean?
+  householdReceivesCbServicesSpecify  String?
+  hasNaturalSupports                  Boolean?
+  naturalSupportsContactInfo          String?
+  naturalSupportMeetsNeeds            Boolean?
+  naturalSupportMeetsNeedsExplain     String?
+  hasPaidCaregiver                    Boolean?
+  paidCaregiverContactInfo            String?
+  paidCaregiverHoursPerWeek           String?
+  hasSufficientChildCare              String? // yes / no / na
+  worriedAboutFood                    Boolean?
+  employmentStatus                    String?
+  primaryIncomeSource                 String?
+  managesFinancesIndependently        Boolean?
+  managesFinancesIndependentlySpecify String?
+  hasLegalIssues                      Boolean?
+  hasLegalIssuesSpecify               String?
+  reliableTransportation              Boolean?
+  reliableTransportationSpecify       String?
+  referralsNeeded                     String?
+
+  // ADLs
+  adlBathingNeeded          Boolean?
+  adlBathingSpecify         String?
+  adlDressingNeeded         Boolean?
+  adlDressingSpecify        String?
+  adlGroomingNeeded         Boolean?
+  adlGroomingSpecify        String?
+  adlBowelBladderNeeded     Boolean?
+  adlBowelBladderSpecify    String?
+  adlToiletingNeeded        Boolean?
+  adlToiletingSpecify       String?
+  adlEatingNeeded           Boolean?
+  adlEatingSpecify          String?
+  adlMobilityNeeded         Boolean?
+  adlMobilitySpecify        String?
+  adlTransferNeeded         Boolean?
+  adlTransferSpecify        String?
+  adlMealPrepNeeded         Boolean?
+  adlMealPrepSpecify        String?
+  adlDailyMedicationNeeded  Boolean?
+  adlDailyMedicationSpecify String?
+
+  // IADLs
+  iadlSupportServicesNeeded    Boolean?
+  iadlSupportServicesSpecify   String?
+  iadlDmeMaintenanceNeeded     Boolean?
+  iadlDmeMaintenanceSpecify    String?
+  iadlLightHousekeepingNeeded  Boolean?
+  iadlLightHousekeepingSpecify String?
+  iadlFinancesNeeded           Boolean?
+  iadlFinancesSpecify          String?
+
+  hasFallRiskIndication        Boolean?
+  hasFallRiskIndicationSpecify String?
+  needsNfLocEvaluation         Boolean?
+
+  // Summary
+  mainHealthGoal                String?
+  mostSignificantNeedsToday     String?
+  hasAdvanceDirective           Boolean?
+  wantsAdvanceDirectiveInfo     Boolean?
+  interestedInCareCoordination  Boolean?
+  declinationExplainedAndSigned String? // yes / no / na
+  declinationReason             String?
 
   @@index([memberId])
 }
 
-model CnaDomainResult {
-  id           String        @id @default(cuid())
-  assessmentId String
-  assessment   CnaAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  domain       LifeDomain
-  needsCount   Int           @default(0)
-  hasNeeds     Boolean       @default(false)
-  strengths    String?
-  notes        String?
+// ---------- Care Coordination Notes (post-CNA leveling & closeout) ----------
 
-  @@unique([assessmentId, domain])
+model CareCoordinationNote {
+  id              String           @id @default(cuid())
+  memberId        String
+  member          Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assessorId      String
+  assessor        User             @relation(fields: [assessorId], references: [id])
+  status          AssessmentStatus @default(DRAFT)
+  intakeVersionId String?          @unique
+  intakeVersion   IntakeVersion?   @relation(fields: [intakeVersionId], references: [id], onDelete: Cascade)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Summary
+  physicalHealthSummary                    String?
+  behavioralHealthSummary                  String?
+  safetyVisionHearingCaregiverObservations String?
+  hrsnAndAdditionalObservations            String?
+  communityProviderReferrals               String?
+  schedulingAssistanceProvided             String?
+
+  // Care Coordination Level leveling criteria (check all that apply)
+  ccl1Criteria                  String[]
+  ccl1OtherSpecify              String?
+  ccl2Criteria                  String[]
+  ccl2OtherSpecify              String?
+  cannotBeLeveledDownIndicators String[]
+
+  careCoordinationLevel         String?
+  eligibilityConclusionsSummary String?
+
+  cbsqCbmaCompleted           String? // yes / no / na
+  cbsqCbmaNotCompletedExplain String?
+
+  hasCoe100Abp             Boolean?
+  wantsAbpExemptEvaluation Boolean?
+  abpClassification        String? // ABP / ABP Exempt / N/A
+  qualifiesForAbpExempt    Boolean?
+  abpExemptReason          String?
+
+  hcbsSettingsRuleAssessed String? // yes / no / na
+
+  providedServicesBenefitsInfo        Boolean?
+  providedServicesBenefitsInfoExplain String?
+
+  memberSatisfactionDescription String?
+  complexCaseManagementOrNfloc  String? // Initial NFLOC / Complex Case Management / N/A
+
+  @@index([memberId])
 }
 
 // ---------- HRA (Health Risk Assessment) ----------
 
 model HraAssessment {
-  id             String           @id @default(cuid())
-  memberId       String
-  member         Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  assessorId     String
-  assessor       User             @relation(fields: [assessorId], references: [id])
-  assessmentDate DateTime         @default(now())
-  status         AssessmentStatus @default(DRAFT)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  id                    String           @id @default(cuid())
+  memberId              String
+  member                Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assessorId            String
+  assessor              User             @relation(fields: [assessorId], references: [id])
+  assessmentDate        DateTime         @default(now())
+  assessmentType        String? // Initial assessment / Change in health status
+  assessmentMethod      String? // Telephonic / In-person / Other
+  assessmentMethodOther String?
+  status                AssessmentStatus @default(DRAFT)
+  intakeVersionId       String?          @unique
+  intakeVersion         IntakeVersion?   @relation(fields: [intakeVersionId], references: [id], onDelete: Cascade)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
 
-  screenings HraScreening[]
+  // Q1
+  languageNeedOtherThanEnglish Boolean?
+  needsTranslationServices     Boolean?
+
+  // Q2
+  specialPreferences         String?
+  specialPreferencesDescribe String?
+
+  // Q3
+  healthConditions         String?
+  healthConditionsDescribe String?
+
+  // Q4-7
+  sexAssignedAtBirth  String?
+  currentGender       String?
+  currentGenderOther  String?
+  sexualIdentity      String?
+  sexualIdentityOther String?
+  preferredPronouns   String?
+
+  // Q8
+  isPregnant Boolean?
+
+  // Q9
+  perinatalPostpartumOrYoungChild String? // yes / no / na
+
+  // Q10
+  usesTobaccoNicotine          String? // yes / no / na
+  interestedInCessationProgram String? // yes / no / na
+  historyOfTobaccoUse          Boolean?
+
+  // Q11-13
+  worriedAboutFood         String? // yes / no / na
+  reliableTransportation   String? // yes / no / na
+  needsHelpFindingProvider String? // yes / no / na
+
+  // Q14
+  erVisitsPast12Months Boolean?
+  erVisitCount         String?
+
+  // Q15
+  hospitalOvernightPast6Months Boolean?
+  readmittedWithin30Days       Boolean?
+
+  // Q16
+  medicationsCount String?
+
+  // Q17
+  currentSituations String?
+
+  // Q18
+  livingSituation      String?
+  livingSituationOther String?
+
+  // Q19
+  needsHelpWith2OrMoreAdls Boolean?
+  adlHelpNeeded            String?
+  adlHelpOther             String?
+
+  // Q20
+  hasLivingWillOrAdvanceDirective Boolean?
+  wantsMoreAdvanceDirectiveInfo   Boolean?
+
+  // Q21-22
+  mainHealthConcerns        String?
+  mostSignificantNeedsToday String?
+
+  // Q23
+  interestedInCareCoordination Boolean?
 
   @@index([memberId])
-}
-
-model HraScreening {
-  id           String        @id @default(cuid())
-  assessmentId String
-  assessment   HraAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  toolName     String // e.g. "EPDS", "SDOH", "ASSIST", "HITS"
-  score        String?
-  riskLevel    String? // e.g. "Low", "High"
-  completedAt  DateTime?
-  notes        String?
-
-  @@unique([assessmentId, toolName])
 }
 
 // ---------- Care Plan (CCP) ----------
@@ -224,17 +696,119 @@ enum GoalStatus {
 }
 
 model CarePlan {
-  id          String   @id @default(cuid())
+  id          String           @id @default(cuid())
   memberId    String
-  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  member      Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
   createdById String
-  createdBy   User     @relation(fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdBy   User             @relation(fields: [createdById], references: [id])
+  status      AssessmentStatus @default(DRAFT)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
-  goals CarePlanGoal[]
+  // Demographic Information (CCP-specific — Medicaid eligibility renewal date
+  // already lives on Demographics, so it isn't repeated here)
+  ccpStartDate                DateTime?
+  mostRecentCnaCompletionDate DateTime?
+  preferredContactMethod      String?
+
+  // Services / conditions / medications summary
+  servicesAuthorizedByMco String?
+  phBhConditions          String?
+
+  // Backup Plan
+  backupPlanText String?
+  backupContacts CarePlanBackupContact[]
+
+  // Disaster Preparedness Plan
+  disasterPlanText               String?
+  disasterReviewItems            String[] // check-all-that-apply: Medication/drugs, Oxygen tank, etc.
+  disasterReviewItemsOther       String?
+  disasterDmeNeedsProvider       String?
+  disasterTransportationCo       String?
+  disasterMedicationPickup       String?
+  disasterHomeHealthAgency       String?
+  disasterServiceAnimalsCare     String?
+  hasEmergencyContactsList       Boolean?
+  discussedSafetyWithCoordinator Boolean?
+  disasterContacts               CarePlanDisasterContact[]
+
+  // Other Services / Medicare & Dual Eligible coordination
+  otherServicesText             String?
+  otherServicesNa               Boolean?
+  dualEligibleInfoNeeded        String?
+  dualEligibleNoNeedsIdentified Boolean?
+  dualEligibleNa                Boolean?
+
+  // Frequency of Planned Care Coordinator Contacts
+  ccl1ContactGuidelines Boolean?
+  ccl2ContactGuidelines Boolean?
+  otherContactSchedule  String?
+
+  // Member's Choice
+  agencyBasedCb    Boolean?
+  selfDirectedCb   Boolean?
+  nursingFacility  Boolean?
+  cbSettingsChoice String?
+
+  // Closing sections
+  hasCommunityBenefits Boolean?
+  mcoIntegrationPlan   String?
+  hasFacilityCarePlan  Boolean?
+
+  teamMembers CarePlanTeamMember[]
+  medications CarePlanMedication[]
+  goals       CarePlanGoal[]
 
   @@index([memberId])
+}
+
+model CarePlanTeamMember {
+  id         String   @id @default(cuid())
+  carePlanId String
+  carePlan   CarePlan @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+  name       String?
+  phone      String?
+  email      String?
+  relation   String?
+  specialty  String?
+
+  @@index([carePlanId])
+}
+
+model CarePlanMedication {
+  id         String    @id @default(cuid())
+  carePlanId String
+  carePlan   CarePlan  @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+  name       String?
+  dosage     String?
+  frequency  String?
+  startDate  DateTime?
+  endDate    DateTime?
+
+  @@index([carePlanId])
+}
+
+model CarePlanBackupContact {
+  id           String   @id @default(cuid())
+  carePlanId   String
+  carePlan     CarePlan @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+  name         String?
+  phone        String?
+  address      String?
+  relationship String?
+
+  @@index([carePlanId])
+}
+
+model CarePlanDisasterContact {
+  id         String   @id @default(cuid())
+  carePlanId String
+  carePlan   CarePlan @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+  name       String?
+  phone      String?
+  helpWith   String?
+
+  @@index([carePlanId])
 }
 
 model CarePlanGoal {
@@ -247,6 +821,178 @@ model CarePlanGoal {
   targetDate  DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+
+  // Opportunity / priority
+  opportunity       String?
+  priority          String? // High / Medium / Low
+  hasAllocationTool Boolean?
+
+  strengths String?
+  barriers  String?
+
+  memberDeferredDiscussion Boolean?
+  deferredReason           String?
+  memberDeclinedDiscussion Boolean?
+  declinedReason           String?
+
+  goalText String?
+
+  // Action I will take (member)
+  memberActionText             String?
+  memberActionBeginDate        DateTime?
+  memberActionTargetEndDate    DateTime?
+  memberActionAccomplishedDate DateTime?
+
+  // Action my care coordinator will take
+  coordinatorActionText             String?
+  coordinatorActionBeginDate        DateTime?
+  coordinatorActionTargetEndDate    DateTime?
+  coordinatorActionAccomplishedDate DateTime?
+
+  progressNotes CarePlanProgressNote[]
+}
+
+enum ProgressNoteTrack {
+  MEMBER
+  COORDINATOR
+}
+
+model CarePlanProgressNote {
+  id        String            @id @default(cuid())
+  goalId    String
+  goal      CarePlanGoal      @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  track     ProgressNoteTrack
+  note      String
+  date      DateTime?
+  createdAt DateTime          @default(now())
+
+  @@index([goalId])
+}
+
+// ---------- General Communication (running dated log, no draft/sign concept) ----------
+
+model GeneralCommunication {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  body      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Structured outreach-attempt fields, optional alongside the free-text
+  // body — lets the system compute contact counts/dates without forcing a
+  // separate workflow away from how the team already documents outreach.
+  contactMethod      String? // Phone/Video/In Person/Portal/Text/Email/Other
+  successful         Boolean?
+  unsuccessfulReason String? // No answer/Left voicemail/Wrong number/etc. — only when successful is false
+  personContacted    String? // Member/Parent or Guardian/Authorized Representative/Provider/Community Partner
+  nextAttemptDate    DateTime?
+
+  @@index([memberId])
+}
+
+// ---------- HEDIS Measures (one evolving record per pregnancy episode, no draft/sign concept) ----------
+
+enum YesNoNa {
+  YES
+  NO
+  NA
+}
+
+model HedisMeasures {
+  id       String @id @default(cuid())
+  memberId String @unique
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  deliveryDate DateTime?
+
+  prenatalFirstTrimester     YesNoNa?
+  prenatalFirstTrimesterDate DateTime?
+
+  postPartum1stTouchpoint     YesNoNa?
+  postPartum1stTouchpointDate DateTime?
+
+  postPartum2ndTouchpoint     YesNoNa?
+  postPartum2ndTouchpointDate DateTime?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- TOC (Transition of Care) Assessment/Plan — versioned/signable, same pattern as Demographics/HRA/CNA ----------
+
+model TocRecord {
+  id         String           @id @default(cuid())
+  memberId   String
+  member     Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assessorId String
+  assessor   User             @relation(fields: [assessorId], references: [id])
+  status     AssessmentStatus @default(DRAFT)
+  signedAt   DateTime?
+  signedById String?
+  signedBy   User?            @relation("TocRecordSignedBy", fields: [signedById], references: [id])
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  // Section 1: Demographic Information (TOC-specific only — member identity,
+  // contact info, and emergency contact already live on Demographics)
+  mcoNotificationDate   DateTime?
+  tocPlanStartDate      DateTime?
+  tocPlanCompletionDate DateTime?
+
+  priorAddressStreet   String?
+  priorAddressCity     String?
+  priorAddressStateZip String?
+
+  ciscPcName  String? // Permanency Coordinator — CISC Members only
+  ciscPcPhone String?
+
+  transitionType      String?
+  transitionTypeOther String?
+
+  // Section 2 intro (needs/actions rows live in TocNeed)
+  dcTeamContactSummary String?
+
+  // Section 5: Monthly Follow-Up — fixed at 3 rows per the standardized form
+  followUp1Date   DateTime?
+  followUp1Status NoneOrYes?
+  followUp1Notes  String?
+  followUp2Date   DateTime?
+  followUp2Status NoneOrYes?
+  followUp2Notes  String?
+  followUp3Date   DateTime?
+  followUp3Status NoneOrYes?
+  followUp3Notes  String?
+
+  needs TocNeed[]
+}
+
+// The standardized form's "Needs" checkboxes are always None/Yes(describe) —
+// unlike HEDIS's Yes/No/N/A — so this gets its own enum.
+enum NoneOrYes {
+  NONE
+  YES
+}
+
+// Sections 2, 3, 4, 6, 7, and 8 are all the same "Needs | Actions" table
+// shape with a fixed, section-specific list of needs — stored generically
+// here (keyed by section number + a stable needKey from the static config
+// in components/toc/needs-config.ts) instead of ~150 individual columns.
+model TocNeed {
+  id          String     @id @default(cuid())
+  tocRecordId String
+  tocRecord   TocRecord  @relation(fields: [tocRecordId], references: [id], onDelete: Cascade)
+  section     Int
+  needKey     String
+  status      NoneOrYes?
+  actions     String?
+
+  @@unique([tocRecordId, section, needKey])
+  @@index([tocRecordId])
 }
 
 // ---------- Tasks, touchpoints, appointments, notes ----------
@@ -387,4 +1133,78 @@ model AuditLog {
   @@index([userId])
   @@index([memberId])
   @@index([createdAt])
+}
+
+// ---------- Notifications ----------
+
+enum NotificationPriority {
+  HIGH
+  STANDARD
+  INFO
+}
+
+model Notification {
+  id       String               @id @default(cuid())
+  clinicId String
+  clinic   Clinic               @relation(fields: [clinicId], references: [id])
+  userId   String
+  user     User                 @relation(fields: [userId], references: [id])
+  priority NotificationPriority @default(STANDARD)
+  title    String
+  body     String?
+
+  // Where clicking the notification should take the user — a member chart
+  // if memberId is set, otherwise linkPath as a fallback for non-member events.
+  memberId String?
+  member   Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  linkPath String?
+
+  read      Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, read])
+  @@index([clinicId])
+}
+
+// ---------- Resource directory (referral resources, programs, and key contacts) ----------
+
+model ResourceEntry {
+  id           String   @id @default(cuid())
+  clinicId     String
+  clinic       Clinic   @relation(fields: [clinicId], references: [id])
+  name         String
+  category     String // free text (e.g. "Pregnancy/Maternity Program", "Crisis/Emergency") — no fixed taxonomy yet
+  description  String?
+  contactName  String?
+  contactPhone String?
+  contactEmail String?
+  eligibility  String?
+  notes        String?
+  createdById  String
+  createdBy    User     @relation(fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([clinicId])
+}
+
+// ---------- Billing ----------
+
+// A record of every generated billing roster export, kept for audit purposes
+// (who ran it, when, for which billing month, under which filters, and how
+// many members it covered). The roster itself is computed live from Member
+// data at export time — this table is the export log, not the roster.
+model BillingExport {
+  id            String   @id @default(cuid())
+  clinicId      String
+  clinic        Clinic   @relation(fields: [clinicId], references: [id])
+  generatedById String
+  generatedBy   User     @relation(fields: [generatedById], references: [id])
+  billingMonth  String // "YYYY-MM"
+  filters       Json?
+  memberCount   Int
+  createdAt     DateTime @default(now())
+
+  @@index([clinicId])
 }

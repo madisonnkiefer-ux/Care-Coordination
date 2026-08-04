@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
+import { getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
 
 export async function getDashboardData() {
   const session = await verifySession();
@@ -18,7 +19,9 @@ export async function getDashboardData() {
     myTasks,
     upcomingAppointments,
     goalCounts,
-    recentTouchpoints,
+    recentContacts,
+    membersForAnnualCna,
+    membersForContactCheck,
   ] = await Promise.all([
     db.member.count({ where: memberScope }),
     db.task.count({
@@ -47,13 +50,40 @@ export async function getDashboardData() {
       where: { carePlan: { member: memberScope } },
       _count: true,
     }),
-    db.touchpoint.findMany({
+    db.generalCommunication.findMany({
       where: { member: memberScope },
-      orderBy: { date: "desc" },
+      orderBy: { createdAt: "desc" },
       take: 5,
       include: {
         member: { select: { id: true, firstName: true, lastName: true } },
-        user: { select: { name: true } },
+        author: { select: { name: true } },
+      },
+    }),
+    db.member.findMany({
+      where: memberScope,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        cnaAssessments: {
+          where: { status: "COMPLETED" },
+          orderBy: { assessmentDate: "desc" },
+          take: 1,
+          select: { assessmentDate: true },
+        },
+      },
+    }),
+    db.member.findMany({
+      where: memberScope,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        program: true,
+        generalCommunications: {
+          where: { createdAt: { gte: getWindowStart("quarter", new Date()) } },
+          select: { createdAt: true, successful: true },
+        },
       },
     }),
   ]);
@@ -66,6 +96,45 @@ export async function getDashboardData() {
     if (row.status === "COMPLETE") goalTotals.complete = row._count;
   }
 
+  // Annual CNA is due 12 months after the last completed one. "Due this
+  // month" includes anything already overdue, plus members who have never
+  // had a completed CNA (most urgent — sorted first).
+  const now = new Date();
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const annualCnaDue = membersForAnnualCna
+    .map((m) => {
+      const lastCnaDate = m.cnaAssessments[0]?.assessmentDate ?? null;
+      const dueDate = lastCnaDate
+        ? new Date(lastCnaDate.getFullYear() + 1, lastCnaDate.getMonth(), lastCnaDate.getDate())
+        : null;
+      return { id: m.id, firstName: m.firstName, lastName: m.lastName, lastCnaDate, dueDate };
+    })
+    .filter((m) => !m.dueDate || m.dueDate <= endOfMonth)
+    .sort((a, b) => {
+      if (!a.dueDate) return -1;
+      if (!b.dueDate) return 1;
+      return a.dueDate.getTime() - b.dueDate.getTime();
+    });
+
+  // Touchpoint compliance is program-based (see lib/touchpoint-compliance.ts):
+  // Prenatal/Postpartum members need 1 successful contact (or 3 attempts)
+  // every month; everyone else needs the same every quarter.
+  const touchpointGaps = membersForContactCheck
+    .map((m) => ({
+      id: m.id,
+      firstName: m.firstName,
+      lastName: m.lastName,
+      lastSuccessfulContactDate:
+        m.generalCommunications.filter((c) => c.successful).reduce<Date | null>((latest, c) => (!latest || c.createdAt > latest ? c.createdAt : latest), null),
+      compliant: isTouchpointCompliant(m.generalCommunications, m.program, now),
+    }))
+    .filter((m) => !m.compliant)
+    .sort((a, b) => {
+      if (!a.lastSuccessfulContactDate) return -1;
+      if (!b.lastSuccessfulContactDate) return 1;
+      return a.lastSuccessfulContactDate.getTime() - b.lastSuccessfulContactDate.getTime();
+    });
+
   return {
     session,
     stats: {
@@ -77,6 +146,8 @@ export async function getDashboardData() {
     myTasks,
     upcomingAppointments,
     goalTotals,
-    recentTouchpoints,
+    recentContacts,
+    annualCnaDue,
+    touchpointGaps,
   };
 }

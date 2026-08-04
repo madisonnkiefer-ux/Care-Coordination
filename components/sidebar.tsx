@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Home,
@@ -9,9 +10,16 @@ import {
   ShieldCheck,
   ClipboardList,
   LogOut,
+  BookOpen,
+  BarChart3,
+  Bell,
+  Receipt,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
+import { Avatar } from "@/components/ui";
+import { NotificationBell } from "@/components/notification-bell";
 import type { Role } from "@/app/generated/prisma/client";
+import type { getNotificationBellData } from "@/lib/data/notifications";
 
 type NavItem = {
   href: string;
@@ -24,10 +32,24 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Home", icon: Home },
   { href: "/members", label: "Member Charts", icon: Users },
   { href: "/tasks", label: "Tasks & Reminders", icon: ListChecks },
+  { href: "/resources", label: "Resources", icon: BookOpen },
+  { href: "/notifications", label: "Notifications", icon: Bell },
   {
     href: "/supervisor",
     label: "Supervisor Dashboard",
     icon: ShieldCheck,
+    roles: ["SUPERVISOR", "ADMIN"],
+  },
+  {
+    href: "/reports",
+    label: "Reports",
+    icon: BarChart3,
+    roles: ["SUPERVISOR", "ADMIN"],
+  },
+  {
+    href: "/billing",
+    label: "Billing",
+    icon: Receipt,
     roles: ["SUPERVISOR", "ADMIN"],
   },
   {
@@ -40,19 +62,28 @@ const NAV_ITEMS: NavItem[] = [
 
 export function Sidebar({
   user,
+  notificationData,
 }: {
   user: { name: string; email: string; role: Role };
+  notificationData: Awaited<ReturnType<typeof getNotificationBellData>>;
 }) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 shrink-0 border-r border-slate-200 bg-white flex flex-col h-screen sticky top-0">
-      <div className="flex items-center gap-2 px-5 h-16 border-b border-slate-200">
-        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-orange-400" />
-        <span className="font-semibold text-slate-900">CareCoord Hub</span>
+    <aside className="w-64 shrink-0 border-r border-stone-200 bg-white flex flex-col h-screen sticky top-0 print:hidden">
+      <div className="flex items-center justify-between gap-1.5 px-4 h-16 border-b border-stone-200">
+        <div className="flex min-w-0 items-center gap-2">
+          <Image src="/avanza-mark.png" alt="" width={32} height={26} className="h-8 w-auto shrink-0" />
+          <span className="truncate font-serif text-sm font-bold tracking-wide text-charcoal">AVANZA CARE</span>
+        </div>
+        <NotificationBell
+          unreadCount={notificationData.unreadCount}
+          recent={notificationData.recent}
+          needsAttention={notificationData.needsAttention}
+        />
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+      <nav className="overflow-y-auto py-4 px-3 space-y-1">
         {NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(user.role)).map(
           (item) => {
             const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -63,8 +94,8 @@ export function Sidebar({
                 href={item.href}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-fuchsia-50 text-fuchsia-700"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    ? "bg-charcoal text-white"
+                    : "text-stone-600 hover:bg-stone-100 hover:text-charcoal"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -75,24 +106,18 @@ export function Sidebar({
         )}
       </nav>
 
-      <div className="border-t border-slate-200 p-3">
+      <div className="border-t border-stone-200 p-3">
         <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-          <div className="h-9 w-9 shrink-0 rounded-full bg-gradient-to-br from-fuchsia-500 to-orange-400 flex items-center justify-center text-white text-sm font-semibold">
-            {user.name
-              .split(" ")
-              .map((n) => n[0])
-              .join("")
-              .slice(0, 2)}
-          </div>
+          <Avatar name={user.name} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-slate-900">{user.name}</p>
-            <p className="truncate text-xs text-slate-500">{roleLabel(user.role)}</p>
+            <p className="truncate text-sm font-medium text-charcoal">{user.name}</p>
+            <p className="truncate text-xs text-stone-500">{roleLabel(user.role)}</p>
           </div>
         </div>
         <form action={logout}>
           <button
             type="submit"
-            className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+            className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-stone-500 hover:bg-stone-100 hover:text-charcoal"
           >
             <LogOut className="h-4 w-4" />
             Sign out

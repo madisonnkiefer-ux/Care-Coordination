@@ -1,54 +1,118 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
-import { SCREENING_TOOLS } from "@/lib/data/hra";
 import type { AssessmentStatus } from "@/app/generated/prisma/client";
 
-export async function saveHra(memberId: string, formData: FormData) {
+export async function saveHra(memberId: string, hraId: string, formData: FormData) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
+
+  const existing = await db.hraAssessment.findUnique({ where: { id: hraId }, include: { intakeVersion: true } });
+  if (!existing || existing.memberId !== memberId) throw new Error("Not found");
+  if (existing.intakeVersion?.signedAt) throw new Error("This record is signed and locked");
+
+  const str = (key: string) => {
+    const value = formData.get(key);
+    return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
+  };
+
+  const selectOrCustom = (key: string) => str(`${key}Custom`) ?? str(key);
+
+  const yesNo = (key: string) => {
+    const value = formData.get(key);
+    if (value === "yes") return true;
+    if (value === "no") return false;
+    return null;
+  };
+
+  const yesNoNa = (key: string) => {
+    const value = formData.get(key);
+    return value === "yes" || value === "no" || value === "na" ? value : null;
+  };
+
+  const date = (key: string) => {
+    const value = str(key);
+    return value ? new Date(value) : null;
+  };
 
   const intent = String(formData.get("intent") ?? "draft");
   const status: AssessmentStatus = intent === "complete" ? "COMPLETED" : "DRAFT";
 
-  const existingDraft = await db.hraAssessment.findFirst({
-    where: { memberId, status: "DRAFT" },
-    orderBy: { createdAt: "desc" },
-  });
+  const data = {
+    status,
+    assessmentDate: date("assessmentDate") ?? undefined,
+    assessmentType: str("assessmentType"),
+    assessmentMethod: str("assessmentMethod"),
+    assessmentMethodOther: str("assessmentMethodOther"),
 
-  const assessment = await db.hraAssessment.upsert({
-    where: { id: existingDraft?.id ?? "__none__" },
-    create: { memberId, assessorId: session.userId, status },
-    update: { status, assessmentDate: status === "COMPLETED" ? new Date() : undefined },
-  });
+    languageNeedOtherThanEnglish: yesNo("languageNeedOtherThanEnglish"),
+    needsTranslationServices: yesNo("needsTranslationServices"),
 
-  for (const { key } of SCREENING_TOOLS) {
-    const score = String(formData.get(`score_${key}`) ?? "").trim() || null;
-    const riskLevel = String(formData.get(`riskLevel_${key}`) ?? "").trim() || null;
-    const notes = String(formData.get(`notes_${key}`) ?? "").trim() || null;
-    const completedRaw = String(formData.get(`completed_${key}`) ?? "");
-    const completedAt = completedRaw === "on" ? new Date() : null;
+    specialPreferences: selectOrCustom("specialPreferences"),
+    specialPreferencesDescribe: str("specialPreferencesDescribe"),
 
-    if (!score && !riskLevel && !notes && !completedAt) continue;
+    healthConditions: selectOrCustom("healthConditions"),
+    healthConditionsDescribe: str("healthConditionsDescribe"),
 
-    await db.hraScreening.upsert({
-      where: { assessmentId_toolName: { assessmentId: assessment.id, toolName: key } },
-      create: { assessmentId: assessment.id, toolName: key, score, riskLevel, notes, completedAt },
-      update: { score, riskLevel, notes, completedAt },
-    });
-  }
+    sexAssignedAtBirth: selectOrCustom("sexAssignedAtBirth"),
+    currentGender: selectOrCustom("currentGender"),
+    currentGenderOther: str("currentGenderOther"),
+    sexualIdentity: selectOrCustom("sexualIdentity"),
+    sexualIdentityOther: str("sexualIdentityOther"),
+    preferredPronouns: str("preferredPronouns"),
+
+    isPregnant: yesNo("isPregnant"),
+    perinatalPostpartumOrYoungChild: yesNoNa("perinatalPostpartumOrYoungChild"),
+
+    usesTobaccoNicotine: yesNoNa("usesTobaccoNicotine"),
+    interestedInCessationProgram: yesNoNa("interestedInCessationProgram"),
+    historyOfTobaccoUse: yesNo("historyOfTobaccoUse"),
+
+    worriedAboutFood: yesNoNa("worriedAboutFood"),
+    reliableTransportation: yesNoNa("reliableTransportation"),
+    needsHelpFindingProvider: yesNoNa("needsHelpFindingProvider"),
+
+    erVisitsPast12Months: yesNo("erVisitsPast12Months"),
+    erVisitCount: str("erVisitCount"),
+
+    hospitalOvernightPast6Months: yesNo("hospitalOvernightPast6Months"),
+    readmittedWithin30Days: yesNo("readmittedWithin30Days"),
+
+    medicationsCount: str("medicationsCount"),
+
+    currentSituations: selectOrCustom("currentSituations"),
+
+    livingSituation: selectOrCustom("livingSituation"),
+    livingSituationOther: str("livingSituationOther"),
+
+    needsHelpWith2OrMoreAdls: yesNo("needsHelpWith2OrMoreAdls"),
+    adlHelpNeeded: selectOrCustom("adlHelpNeeded"),
+    adlHelpOther: str("adlHelpOther"),
+
+    hasLivingWillOrAdvanceDirective: yesNo("hasLivingWillOrAdvanceDirective"),
+    wantsMoreAdvanceDirectiveInfo: yesNo("wantsMoreAdvanceDirectiveInfo"),
+
+    mainHealthConcerns: str("mainHealthConcerns"),
+    mostSignificantNeedsToday: str("mostSignificantNeedsToday"),
+
+    interestedInCareCoordination: yesNo("interestedInCareCoordination"),
+  };
+
+  await db.hraAssessment.update({ where: { id: hraId }, data });
 
   await writeAuditLog({
     userId: session.userId,
     memberId,
-    action: existingDraft ? "UPDATE" : "CREATE",
+    action: "UPDATE",
     resource: "HraAssessment",
-    resourceId: assessment.id,
+    resourceId: hraId,
     metadata: { status },
   });
 
-  redirect(`/members/${memberId}`);
+  revalidatePath(`/members/${memberId}/intake`);
+  redirect(`/members/${memberId}/intake?tab=hra`);
 }

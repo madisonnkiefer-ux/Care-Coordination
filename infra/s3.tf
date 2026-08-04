@@ -39,6 +39,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "documents" {
   rule {
     id     = "expire-noncurrent-versions"
     status = "Enabled"
+    filter {}
     noncurrent_version_expiration {
       noncurrent_days = 365
     }
@@ -81,6 +82,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "access_logs" {
   rule {
     id     = "expire-old-logs"
     status = "Enabled"
+    filter {}
     expiration {
       days = 365
     }

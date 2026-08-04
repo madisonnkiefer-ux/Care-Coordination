@@ -19,7 +19,7 @@ resource "aws_db_parameter_group" "postgres" {
 resource "aws_db_instance" "main" {
   identifier     = "${local.name_prefix}-db"
   engine         = "postgres"
-  engine_version = "17.4"
+  engine_version = "17.10" # 17.4 is no longer offered by RDS; pin to whatever's current when you touch this next
 
   instance_class        = var.db_instance_class
   allocated_storage     = var.db_allocated_storage_gb

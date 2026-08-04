@@ -7,13 +7,8 @@ import { writeAuditLog } from "@/lib/audit";
 export async function listMembers() {
   const session = await verifySession();
 
-  const where =
-    session.role === "CARE_COORDINATOR"
-      ? { clinicId: session.clinicId, assignedCoordinatorId: session.userId }
-      : { clinicId: session.clinicId };
-
-  return db.member.findMany({
-    where,
+  const members = await db.member.findMany({
+    where: { clinicId: session.clinicId },
     orderBy: { lastName: "asc" },
     select: {
       id: true,
@@ -23,8 +18,84 @@ export async function listMembers() {
       status: true,
       cclLevel: true,
       program: true,
+      medicaidId: true,
+      memberIdExternal: true,
+      subscriberId: true,
+      availityId: true,
+      medicaidEligibilityVerified: true,
+      edd: true,
+      provider: true,
+      assignedCoordinatorId: true,
       assignedCoordinator: { select: { name: true } },
+      demographicsRecords: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { medicaidEligibilityRenewalDate: true },
+      },
+      cnaAssessments: {
+        where: { status: "COMPLETED" },
+        orderBy: { assessmentDate: "desc" },
+        select: { assessmentDate: true, assessmentType: true },
+      },
+      carePlans: {
+        select: { ccpStartDate: true, createdAt: true, updatedAt: true },
+      },
+      generalCommunications: {
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true, contactMethod: true },
+      },
     },
+  });
+
+  return members.map((m) => {
+    const mostRecentCna = m.cnaAssessments[0] ?? null;
+    const initialCna = m.cnaAssessments[m.cnaAssessments.length - 1] ?? null;
+
+    const sortedCarePlans = [...m.carePlans].sort(
+      (a, b) => (a.ccpStartDate ?? a.createdAt).getTime() - (b.ccpStartDate ?? b.createdAt).getTime()
+    );
+    const initialCcpStartDate = sortedCarePlans[0]?.ccpStartDate ?? sortedCarePlans[0]?.createdAt ?? null;
+    const lastCcpUpdatedAt = m.carePlans.length
+      ? new Date(Math.max(...m.carePlans.map((cp) => cp.updatedAt.getTime())))
+      : null;
+
+    const lastInPersonContact = m.generalCommunications.find((c) => c.contactMethod === "In Person")?.createdAt ?? null;
+
+    return {
+      id: m.id,
+      firstName: m.firstName,
+      lastName: m.lastName,
+      dateOfBirth: m.dateOfBirth,
+      status: m.status,
+      cclLevel: m.cclLevel,
+      program: m.program,
+      medicaidId: m.medicaidId,
+      chartId: m.memberIdExternal,
+      subscriberId: m.subscriberId,
+      availityId: m.availityId,
+      medicaidEligibilityVerified: m.medicaidEligibilityVerified,
+      medicaidEligibilityRenewalDate: m.demographicsRecords[0]?.medicaidEligibilityRenewalDate ?? null,
+      dueDate: m.edd,
+      provider: m.provider,
+      assignedCoordinatorId: m.assignedCoordinatorId,
+      assignedCoordinator: m.assignedCoordinator,
+      lastContactDate: m.generalCommunications[0]?.createdAt ?? null,
+      lastInPersonTouchpointDate: lastInPersonContact,
+      initialCnaDate: initialCna?.assessmentDate ?? null,
+      mostRecentCnaDate: mostRecentCna?.assessmentDate ?? null,
+      mostRecentCnaType: mostRecentCna?.assessmentType[0] ?? null,
+      initialCcpStartDate,
+      lastCcpUpdatedAt,
+    };
+  });
+}
+
+export async function listActiveCoordinators() {
+  const session = await verifySession();
+  return db.user.findMany({
+    where: { clinicId: session.clinicId, role: "CARE_COORDINATOR", active: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
   });
 }
 
@@ -35,15 +106,14 @@ export async function getMemberChart(memberId: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) notFound();
 
-  const [demographics, tasks, touchpoints, appointments, documents, notes, goalCounts, latestCarePlan] =
+  const [tasks, recentContacts, appointments, documents, notes, goalCounts, latestCarePlan] =
     await Promise.all([
-      db.demographics.findUnique({ where: { memberId } }),
       db.task.findMany({ where: { memberId }, orderBy: { dueDate: "asc" }, take: 6 }),
-      db.touchpoint.findMany({
+      db.generalCommunication.findMany({
         where: { memberId },
-        orderBy: { date: "desc" },
+        orderBy: { createdAt: "desc" },
         take: 5,
-        include: { user: { select: { name: true } } },
+        include: { author: { select: { name: true } } },
       }),
       db.appointment.findMany({
         where: { memberId, startsAt: { gte: new Date() } },
@@ -79,21 +149,12 @@ export async function getMemberChart(memberId: string) {
   return {
     session,
     member,
-    demographics,
     tasks,
-    touchpoints,
+    recentContacts,
     appointments,
     documents,
     notes,
     goalTotals,
     latestCarePlanId: latestCarePlan?.id ?? null,
   };
-}
-
-export async function getMemberForEdit(memberId: string) {
-  const { member } = await authorizeMemberAccess(memberId);
-  if (!member) notFound();
-
-  const demographics = await db.demographics.findUnique({ where: { memberId } });
-  return { member, demographics };
 }

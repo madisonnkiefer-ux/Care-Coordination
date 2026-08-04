@@ -16,6 +16,12 @@ export function formatDateTime(date: Date | string | null | undefined) {
   });
 }
 
+export function toDateInputValue(date: Date | string | null | undefined) {
+  if (!date) return "";
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toISOString().slice(0, 10);
+}
+
 export function initials(name: string) {
   return name
     .split(" ")

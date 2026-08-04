@@ -1,19 +1,62 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #faf6f2;
+  --foreground: #3a3532;
 }
 
+/* Brand palette (neutral, OB-friendly) */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-blush: #d9a8ae;
+  --color-deep-rose: #8c4a55;
+  --color-cream: #faf6f2;
+  --color-taupe: #b7afa3;
+  --color-charcoal: #3a3532;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-serif);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Printing a chart/form: sticky nav shouldn't repeat or clip on paper, and
+   the still-editable inputs/selects/textareas showing a record's current
+   values should read as plain document text, not as an interactive form. */
+@media print {
+  .sticky {
+    position: static !important;
+  }
+
+  input,
+  select,
+  textarea {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    color: black !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  textarea {
+    resize: none;
+    overflow: visible;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    -webkit-appearance: auto;
+    appearance: auto;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    display: none;
+  }
 }

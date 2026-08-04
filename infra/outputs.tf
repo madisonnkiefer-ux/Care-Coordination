@@ -54,6 +54,6 @@ output "ecs_security_group_id" {
 }
 
 output "run_migration_command" {
-  description = "Ready-to-use command to run `prisma db push` as a one-off task against the private RDS instance, once a real app image has been pushed."
-  value       = "aws ecs run-task --cluster ${aws_ecs_cluster.main.name} --task-definition ${aws_ecs_task_definition.app.family} --launch-type FARGATE --network-configuration 'awsvpcConfiguration={subnets=[${join(",", aws_subnet.private[*].id)}],securityGroups=[${aws_security_group.ecs_tasks.id}],assignPublicIp=DISABLED}' --overrides '{\"containerOverrides\":[{\"name\":\"app\",\"command\":[\"npx\",\"prisma\",\"db\",\"push\"]}]}' --region ${var.aws_region}"
+  description = "Ready-to-use command to sync the schema (via scripts/prebuild-db-sync.mjs, which works around a Prisma schema-engine bug a raw `db push` can hit on this schema) as a one-off task against the private RDS instance, once a real app image has been pushed."
+  value       = "aws ecs run-task --cluster ${aws_ecs_cluster.main.name} --task-definition ${aws_ecs_task_definition.app.family} --launch-type FARGATE --network-configuration 'awsvpcConfiguration={subnets=[${join(",", aws_subnet.private[*].id)}],securityGroups=[${aws_security_group.ecs_tasks.id}],assignPublicIp=DISABLED}' --overrides '{\"containerOverrides\":[{\"name\":\"app\",\"command\":[\"node\",\"scripts/prebuild-db-sync.mjs\"]}]}' --region ${var.aws_region}"
 }
