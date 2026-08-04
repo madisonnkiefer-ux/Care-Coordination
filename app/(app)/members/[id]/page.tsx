@@ -17,17 +17,20 @@ import { statusBadgeColor } from "@/lib/member-status";
 import { QuickActionsBar } from "@/components/quick-actions-bar";
 import { AlertBanner } from "@/components/alert-banner";
 import { getPatientSnapshot } from "@/lib/data/patient-snapshot";
+import { getMemberGraduationInfo } from "@/lib/data/graduation";
+import { GraduationAlertCard } from "@/components/graduation-alert-card";
 import { PrintButton } from "@/components/print-button";
 
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [
-    { member, tasks, recentContacts, appointments, documents, notes, goalTotals },
+    { session, member, tasks, recentContacts, appointments, documents, notes, goalTotals },
     statusHistory,
     snapshot,
     chartHistory,
     carePlanHistory,
     tocHistory,
+    graduationInfo,
   ] = await Promise.all([
     getMemberChart(id),
     getStatusHistory(id),
@@ -35,6 +38,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
     getChartHistorySummary(id),
     getCarePlanHistorySummary(id),
     getTocHistorySummary(id),
+    getMemberGraduationInfo(id),
   ]);
 
   const returnPath = `/members/${id}`;
@@ -117,7 +121,14 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
             </dl>
           </Card>
 
-          <MemberStatusCard memberId={id} currentStatus={member.status} history={statusHistory} />
+          {graduationInfo && <GraduationAlertCard info={graduationInfo} />}
+
+          <MemberStatusCard
+            memberId={id}
+            currentStatus={member.status}
+            history={statusHistory}
+            canEditDirectly={session.role !== "CARE_COORDINATOR"}
+          />
 
           <Card title="Insurance &amp; Provider">
             <form
@@ -155,6 +166,15 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 <input
                   name="availityId"
                   defaultValue={member.availityId ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Insurance Plan</label>
+                <input
+                  name="insurancePlan"
+                  placeholder="e.g. Blue Cross, Molina"
+                  defaultValue={member.insurancePlan ?? ""}
                   className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>

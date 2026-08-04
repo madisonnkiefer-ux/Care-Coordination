@@ -24,6 +24,7 @@ export async function updateMemberDetails(memberId: string, formData: FormData) 
       program: str("program"),
       subscriberId: str("subscriberId"),
       availityId: str("availityId"),
+      insurancePlan: str("insurancePlan"),
       provider: str("provider"),
       medicaidEligibilityVerified,
     },

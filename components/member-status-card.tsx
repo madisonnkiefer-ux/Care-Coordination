@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, Badge } from "@/components/ui";
 import { changeMemberStatus } from "@/app/actions/member-status";
 import { formatDate, formatDateTime, titleCase, toDateInputValue } from "@/lib/format";
-import { ALL_STATUSES, isTerminalStatus, statusBadgeColor, CLOSURE_CHECKLIST_FIELDS } from "@/lib/member-status";
+import { ALL_STATUSES, statusBadgeColor, CLOSURE_CHECKLIST_FIELDS } from "@/lib/member-status";
 import type { MemberStatus } from "@/app/generated/prisma/client";
 
 type StatusChange = {
@@ -27,10 +27,15 @@ export function MemberStatusCard({
   memberId,
   currentStatus,
   history,
+  canEditDirectly,
 }: {
   memberId: string;
   currentStatus: MemberStatus;
   history: StatusChange[];
+  // True for supervisors/admins, who can set status directly. Care
+  // coordinators can only submit a request for a supervisor to approve —
+  // activity status is supervisor/admin-editable only.
+  canEditDirectly: boolean;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [toStatus, setToStatus] = useState<MemberStatus>(currentStatus);
@@ -47,9 +52,15 @@ export function MemberStatusCard({
           onClick={() => setShowForm((v) => !v)}
           className="text-xs font-medium text-charcoal hover:underline print:hidden"
         >
-          {showForm ? "Cancel" : "Change Status"}
+          {showForm ? "Cancel" : canEditDirectly ? "Change Status" : "Request Status Change"}
         </button>
       </div>
+
+      {!canEditDirectly && !showForm && (
+        <p className="mt-2 text-xs text-stone-400">
+          Status is supervisor-editable only. You can view the current status and request a change below.
+        </p>
+      )}
 
       {pending && (
         <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -80,8 +91,8 @@ export function MemberStatusCard({
                 </option>
               ))}
             </select>
-            {isTerminalStatus(toStatus) && (
-              <p className="mt-1 text-xs text-amber-700">This status requires supervisor approval before it takes effect.</p>
+            {!canEditDirectly && (
+              <p className="mt-1 text-xs text-amber-700">This request requires supervisor approval before it takes effect.</p>
             )}
           </div>
 
@@ -133,7 +144,7 @@ export function MemberStatusCard({
           )}
 
           <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
-            Submit Status Change
+            {canEditDirectly ? "Submit Status Change" : "Submit Request"}
           </button>
         </form>
       )}

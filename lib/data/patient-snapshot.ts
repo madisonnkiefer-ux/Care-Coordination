@@ -3,6 +3,7 @@ import { cache } from "react";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { getComplianceCadence, getWindowEnd, getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
+import { graduationReviewStatus, daysUntilGraduationReview } from "@/lib/graduation";
 
 // Everything here is derived from data that already exists elsewhere in the
 // app (Care Plan, General Communication, Tasks, HEDIS, CNA) — nothing new is
@@ -100,6 +101,13 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
     });
   }
   if (member.medicaidEligibilityVerified === false) alerts.push({ text: "Eligibility unverified", level: "warning" });
+
+  const graduationStatus = graduationReviewStatus({ deliveryDate: hedis?.deliveryDate ?? null, status: member.status, now });
+  if (graduationStatus === "OVERDUE") {
+    alerts.push({ text: `Graduation review overdue by ${Math.abs(daysUntilGraduationReview(hedis!.deliveryDate!, now))} days`, level: "high" });
+  } else if (graduationStatus === "UPCOMING") {
+    alerts.push({ text: `Graduation review due in ${daysUntilGraduationReview(hedis!.deliveryDate!, now)} days`, level: "warning" });
+  }
 
   return {
     session,

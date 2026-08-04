@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { authorizeMemberAccess, requireRole } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
-import { isTerminalStatus, CLOSURE_CHECKLIST_FIELDS } from "@/lib/member-status";
+import { CLOSURE_CHECKLIST_FIELDS } from "@/lib/member-status";
 import type { MemberStatus } from "@/app/generated/prisma/client";
 
 function str(formData: FormData, key: string) {
@@ -32,7 +32,10 @@ export async function changeMemberStatus(memberId: string, formData: FormData) {
     }
   }
 
-  const requiresApproval = session.role === "CARE_COORDINATOR" && isTerminalStatus(toStatus);
+  // Activity status is supervisor/admin-editable only — a care coordinator's
+  // submission is always a request awaiting approval, whatever the target
+  // status is. Supervisors and admins can still set status directly.
+  const requiresApproval = session.role === "CARE_COORDINATOR";
 
   const change = await db.memberStatusChange.create({
     data: {

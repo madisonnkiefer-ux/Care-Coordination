@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { getSupervisorData, getCaseloadForReassignment } from "@/lib/data/supervisor";
 import { getPendingStatusChanges } from "@/lib/data/member-status";
+import { getUpcomingGraduations } from "@/lib/data/graduation";
 import { approveStatusChange, rejectStatusChange } from "@/app/actions/member-status";
 import { reassignMember } from "@/app/actions/member-assignment";
 import { PageHeader, Card, StatTile, Badge } from "@/components/ui";
+import { GraduationsCard } from "@/components/supervisor/graduations-card";
 import { formatDate, titleCase } from "@/lib/format";
 
 export default async function SupervisorDashboardPage() {
@@ -29,7 +31,13 @@ export default async function SupervisorDashboardPage() {
     },
     pendingStatusChanges,
     { members: caseloadMembers, coordinators: caseloadCoordinators },
-  ] = await Promise.all([getSupervisorData(), getPendingStatusChanges(), getCaseloadForReassignment()]);
+    upcomingGraduations,
+  ] = await Promise.all([
+    getSupervisorData(),
+    getPendingStatusChanges(),
+    getCaseloadForReassignment(),
+    getUpcomingGraduations(),
+  ]);
 
   const caseloadCounts = new Map<string, number>();
   let unassignedCount = 0;
@@ -113,6 +121,8 @@ export default async function SupervisorDashboardPage() {
             </ul>
           </Card>
         )}
+
+        <GraduationsCard graduations={upcomingGraduations} coordinators={caseloadCoordinators} />
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card title="CNA Completion by Coordinator">

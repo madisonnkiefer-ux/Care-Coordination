@@ -13,6 +13,7 @@ import {
   BookOpen,
   BarChart3,
   Bell,
+  Receipt,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { Avatar } from "@/components/ui";
@@ -43,6 +44,12 @@ const NAV_ITEMS: NavItem[] = [
     href: "/reports",
     label: "Reports",
     icon: BarChart3,
+    roles: ["SUPERVISOR", "ADMIN"],
+  },
+  {
+    href: "/billing",
+    label: "Billing",
+    icon: Receipt,
     roles: ["SUPERVISOR", "ADMIN"],
   },
   {

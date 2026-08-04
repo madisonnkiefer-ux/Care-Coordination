@@ -30,10 +30,11 @@ model Clinic {
   code      String   @unique
   createdAt DateTime @default(now())
 
-  users         User[]
-  members       Member[]
-  resources     ResourceEntry[]
-  notifications Notification[]
+  users          User[]
+  members        Member[]
+  resources      ResourceEntry[]
+  notifications  Notification[]
+  billingExports BillingExport[]
 }
 
 model User {
@@ -65,6 +66,7 @@ model User {
   notifications          Notification[]
   statusChangesRequested MemberStatusChange[]   @relation("StatusChangeRequestedBy")
   statusChangesApproved  MemberStatusChange[]   @relation("StatusChangeApprovedBy")
+  billingExports         BillingExport[]
 
   intakeVersionsSigned IntakeVersion[] @relation("IntakeVersionSignedBy")
   tocRecordsSigned     TocRecord[]     @relation("TocRecordSignedBy")
@@ -127,8 +129,15 @@ model Member {
   // Insurance / provider tracking (coordinator-editable, not versioned)
   subscriberId                String?
   availityId                  String?
+  insurancePlan               String? // e.g. "Blue Cross", "Molina" — plan name for the billing roster
   medicaidEligibilityVerified Boolean?
   provider                    String? // member's outside doctor, free text
+
+  // Billing — a standing include/exclude flag (not per billing-month), set
+  // by a supervisor from the Billing roster. See lib/billing.ts for how this
+  // combines with activity status to compute billing eligibility.
+  billingExcluded        Boolean @default(false)
+  billingExclusionReason String?
 
   assignedCoordinatorId String?
   assignedCoordinator   User?   @relation("AssignedCoordinator", fields: [assignedCoordinatorId], references: [id])
@@ -157,10 +166,10 @@ model Member {
 
 // Every status transition is recorded permanently (never overwritten), so
 // the member's status history survives even after the case is closed.
-// Terminal-ish statuses (see TERMINAL_STATUSES in lib/member-status.ts)
-// require supervisor approval when a care coordinator requests them — the
-// change sits here with requiresApproval=true and Member.status is left
-// untouched until a supervisor/admin approves or rejects it.
+// Activity status is supervisor/admin-editable only: any change a care
+// coordinator submits is a request (requiresApproval=true) and Member.status
+// is left untouched until a supervisor/admin approves or rejects it.
+// Supervisor/admin-initiated changes apply immediately.
 model MemberStatusChange {
   id            String       @id @default(cuid())
   memberId      String
@@ -1176,6 +1185,26 @@ model ResourceEntry {
   createdBy    User     @relation(fields: [createdById], references: [id])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@index([clinicId])
+}
+
+// ---------- Billing ----------
+
+// A record of every generated billing roster export, kept for audit purposes
+// (who ran it, when, for which billing month, under which filters, and how
+// many members it covered). The roster itself is computed live from Member
+// data at export time — this table is the export log, not the roster.
+model BillingExport {
+  id            String   @id @default(cuid())
+  clinicId      String
+  clinic        Clinic   @relation(fields: [clinicId], references: [id])
+  generatedById String
+  generatedBy   User     @relation(fields: [generatedById], references: [id])
+  billingMonth  String // "YYYY-MM"
+  filters       Json?
+  memberCount   Int
+  createdAt     DateTime @default(now())
 
   @@index([clinicId])
 }
