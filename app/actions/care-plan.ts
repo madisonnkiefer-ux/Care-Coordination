@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
@@ -44,7 +43,7 @@ export async function createNewCarePlan(memberId: string) {
   });
 
   revalidatePath(`/members/${memberId}/care-plan`);
-  redirect(`/members/${memberId}/care-plan`);
+  return carePlan.id;
 }
 
 export async function saveCarePlan(memberId: string, carePlanId: string, formData: FormData) {

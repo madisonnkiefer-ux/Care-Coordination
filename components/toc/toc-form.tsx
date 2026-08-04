@@ -16,12 +16,14 @@ export function TocForm({
   memberId,
   records,
   currentUserIsAdmin,
+  defaultVersionId,
 }: {
   memberId: string;
   records: TocRecordWithRelations[];
   currentUserIsAdmin: boolean;
+  defaultVersionId?: string;
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(records[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(defaultVersionId ?? records[0]?.id ?? null);
   const draft = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
   const locked = Boolean(draft?.signedAt);
 

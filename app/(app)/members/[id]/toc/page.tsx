@@ -5,8 +5,15 @@ import { PageHeader } from "@/components/ui";
 import { TocForm } from "@/components/toc/toc-form";
 import { PrintButton } from "@/components/print-button";
 
-export default async function TocPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TocPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ version?: string }>;
+}) {
   const { id } = await params;
+  const { version } = await searchParams;
 
   const [tocData, currentUser] = await Promise.all([getTocFormData(id), getCurrentUser()]);
   if (!tocData) notFound();
@@ -21,7 +28,7 @@ export default async function TocPage({ params }: { params: Promise<{ id: string
         description={`${member.firstName} ${member.lastName}`}
         action={<PrintButton label="Print This TOC" />}
       />
-      <TocForm memberId={id} records={records} currentUserIsAdmin={currentUserIsAdmin} />
+      <TocForm memberId={id} records={records} currentUserIsAdmin={currentUserIsAdmin} defaultVersionId={version} />
     </div>
   );
 }

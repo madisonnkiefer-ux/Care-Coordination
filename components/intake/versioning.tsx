@@ -64,12 +64,11 @@ export function HistoryBar({
 // Same look as HistoryBar, but for records with no draft/complete/sign concept
 // (e.g. Care Plans, General Communication) — just a list of dated entries.
 //
-// newAction may optionally return the new record's id. Some callers (e.g.
-// createNewCarePlan) redirect() instead, which forces a full remount that
-// naturally re-selects the new record — for those, a returned id isn't
-// needed. Callers that can't redirect() (e.g. General Communication, which
-// would otherwise snap back to the first tab) must return the new id so we
-// can select it here on the client instead.
+// newAction must return the new record's id so we can select it here on the
+// client. Avoid redirect() in these actions: they're invoked via a plain
+// onClick (not a native form submission), so a redirect's client-side
+// refresh can race with the user's next edit and land a save on the wrong
+// record.
 export function SimpleHistoryBar({
   items,
   selectedId,

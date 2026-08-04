@@ -31,8 +31,16 @@ function toInputDate(d: Date | null | undefined): string | null {
   return new Date(d).toISOString().slice(0, 10);
 }
 
-export function CcpTab({ memberId, records }: { memberId: string; records: CarePlanRecord[] }) {
-  const [selectedId, setSelectedId] = useState<string | null>(records[0]?.id ?? null);
+export function CcpTab({
+  memberId,
+  records,
+  defaultVersionId,
+}: {
+  memberId: string;
+  records: CarePlanRecord[];
+  defaultVersionId?: string;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(defaultVersionId ?? records[0]?.id ?? null);
   const plan = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
 
   const historyItems = records.map((r) => ({ id: r.id, dateLabel: r.createdAt }));

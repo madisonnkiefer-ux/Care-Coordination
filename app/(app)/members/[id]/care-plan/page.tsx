@@ -14,10 +14,10 @@ export default async function CarePlanPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; version?: string }>;
 }) {
   const { id } = await params;
-  const { tab } = await searchParams;
+  const { tab, version } = await searchParams;
 
   const [carePlanData, commData, hedisData] = await Promise.all([
     getCarePlanFormData(id),
@@ -39,7 +39,7 @@ export default async function CarePlanPage({
       <Tabs
         defaultTabId={tab}
         tabs={[
-          { id: "ccp", label: "CCP", content: <CcpTab memberId={id} records={carePlans} /> },
+          { id: "ccp", label: "CCP", content: <CcpTab memberId={id} records={carePlans} defaultVersionId={version} /> },
           { id: "hedis", label: "HEDIS Measures", content: <HedisTab memberId={id} record={hedisData.record} /> },
           {
             id: "general-communication",

@@ -59,7 +59,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
       key: `careplan-${cp.id}`,
       type: "internal" as const,
       date: cp.createdAt,
-      href: `/members/${id}/care-plan?tab=ccp`,
+      href: `/members/${id}/care-plan?tab=ccp&version=${cp.id}`,
       name: "Care Plan",
       badge:
         cp.status === "COMPLETED" ? { label: "Completed", color: "green" as const } : { label: "Draft", color: "yellow" as const },
@@ -68,7 +68,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
       key: `toc-${t.id}`,
       type: "internal" as const,
       date: t.createdAt,
-      href: `/members/${id}/toc`,
+      href: `/members/${id}/toc?version=${t.id}`,
       name: "Transition of Care",
       badge: t.signedAt
         ? { label: "🔒 Signed", color: "slate" as const }
