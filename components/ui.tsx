@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { initials as getInitials } from "@/lib/format";
 
 export function Card({
@@ -100,14 +102,37 @@ export function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md"
   );
 }
 
-export function PageHeader({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
+export function PageHeader({
+  title,
+  description,
+  action,
+  backHref,
+  backLabel = "Back to Chart",
+}: {
+  title: string;
+  description?: string;
+  action?: ReactNode;
+  backHref?: string;
+  backLabel?: string;
+}) {
   return (
-    <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-stone-50/95 px-8 py-5 backdrop-blur-sm">
-      <div>
-        <h1 className="font-serif text-2xl font-medium text-charcoal">{title}</h1>
-        {description && <p className="text-sm text-stone-500">{description}</p>}
+    <div className="sticky top-0 z-10 border-b border-stone-200 bg-stone-50/95 px-8 py-5 backdrop-blur-sm">
+      {backHref && (
+        <Link
+          href={backHref}
+          className="mb-2 inline-flex items-center gap-1 text-xs font-medium text-stone-500 hover:text-charcoal print:hidden"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {backLabel}
+        </Link>
+      )}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-serif text-2xl font-medium text-charcoal">{title}</h1>
+          {description && <p className="text-sm text-stone-500">{description}</p>}
+        </div>
+        {action}
       </div>
-      {action}
     </div>
   );
 }

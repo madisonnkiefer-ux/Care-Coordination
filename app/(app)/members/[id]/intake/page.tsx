@@ -27,6 +27,7 @@ export default async function IntakePage({
       <PageHeader
         title="Enrollment"
         description={`${member.firstName} ${member.lastName}`}
+        backHref={`/members/${id}`}
         action={<PrintButton label="Print This Form" />}
       />
       <IntakeShell

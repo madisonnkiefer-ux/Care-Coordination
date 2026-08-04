@@ -26,6 +26,7 @@ export default async function TocPage({
       <PageHeader
         title="Transition of Care (TOC)"
         description={`${member.firstName} ${member.lastName}`}
+        backHref={`/members/${id}`}
         action={<PrintButton label="Print This TOC" />}
       />
       <TocForm memberId={id} records={records} currentUserIsAdmin={currentUserIsAdmin} defaultVersionId={version} />

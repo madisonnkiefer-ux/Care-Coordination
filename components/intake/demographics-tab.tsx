@@ -15,6 +15,7 @@ const RACE_OPTIONS = [
   "American Indian or Alaska Native",
   "Native Hawaiian or Other Pacific Islander",
   "Two or More Races",
+  "A race/ethnicity not listed",
   "Unknown/Declined",
 ];
 
@@ -103,6 +104,8 @@ export function DemographicsTab({
             <div className="mt-4 flex gap-6">
               <Checkbox name="preferredContactVoice" label="Voice" defaultChecked={selected.preferredContactVoice ?? false} />
               <Checkbox name="preferredContactText" label="Text" defaultChecked={selected.preferredContactText ?? false} />
+              <Checkbox name="preferredContactMail" label="Mail" defaultChecked={selected.preferredContactMail ?? false} />
+              <Checkbox name="preferredContactEmail" label="Email" defaultChecked={selected.preferredContactEmail ?? false} />
             </div>
           </Card>
 

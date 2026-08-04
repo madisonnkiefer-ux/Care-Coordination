@@ -275,6 +275,8 @@ model Demographics {
   phoneHome             String?
   preferredContactVoice Boolean?
   preferredContactText  Boolean?
+  preferredContactMail  Boolean?
+  preferredContactEmail Boolean?
 
   emergencyContactName  String?
   emergencyContactPhone String?
