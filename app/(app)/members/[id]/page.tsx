@@ -22,6 +22,7 @@ import { getMemberGraduationInfo } from "@/lib/data/graduation";
 import { GraduationAlertCard } from "@/components/graduation-alert-card";
 import { PrintButton } from "@/components/print-button";
 import { DeleteMemberButton } from "@/components/delete-member-button";
+import { SaveButton } from "@/components/save-button";
 
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -249,12 +250,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 </select>
               </div>
               <div className="flex items-end justify-end print:hidden">
-                <button
-                  type="submit"
-                  className="rounded-md bg-charcoal px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
-                >
-                  Save
-                </button>
+                <SaveButton />
               </div>
             </form>
           </Card>
