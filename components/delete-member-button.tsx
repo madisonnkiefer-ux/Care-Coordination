@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { deleteMember } from "@/app/actions/delete";
 
 export function DeleteMemberButton({ memberId, memberName }: { memberId: string; memberName: string }) {
@@ -19,49 +20,56 @@ export function DeleteMemberButton({ memberId, memberName }: { memberId: string;
         Delete Chart
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
-            <h2 className="font-serif text-lg font-medium text-charcoal">Delete this chart?</h2>
-            <p className="mt-2 text-sm text-stone-600">
-              This removes <strong>{memberName}</strong>&apos;s entire chart — every form, assessment, note, and
-              document — from every list, dashboard, and report immediately. It&apos;s recoverable by an admin from
-              Settings, not permanently erased, but treat this as if it were: this is not for members whose care has
-              ended (use the member&apos;s status for that), only for charts created in error.
-            </p>
-            <label className="mt-4 block text-xs font-medium uppercase tracking-wide text-stone-400">
-              Type <span className="font-semibold text-stone-600">{memberName}</span> to confirm
-            </label>
-            <input
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              autoFocus
-              className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-            />
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  setConfirmText("");
-                }}
-                className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
-              >
-                Cancel
-              </button>
-              <form action={deleteMember.bind(null, memberId)}>
+      {/* Portaled to document.body — PageHeader (this button's ancestor) has
+          backdrop-blur-sm, and a backdrop-filter on an ancestor creates a new
+          containing block for position:fixed descendants, which would trap
+          this modal inside PageHeader's small bounding box instead of the
+          viewport. */}
+      {open &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
+              <h2 className="font-serif text-lg font-medium text-charcoal">Delete this chart?</h2>
+              <p className="mt-2 text-sm text-stone-600">
+                This removes <strong>{memberName}</strong>&apos;s entire chart — every form, assessment, note, and
+                document — from every list, dashboard, and report immediately. It&apos;s recoverable by an admin
+                from Settings, not permanently erased, but treat this as if it were: this is not for members whose
+                care has ended (use the member&apos;s status for that), only for charts created in error.
+              </p>
+              <label className="mt-4 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                Type <span className="font-semibold text-stone-600">{memberName}</span> to confirm
+              </label>
+              <input
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                autoFocus
+                className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+              />
+              <div className="mt-5 flex justify-end gap-2">
                 <button
-                  type="submit"
-                  disabled={!canConfirm}
-                  className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setConfirmText("");
+                  }}
+                  className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
                 >
-                  Delete Chart
+                  Cancel
                 </button>
-              </form>
+                <form action={deleteMember.bind(null, memberId)}>
+                  <button
+                    type="submit"
+                    disabled={!canConfirm}
+                    className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Delete Chart
+                  </button>
+                </form>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
