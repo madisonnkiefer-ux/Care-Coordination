@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Card, Badge } from "@/components/ui";
-import { createUser, updateUserRole, setUserActive } from "@/app/actions/users";
+import { createUser, updateUserRole, setUserActive, resetUserPassword } from "@/app/actions/users";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { Role } from "@/app/generated/prisma/client";
 
@@ -41,6 +41,7 @@ export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; curren
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">Role</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Password</th>
                 <th className="px-4 py-3 font-medium">Created</th>
                 <th className="px-4 py-3 font-medium">Last Login</th>
                 <th className="px-4 py-3 font-medium">Audit</th>
@@ -97,6 +98,9 @@ export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; curren
                       </form>
                     )}
                   </td>
+                  <td className="px-4 py-2.5">
+                    <ResetPasswordControl userId={u.id} />
+                  </td>
                   <td className="px-4 py-2.5 whitespace-nowrap text-stone-500">{formatDate(u.createdAt)}</td>
                   <td className="px-4 py-2.5 whitespace-nowrap text-stone-500">{formatDateTime(u.lastLoginAt)}</td>
                   <td className="px-4 py-2.5">
@@ -108,7 +112,7 @@ export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; curren
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-stone-400">
+                  <td colSpan={8} className="px-4 py-10 text-center text-stone-400">
                     No users yet.
                   </td>
                 </tr>
@@ -118,6 +122,73 @@ export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; curren
         </div>
       </Card>
     </div>
+  );
+}
+
+function ResetPasswordControl({ userId }: { userId: string }) {
+  const [open, setOpen] = useState(false);
+  const [state, formAction, pending] = useActionState(resetUserPassword.bind(null, userId), undefined);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+      >
+        Reset Password
+      </button>
+    );
+  }
+
+  if (state?.success) {
+    return (
+      <div className="flex items-center gap-2 text-xs">
+        <span className="font-medium text-emerald-700">Password updated</span>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-stone-500 underline hover:text-stone-700"
+        >
+          Done
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form action={formAction} className="flex flex-col gap-1">
+      <div className="flex items-center gap-1.5">
+        <input
+          type="text"
+          name="password"
+          required
+          minLength={8}
+          placeholder="New password"
+          autoFocus
+          className="w-32 rounded-md border border-stone-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-deep-rose"
+        />
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+        >
+          {pending ? "Saving..." : "Save"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-xs text-stone-400 hover:text-stone-600"
+        >
+          Cancel
+        </button>
+      </div>
+      {state?.error && (
+        <p className="text-xs text-red-600" role="alert">
+          {state.error}
+        </p>
+      )}
+    </form>
   );
 }
 

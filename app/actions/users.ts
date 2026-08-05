@@ -84,6 +84,42 @@ export async function updateUserRole(userId: string, formData: FormData) {
   revalidatePath("/settings");
 }
 
+const ResetPasswordSchema = z.object({
+  password: z.string().min(8, { error: "Password must be at least 8 characters." }),
+});
+
+export type ResetPasswordState = { error?: string; success?: boolean } | undefined;
+
+export async function resetUserPassword(
+  userId: string,
+  _state: ResetPasswordState,
+  formData: FormData,
+): Promise<ResetPasswordState> {
+  const session = await requireRole("ADMIN");
+
+  const target = await db.user.findUnique({ where: { id: userId } });
+  if (!target || target.clinicId !== session.clinicId) throw new Error("Not found");
+
+  const validated = ResetPasswordSchema.safeParse({ password: formData.get("password") });
+  if (!validated.success) {
+    return { error: validated.error.issues[0]?.message ?? "Check the password and try again." };
+  }
+
+  const passwordHash = await bcrypt.hash(validated.data.password, 10);
+  await db.user.update({ where: { id: userId }, data: { passwordHash } });
+
+  await writeAuditLog({
+    userId: session.userId,
+    action: "UPDATE",
+    resource: "User",
+    resourceId: userId,
+    metadata: { passwordReset: true },
+  });
+
+  revalidatePath("/settings");
+  return { success: true };
+}
+
 export async function setUserActive(userId: string, formData: FormData) {
   const session = await requireRole("ADMIN");
   if (userId === session.userId) throw new Error("You cannot deactivate your own account.");
