@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getCarePlanFormData } from "@/lib/data/care-plan";
 import { getGeneralCommunicationFormData } from "@/lib/data/general-communication";
 import { getHedisFormData } from "@/lib/data/hedis";
+import { getCurrentUser } from "@/lib/dal";
 import { PageHeader } from "@/components/ui";
 import { Tabs } from "@/components/tabs";
 import { CcpTab } from "@/components/care-plan/ccp-tab";
@@ -19,15 +20,17 @@ export default async function CarePlanPage({
   const { id } = await params;
   const { tab, version } = await searchParams;
 
-  const [carePlanData, commData, hedisData] = await Promise.all([
+  const [carePlanData, commData, hedisData, currentUser] = await Promise.all([
     getCarePlanFormData(id),
     getGeneralCommunicationFormData(id),
     getHedisFormData(id),
+    getCurrentUser(),
   ]);
 
   if (!carePlanData || !commData || !hedisData) notFound();
 
   const { member, records: carePlans } = carePlanData;
+  const currentUserIsAdmin = currentUser?.role === "ADMIN";
 
   return (
     <div>
@@ -40,7 +43,13 @@ export default async function CarePlanPage({
       <Tabs
         defaultTabId={tab}
         tabs={[
-          { id: "ccp", label: "CCP", content: <CcpTab memberId={id} records={carePlans} defaultVersionId={version} /> },
+          {
+            id: "ccp",
+            label: "CCP",
+            content: (
+              <CcpTab memberId={id} records={carePlans} defaultVersionId={version} currentUserIsAdmin={currentUserIsAdmin} />
+            ),
+          },
           { id: "hedis", label: "HEDIS Measures", content: <HedisTab memberId={id} record={hedisData.record} /> },
           {
             id: "general-communication",

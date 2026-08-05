@@ -7,6 +7,7 @@ import { TextField, TextArea, DateField, SelectField } from "@/components/intake
 import { NeedsSection } from "@/components/toc/needs-section";
 import { TOC_NEEDS_SECTIONS, TRANSITION_TYPE_OPTIONS } from "@/components/toc/needs-config";
 import { createNewTocRecord, saveTocRecord, signTocRecord } from "@/app/actions/toc";
+import { deleteTocRecord } from "@/app/actions/delete";
 import { toDateInputValue } from "@/lib/format";
 import type { TocRecord, TocNeed } from "@/app/generated/prisma/client";
 
@@ -43,6 +44,7 @@ export function TocForm({
         onSelect={setSelectedId}
         newAction={createNewTocRecord.bind(null, memberId)}
         newLabel="+ New TOC"
+        onDelete={currentUserIsAdmin ? deleteTocRecord.bind(null, memberId) : undefined}
       />
 
       {!draft ? (

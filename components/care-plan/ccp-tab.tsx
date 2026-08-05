@@ -8,6 +8,7 @@ import { PREFERRED_CONTACT_METHOD_OPTIONS, DISASTER_REVIEW_ITEMS_OPTIONS } from 
 import { RepeatableRows } from "@/components/care-plan/repeatable-rows";
 import { GoalCard } from "@/components/care-plan/goal-card";
 import { createNewCarePlan, saveCarePlan, addGoal } from "@/app/actions/care-plan";
+import { deleteCarePlan } from "@/app/actions/delete";
 import type {
   CarePlan,
   CarePlanTeamMember,
@@ -35,10 +36,12 @@ export function CcpTab({
   memberId,
   records,
   defaultVersionId,
+  currentUserIsAdmin,
 }: {
   memberId: string;
   records: CarePlanRecord[];
   defaultVersionId?: string;
+  currentUserIsAdmin?: boolean;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(defaultVersionId ?? records[0]?.id ?? null);
   const plan = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
@@ -53,6 +56,7 @@ export function CcpTab({
         onSelect={setSelectedId}
         newAction={createNewCarePlan.bind(null, memberId)}
         newLabel="+ New CCP"
+        onDelete={currentUserIsAdmin ? deleteCarePlan.bind(null, memberId) : undefined}
       />
 
       {!plan ? (

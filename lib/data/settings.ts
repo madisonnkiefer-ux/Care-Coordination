@@ -20,6 +20,26 @@ export async function getClinicUsers() {
   });
 }
 
+// Soft-deleted charts, for the admin recovery view. This is the one
+// legitimate place that needs deleted rows back — bypasses the default
+// exclusion in lib/db.ts by explicitly filtering on deletedAt itself.
+export async function getDeletedMembers() {
+  const session = await requireRole("ADMIN");
+
+  return db.member.findMany({
+    where: { clinicId: session.clinicId, deletedAt: { not: null } },
+    orderBy: { deletedAt: "desc" },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      medicaidId: true,
+      deletedAt: true,
+      deletedBy: { select: { name: true } },
+    },
+  });
+}
+
 // Office directory — deliberately not scoped to the caller's own clinic:
 // admins need to see and manage the full list of offices to assign/edit
 // office codes and stand up a new office's first admin account. This

@@ -20,6 +20,7 @@ import { getPatientSnapshot } from "@/lib/data/patient-snapshot";
 import { getMemberGraduationInfo } from "@/lib/data/graduation";
 import { GraduationAlertCard } from "@/components/graduation-alert-card";
 import { PrintButton } from "@/components/print-button";
+import { DeleteMemberButton } from "@/components/delete-member-button";
 
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -101,6 +102,9 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
           <div className="flex items-center gap-3">
             <PrintButton label="Print Full Chart" />
             <Badge color={statusBadgeColor(member.status)}>{titleCase(member.status)}</Badge>
+            {session.role === "ADMIN" && (
+              <DeleteMemberButton memberId={id} memberName={`${member.firstName} ${member.lastName}`} />
+            )}
           </div>
         }
       />

@@ -17,12 +17,16 @@ export function HistoryBar({
   onSelect,
   newAction,
   newLabel = "+ New",
+  onDelete,
 }: {
   items: HistoryItem[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   newAction: () => Promise<void>;
   newLabel?: string;
+  // Admin-only: parent passes this to enable the delete affordance on each
+  // chip. Soft delete — the record is hidden and recoverable, not erased.
+  onDelete?: (id: string) => Promise<void>;
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-stone-200 pb-4 print:hidden">
@@ -30,23 +34,38 @@ export function HistoryBar({
       {items.map((item) => {
         const active = item.id === selectedId;
         return (
-          <button
+          <div
             key={item.id}
-            type="button"
-            onClick={() => onSelect(item.id)}
-            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+            className={`flex items-center gap-1 rounded-full border pl-3 pr-1 py-1 text-xs font-medium transition-colors ${
               active
                 ? "border-charcoal bg-stone-100 text-charcoal"
                 : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
             }`}
           >
-            {formatDate(item.dateLabel)}
-            {item.signedAt ? (
-              <span title={`Signed by ${item.signedByName ?? "unknown"} on ${formatDateTime(item.signedAt)}`}>🔒</span>
-            ) : (
-              <span className="text-stone-400">·{item.status === "COMPLETED" ? "Completed" : "Draft"}</span>
+            <button type="button" onClick={() => onSelect(item.id)} className="flex items-center gap-1.5">
+              {formatDate(item.dateLabel)}
+              {item.signedAt ? (
+                <span title={`Signed by ${item.signedByName ?? "unknown"} on ${formatDateTime(item.signedAt)}`}>🔒</span>
+              ) : (
+                <span className="text-stone-400">·{item.status === "COMPLETED" ? "Completed" : "Draft"}</span>
+              )}
+            </button>
+            {onDelete && (
+              <button
+                type="button"
+                title="Delete this record (admin only)"
+                onClick={() => {
+                  const confirmMsg = item.signedAt
+                    ? "This record is signed and locked. Delete it anyway? It's recoverable, but this hides it everywhere immediately."
+                    : "Delete this record? It's recoverable, but this hides it everywhere immediately.";
+                  if (window.confirm(confirmMsg)) onDelete(item.id);
+                }}
+                className="rounded-full px-1.5 py-0.5 text-stone-400 hover:bg-red-50 hover:text-red-600"
+              >
+                ×
+              </button>
             )}
-          </button>
+          </div>
         );
       })}
       <form action={newAction}>
@@ -75,12 +94,16 @@ export function SimpleHistoryBar({
   onSelect,
   newAction,
   newLabel = "+ New",
+  onDelete,
 }: {
   items: { id: string; dateLabel: Date }[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   newAction: () => Promise<string | void>;
   newLabel?: string;
+  // Admin-only: parent passes this to enable the delete affordance on each
+  // chip. Soft delete — the record is hidden and recoverable, not erased.
+  onDelete?: (id: string) => Promise<void>;
 }) {
   async function handleNew() {
     const newId = await newAction();
@@ -93,18 +116,32 @@ export function SimpleHistoryBar({
       {items.map((item) => {
         const active = item.id === selectedId;
         return (
-          <button
+          <div
             key={item.id}
-            type="button"
-            onClick={() => onSelect(item.id)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+            className={`flex items-center gap-1 rounded-full border pl-3 pr-1 py-1 text-xs font-medium transition-colors ${
               active
                 ? "border-charcoal bg-stone-100 text-charcoal"
                 : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
             }`}
           >
-            {formatDate(item.dateLabel)}
-          </button>
+            <button type="button" onClick={() => onSelect(item.id)}>
+              {formatDate(item.dateLabel)}
+            </button>
+            {onDelete && (
+              <button
+                type="button"
+                title="Delete this record (admin only)"
+                onClick={() => {
+                  if (window.confirm("Delete this record? It's recoverable, but this hides it everywhere immediately.")) {
+                    onDelete(item.id);
+                  }
+                }}
+                className="rounded-full px-1.5 py-0.5 text-stone-400 hover:bg-red-50 hover:text-red-600"
+              >
+                ×
+              </button>
+            )}
+          </div>
         );
       })}
       <button
