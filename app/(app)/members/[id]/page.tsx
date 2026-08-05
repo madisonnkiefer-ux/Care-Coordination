@@ -175,6 +175,16 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Chart ID
+                </label>
+                <input
+                  name="memberIdExternal"
+                  defaultValue={member.memberIdExternal ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
                   Language
                 </label>
                 <input

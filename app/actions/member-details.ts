@@ -47,6 +47,7 @@ export async function updateMemberOverview(memberId: string, formData: FormData)
       dateOfBirth,
       phone: str("phone"),
       medicaidId: str("medicaidId"),
+      memberIdExternal: str("memberIdExternal"),
       language: str("language"),
       edd: date("edd"),
       cclLevel,
