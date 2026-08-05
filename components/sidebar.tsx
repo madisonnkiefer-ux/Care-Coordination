@@ -8,12 +8,12 @@ import {
   Users,
   ListChecks,
   ShieldCheck,
-  ClipboardList,
   LogOut,
   BookOpen,
   BarChart3,
   Bell,
   Receipt,
+  Settings,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { Avatar } from "@/components/ui";
@@ -53,10 +53,10 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["SUPERVISOR", "ADMIN"],
   },
   {
-    href: "/audit",
-    label: "Audit Log",
-    icon: ClipboardList,
-    roles: ["SUPERVISOR", "ADMIN"],
+    href: "/settings",
+    label: "Settings",
+    icon: Settings,
+    roles: ["ADMIN"],
   },
 ];
 
