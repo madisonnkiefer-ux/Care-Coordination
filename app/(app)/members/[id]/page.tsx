@@ -9,10 +9,10 @@ import { PageHeader, Card, Badge } from "@/components/ui";
 import { GoalDonut } from "@/components/goal-donut";
 import { DocumentUpload } from "@/components/document-upload";
 import { MemberStatusCard } from "@/components/member-status-card";
-import { formatDate, formatDateTime, titleCase } from "@/lib/format";
+import { formatDate, formatDateTime, titleCase, toDateInputValue } from "@/lib/format";
 import { saveQuickNote } from "@/app/actions/notes";
 import { toggleTask, createTask } from "@/app/actions/tasks";
-import { updateMemberDetails } from "@/app/actions/member-details";
+import { updateMemberDetails, updateMemberOverview } from "@/app/actions/member-details";
 import { statusBadgeColor } from "@/lib/member-status";
 import { QuickActionsBar } from "@/components/quick-actions-bar";
 import { AlertBanner } from "@/components/alert-banner";
@@ -116,13 +116,109 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
       <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card title="Overview">
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
-              <Field label="Phone" value={member.phone} />
-              <Field label="Date of Birth" value={formatDate(member.dateOfBirth)} />
-              <Field label="EDD" value={member.edd ? formatDate(member.edd) : "—"} />
-              <Field label="CCL Level" value={member.cclLevel ? titleCase(member.cclLevel) : "—"} />
-              <Field label="Language" value={member.language ?? "—"} />
-            </dl>
+            <form
+              key={member.updatedAt.getTime()}
+              action={updateMemberOverview.bind(null, id)}
+              className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+            >
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  First Name
+                </label>
+                <input
+                  name="firstName"
+                  required
+                  defaultValue={member.firstName}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Last Name
+                </label>
+                <input
+                  name="lastName"
+                  required
+                  defaultValue={member.lastName}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Date of Birth
+                </label>
+                <input
+                  type="date"
+                  name="dateOfBirth"
+                  required
+                  defaultValue={toDateInputValue(member.dateOfBirth)}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Phone</label>
+                <input
+                  name="phone"
+                  defaultValue={member.phone ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Medicaid ID
+                </label>
+                <input
+                  name="medicaidId"
+                  defaultValue={member.medicaidId ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Language
+                </label>
+                <input
+                  name="language"
+                  defaultValue={member.language ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Due Date (if prenatal)
+                </label>
+                <input
+                  type="date"
+                  name="edd"
+                  defaultValue={toDateInputValue(member.edd)}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  CCL Level
+                </label>
+                <select
+                  name="cclLevel"
+                  defaultValue={member.cclLevel ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                >
+                  <option value="">—</option>
+                  <option value="CCL1">CCL1</option>
+                  <option value="CCL2">CCL2</option>
+                  <option value="CCL3">CCL3</option>
+                  <option value="HIGH_RISK">High Risk</option>
+                </select>
+              </div>
+              <div className="flex items-end justify-end print:hidden">
+                <button
+                  type="submit"
+                  className="rounded-md bg-charcoal px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
           </Card>
 
           {graduationInfo && <GraduationAlertCard info={graduationInfo} />}
@@ -418,15 +514,6 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
           </Card>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string | null | undefined }) {
-  return (
-    <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-stone-400">{label}</dt>
-      <dd className="text-stone-800">{value || "—"}</dd>
     </div>
   );
 }
