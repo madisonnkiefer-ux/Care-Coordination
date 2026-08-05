@@ -20,6 +20,7 @@ export default async function SettingsPage({
     <div>
       <PageHeader title="Settings" description="Manage users, roles, and the audit trail." />
       <Tabs
+        key={tab ?? "users"}
         defaultTabId={tab}
         tabs={[
           {
