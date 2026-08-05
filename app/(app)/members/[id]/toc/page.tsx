@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTocFormData } from "@/lib/data/toc";
-import { getCurrentUser } from "@/lib/dal";
+import { getCurrentUser, verifySession } from "@/lib/dal";
+import { getFormFieldOverrides } from "@/lib/data/form-fields";
 import { PageHeader } from "@/components/ui";
 import { TocForm } from "@/components/toc/toc-form";
 import { PrintButton } from "@/components/print-button";
@@ -15,7 +16,12 @@ export default async function TocPage({
   const { id } = await params;
   const { version } = await searchParams;
 
-  const [tocData, currentUser] = await Promise.all([getTocFormData(id), getCurrentUser()]);
+  const session = await verifySession();
+  const [tocData, currentUser, fields] = await Promise.all([
+    getTocFormData(id),
+    getCurrentUser(),
+    getFormFieldOverrides(session.clinicId),
+  ]);
   if (!tocData) notFound();
 
   const { member, records } = tocData;
@@ -29,7 +35,7 @@ export default async function TocPage({
         backHref={`/members/${id}`}
         action={<PrintButton label="Print This TOC" />}
       />
-      <TocForm memberId={id} records={records} currentUserIsAdmin={currentUserIsAdmin} defaultVersionId={version} />
+      <TocForm memberId={id} records={records} currentUserIsAdmin={currentUserIsAdmin} defaultVersionId={version} fields={fields} />
     </div>
   );
 }

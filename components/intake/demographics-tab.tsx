@@ -5,28 +5,25 @@ import { saveDemographics } from "@/app/actions/demographics";
 import { toDateInputValue } from "@/lib/format";
 import type { Demographics } from "@/app/generated/prisma/client";
 import { TextField, TextArea, DateField, SelectField, Checkbox, YesNoField, YesNoWithDetail } from "@/components/intake/form-fields";
-import { SEX_ASSIGNED_AT_BIRTH_OPTIONS, CURRENT_GENDER_OPTIONS, SEXUAL_IDENTITY_OPTIONS } from "@/components/intake/options";
-
-const ETHNICITY_OPTIONS = ["Hispanic or Latino", "Not Hispanic or Latino", "Unknown/Declined"];
-const RACE_OPTIONS = [
-  "White or Caucasian",
-  "Black or African American",
-  "Asian",
-  "American Indian or Alaska Native",
-  "Native Hawaiian or Other Pacific Islander",
-  "Two or More Races",
-  "A race/ethnicity not listed",
-  "Unknown/Declined",
-];
+import {
+  ETHNICITY_OPTIONS,
+  RACE_OPTIONS,
+  SEX_ASSIGNED_AT_BIRTH_OPTIONS,
+  CURRENT_GENDER_OPTIONS,
+  SEXUAL_IDENTITY_OPTIONS,
+} from "@/components/intake/options";
+import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 
 export function DemographicsTab({
   memberId,
   record: selected,
   locked,
+  fields,
 }: {
   memberId: string;
   record: Demographics;
   locked: boolean;
+  fields: ResolvedFormFields;
 }) {
   return (
     <div className="p-8">
@@ -48,8 +45,18 @@ export function DemographicsTab({
 
           <Card title="Race &amp; Ethnicity">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <SelectField name="ethnicity" label="Ethnicity" options={ETHNICITY_OPTIONS} defaultValue={selected.ethnicity} />
-              <SelectField name="race" label="Race" options={RACE_OPTIONS} defaultValue={selected.race} />
+              <SelectField
+                name="ethnicity"
+                label={fields["demographics.ethnicity"]?.label ?? "Ethnicity"}
+                options={fields["demographics.ethnicity"]?.options ?? ETHNICITY_OPTIONS}
+                defaultValue={selected.ethnicity}
+              />
+              <SelectField
+                name="race"
+                label={fields["demographics.race"]?.label ?? "Race"}
+                options={fields["demographics.race"]?.options ?? RACE_OPTIONS}
+                defaultValue={selected.race}
+              />
               <TextField name="tribalAffiliation" label="Tribal Affiliation (if applicable)" defaultValue={selected.tribalAffiliation} />
             </div>
           </Card>
@@ -58,17 +65,22 @@ export function DemographicsTab({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <SelectField
                 name="sexAssignedAtBirth"
-                label="Sex Assigned at Birth"
-                options={SEX_ASSIGNED_AT_BIRTH_OPTIONS}
+                label={fields["shared.sexAssignedAtBirth"]?.label ?? "Sex Assigned at Birth"}
+                options={fields["shared.sexAssignedAtBirth"]?.options ?? SEX_ASSIGNED_AT_BIRTH_OPTIONS}
                 defaultValue={selected.sexAssignedAtBirth}
               />
               <div />
-              <SelectField name="currentGender" label="Current Gender" options={CURRENT_GENDER_OPTIONS} defaultValue={selected.currentGender} />
+              <SelectField
+                name="currentGender"
+                label={fields["shared.currentGender"]?.label ?? "Current Gender"}
+                options={fields["shared.currentGender"]?.options ?? CURRENT_GENDER_OPTIONS}
+                defaultValue={selected.currentGender}
+              />
               <TextField name="currentGenderOther" label="If other, please describe" defaultValue={selected.currentGenderOther} />
               <SelectField
                 name="sexualIdentity"
-                label="Current Sexual Identity"
-                options={SEXUAL_IDENTITY_OPTIONS}
+                label={fields["shared.sexualIdentity"]?.label ?? "Current Sexual Identity"}
+                options={fields["shared.sexualIdentity"]?.options ?? SEXUAL_IDENTITY_OPTIONS}
                 defaultValue={selected.sexualIdentity}
               />
               <TextField name="sexualIdentityOther" label="If other, please describe" defaultValue={selected.sexualIdentityOther} />

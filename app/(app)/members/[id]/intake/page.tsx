@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getIntakeFormData } from "@/lib/data/intake";
-import { getCurrentUser } from "@/lib/dal";
+import { getCurrentUser, verifySession } from "@/lib/dal";
+import { getFormFieldOverrides } from "@/lib/data/form-fields";
 import { PageHeader } from "@/components/ui";
 import { IntakeShell } from "@/components/intake/intake-shell";
 import { PrintButton } from "@/components/print-button";
@@ -15,7 +16,12 @@ export default async function IntakePage({
   const { id } = await params;
   const { tab, version } = await searchParams;
 
-  const [intakeData, currentUser] = await Promise.all([getIntakeFormData(id), getCurrentUser()]);
+  const session = await verifySession();
+  const [intakeData, currentUser, fields] = await Promise.all([
+    getIntakeFormData(id),
+    getCurrentUser(),
+    getFormFieldOverrides(session.clinicId),
+  ]);
 
   if (!intakeData) notFound();
 
@@ -36,6 +42,7 @@ export default async function IntakePage({
         currentUserIsAdmin={currentUserIsAdmin}
         defaultSubTab={tab}
         defaultVersionId={version}
+        fields={fields}
       />
     </div>
   );

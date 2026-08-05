@@ -10,6 +10,7 @@ import { CareCoordinationNotesTab } from "@/components/intake/care-coordination-
 import { createNewIntakeVersion, signIntakeVersion } from "@/app/actions/intake";
 import { deleteIntakeVersion } from "@/app/actions/delete";
 import type { Demographics, CnaAssessment, HraAssessment, CareCoordinationNote } from "@/app/generated/prisma/client";
+import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 
 type IntakeVersionRecord = {
   id: string;
@@ -30,12 +31,14 @@ export function IntakeShell({
   currentUserIsAdmin,
   defaultSubTab,
   defaultVersionId,
+  fields,
 }: {
   memberId: string;
   versions: IntakeVersionRecord[];
   currentUserIsAdmin: boolean;
   defaultSubTab?: string;
   defaultVersionId?: string;
+  fields: ResolvedFormFields;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(defaultVersionId ?? versions[0]?.id ?? null);
   const version = versions.find((v) => v.id === selectedId) ?? versions[0] ?? null;
@@ -74,7 +77,7 @@ export function IntakeShell({
               id: "demographics",
               label: "Demographics",
               content: version.demographics ? (
-                <DemographicsTab memberId={memberId} record={version.demographics} locked={locked} />
+                <DemographicsTab memberId={memberId} record={version.demographics} locked={locked} fields={fields} />
               ) : (
                 <MissingSection label="Demographics" />
               ),
@@ -83,7 +86,7 @@ export function IntakeShell({
               id: "hra",
               label: "HRA",
               content: version.hra ? (
-                <HraTab memberId={memberId} record={version.hra} locked={locked} />
+                <HraTab memberId={memberId} record={version.hra} locked={locked} fields={fields} />
               ) : (
                 <MissingSection label="HRA" />
               ),
@@ -92,7 +95,7 @@ export function IntakeShell({
               id: "cna",
               label: "CNA",
               content: version.cna ? (
-                <CnaTab memberId={memberId} record={version.cna} locked={locked} />
+                <CnaTab memberId={memberId} record={version.cna} locked={locked} fields={fields} />
               ) : (
                 <MissingSection label="CNA" />
               ),
@@ -101,7 +104,7 @@ export function IntakeShell({
               id: "notes",
               label: "Care Coordination Notes",
               content: version.note ? (
-                <CareCoordinationNotesTab memberId={memberId} record={version.note} locked={locked} />
+                <CareCoordinationNotesTab memberId={memberId} record={version.note} locked={locked} fields={fields} />
               ) : (
                 <MissingSection label="Care Coordination Notes" />
               ),

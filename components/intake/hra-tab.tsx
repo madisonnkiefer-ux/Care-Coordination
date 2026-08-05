@@ -25,8 +25,19 @@ import {
   LIVING_SITUATION_OPTIONS,
   ADL_HELP_OPTIONS,
 } from "@/components/intake/options";
+import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 
-export function HraTab({ memberId, record: draft, locked }: { memberId: string; record: HraAssessment; locked: boolean }) {
+export function HraTab({
+  memberId,
+  record: draft,
+  locked,
+  fields,
+}: {
+  memberId: string;
+  record: HraAssessment;
+  locked: boolean;
+  fields: ResolvedFormFields;
+}) {
   const cnaReasons = getCnaRequiredReasons(draft);
 
   return (
@@ -53,8 +64,8 @@ export function HraTab({ memberId, record: draft, locked }: { memberId: string; 
       <Card title="Assessment">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <DateField name="assessmentDate" label="Assessment Date" defaultValue={toDateInputValue(draft?.assessmentDate)} />
-          <SelectField name="assessmentType" label="Assessment Type" options={ASSESSMENT_TYPE_OPTIONS} defaultValue={draft?.assessmentType} />
-          <SelectField name="assessmentMethod" label="Assessment Method" options={ASSESSMENT_METHOD_OPTIONS} defaultValue={draft?.assessmentMethod} />
+          <SelectField name="assessmentType" label={fields["hra.assessmentType"]?.label ?? "Assessment Type"} options={fields["hra.assessmentType"]?.options ?? ASSESSMENT_TYPE_OPTIONS} defaultValue={draft?.assessmentType} />
+          <SelectField name="assessmentMethod" label={fields["hra.assessmentMethod"]?.label ?? "Assessment Method"} options={fields["hra.assessmentMethod"]?.options ?? ASSESSMENT_METHOD_OPTIONS} defaultValue={draft?.assessmentMethod} />
         </div>
       </Card>
 
@@ -71,7 +82,7 @@ export function HraTab({ memberId, record: draft, locked }: { memberId: string; 
           <div>
             <p className="mb-2 text-sm font-semibold text-charcoal">2. Do you have any special preferences we should be aware of?</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectField name="specialPreferences" label="" options={SPECIAL_PREFERENCES_OPTIONS} defaultValue={draft?.specialPreferences} />
+              <SelectField name="specialPreferences" label="" options={fields["hra.specialPreferences"]?.options ?? SPECIAL_PREFERENCES_OPTIONS} defaultValue={draft?.specialPreferences} />
               <TextField name="specialPreferencesDescribe" label="Describe" defaultValue={draft?.specialPreferencesDescribe} />
             </div>
           </div>
@@ -81,20 +92,20 @@ export function HraTab({ memberId, record: draft, locked }: { memberId: string; 
               3. Do you have any current or past physical and/or behavioral health conditions or diagnoses?
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectField name="healthConditions" label="" options={HEALTH_CONDITIONS_OPTIONS} defaultValue={draft?.healthConditions} />
+              <SelectField name="healthConditions" label="" options={fields["hra.healthConditions"]?.options ?? HEALTH_CONDITIONS_OPTIONS} defaultValue={draft?.healthConditions} />
               <TextField name="healthConditionsDescribe" label="Describe" defaultValue={draft?.healthConditionsDescribe} />
             </div>
           </div>
 
           <div>
             <p className="mb-2 text-sm font-semibold text-charcoal">4. What sex were you assigned at birth?</p>
-            <SelectField name="sexAssignedAtBirth" label="" options={SEX_ASSIGNED_AT_BIRTH_OPTIONS} defaultValue={draft?.sexAssignedAtBirth} />
+            <SelectField name="sexAssignedAtBirth" label="" options={fields["shared.sexAssignedAtBirth"]?.options ?? SEX_ASSIGNED_AT_BIRTH_OPTIONS} defaultValue={draft?.sexAssignedAtBirth} />
           </div>
 
           <div>
             <p className="mb-2 text-sm font-semibold text-charcoal">5. What is your current gender?</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectField name="currentGender" label="" options={CURRENT_GENDER_OPTIONS} defaultValue={draft?.currentGender} />
+              <SelectField name="currentGender" label="" options={fields["shared.currentGender"]?.options ?? CURRENT_GENDER_OPTIONS} defaultValue={draft?.currentGender} />
               <TextField name="currentGenderOther" label="If other, please describe" defaultValue={draft?.currentGenderOther} />
             </div>
           </div>
@@ -102,7 +113,7 @@ export function HraTab({ memberId, record: draft, locked }: { memberId: string; 
           <div>
             <p className="mb-2 text-sm font-semibold text-charcoal">6. What is your current sexual identity?</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectField name="sexualIdentity" label="" options={SEXUAL_IDENTITY_OPTIONS} defaultValue={draft?.sexualIdentity} />
+              <SelectField name="sexualIdentity" label="" options={fields["shared.sexualIdentity"]?.options ?? SEXUAL_IDENTITY_OPTIONS} defaultValue={draft?.sexualIdentity} />
               <TextField name="sexualIdentityOther" label="If other, please describe" defaultValue={draft?.sexualIdentityOther} />
             </div>
           </div>
@@ -199,13 +210,13 @@ export function HraTab({ memberId, record: draft, locked }: { memberId: string; 
 
           <div>
             <p className="mb-2 text-sm font-semibold text-charcoal">17. Are you currently in any of the following situations?</p>
-            <SelectField name="currentSituations" label="" options={CURRENT_SITUATIONS_OPTIONS} defaultValue={draft?.currentSituations} />
+            <SelectField name="currentSituations" label="" options={fields["hra.currentSituations"]?.options ?? CURRENT_SITUATIONS_OPTIONS} defaultValue={draft?.currentSituations} />
           </div>
 
           <div>
             <p className="mb-2 text-sm font-semibold text-charcoal">18. What is your current living situation?</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectField name="livingSituation" label="" options={LIVING_SITUATION_OPTIONS} defaultValue={draft?.livingSituation} />
+              <SelectField name="livingSituation" label="" options={fields["hra.livingSituation"]?.options ?? LIVING_SITUATION_OPTIONS} defaultValue={draft?.livingSituation} />
               <TextField name="livingSituationOther" label="If other, please describe" defaultValue={draft?.livingSituationOther} />
             </div>
           </div>
@@ -214,7 +225,7 @@ export function HraTab({ memberId, record: draft, locked }: { memberId: string; 
             <p className="mb-2 text-sm font-semibold text-charcoal">19. Do you need help with 2 or more of the following?</p>
             <YesNoField name="needsHelpWith2OrMoreAdls" label="" defaultValue={draft?.needsHelpWith2OrMoreAdls} />
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectField name="adlHelpNeeded" label="" options={ADL_HELP_OPTIONS} defaultValue={draft?.adlHelpNeeded} />
+              <SelectField name="adlHelpNeeded" label="" options={fields["hra.adlHelp"]?.options ?? ADL_HELP_OPTIONS} defaultValue={draft?.adlHelpNeeded} />
               <TextField name="adlHelpOther" label="If other, please describe" defaultValue={draft?.adlHelpOther} />
             </div>
           </div>

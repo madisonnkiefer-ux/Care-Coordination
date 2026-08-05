@@ -18,6 +18,7 @@ import type {
   CarePlanGoal,
   CarePlanProgressNote,
 } from "@/app/generated/prisma/client";
+import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 
 type CarePlanRecord = CarePlan & {
   teamMembers: CarePlanTeamMember[];
@@ -37,11 +38,13 @@ export function CcpTab({
   records,
   defaultVersionId,
   currentUserIsAdmin,
+  fields,
 }: {
   memberId: string;
   records: CarePlanRecord[];
   defaultVersionId?: string;
   currentUserIsAdmin?: boolean;
+  fields: ResolvedFormFields;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(defaultVersionId ?? records[0]?.id ?? null);
   const plan = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
@@ -76,7 +79,7 @@ export function CcpTab({
               <div className="mt-4">
                 <p className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">Preferred Method of Contact</p>
                 <div className="flex flex-wrap gap-6">
-                  {PREFERRED_CONTACT_METHOD_OPTIONS.map((opt) => (
+                  {(fields["ccp.preferredContactMethod"]?.options ?? PREFERRED_CONTACT_METHOD_OPTIONS).map((opt) => (
                     <label key={opt} className="flex items-center gap-2 text-sm text-stone-600">
                       <input type="radio" name="preferredContactMethod" value={opt} defaultChecked={plan.preferredContactMethod === opt} className="h-4 w-4" />
                       {opt}
@@ -192,7 +195,11 @@ export function CcpTab({
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">
                   Review needed items to take (check all that apply)
                 </p>
-                <CheckboxGroup name="disasterReviewItems" options={DISASTER_REVIEW_ITEMS_OPTIONS} defaultValues={plan.disasterReviewItems} />
+                <CheckboxGroup
+                  name="disasterReviewItems"
+                  options={fields["ccp.disasterReviewItems"]?.options ?? DISASTER_REVIEW_ITEMS_OPTIONS}
+                  defaultValues={plan.disasterReviewItems}
+                />
                 <div className="mt-2 max-w-md">
                   <TextField name="disasterReviewItemsOther" label="Other, specify" defaultValue={plan.disasterReviewItemsOther} />
                 </div>
@@ -303,7 +310,7 @@ export function CcpTab({
             <div className="space-y-4">
               {plan.goals.length === 0 && <p className="text-sm text-stone-400">No goals yet. Add the first one below.</p>}
               {plan.goals.map((goal) => (
-                <GoalCard key={goal.id} memberId={memberId} carePlanId={plan.id} goal={goal} />
+                <GoalCard key={goal.id} memberId={memberId} carePlanId={plan.id} goal={goal} fields={fields} />
               ))}
               <form action={addGoal.bind(null, memberId, plan.id)} className="print:hidden">
                 <button type="submit" className="rounded-md border border-dashed border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-charcoal">

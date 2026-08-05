@@ -28,8 +28,19 @@ import {
   PHQ_SCALE_OPTIONS,
   PHQ_DIFFICULTY_OPTIONS,
 } from "@/components/intake/options";
+import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 
-export function CnaTab({ memberId, record: draft, locked }: { memberId: string; record: CnaAssessment; locked: boolean }) {
+export function CnaTab({
+  memberId,
+  record: draft,
+  locked,
+  fields,
+}: {
+  memberId: string;
+  record: CnaAssessment;
+  locked: boolean;
+  fields: ResolvedFormFields;
+}) {
   const safetyReasons = getSafetyConcernReasons(draft);
   const bmi = computeBmi(draft.heightInches, draft.weightLbs);
   const phq2Total = computePhq2Total(draft);
@@ -58,12 +69,12 @@ export function CnaTab({ memberId, record: draft, locked }: { memberId: string; 
       <Card title="Assessment">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <DateField name="assessmentDate" label="Assessment Date" defaultValue={toDateInputValue(draft?.assessmentDate)} />
-          <SelectField name="assessmentMethod" label="Assessment Method" options={CNA_ASSESSMENT_METHOD_OPTIONS} defaultValue={draft?.assessmentMethod} />
+          <SelectField name="assessmentMethod" label={fields["cna.assessmentMethod"]?.label ?? "Assessment Method"} options={fields["cna.assessmentMethod"]?.options ?? CNA_ASSESSMENT_METHOD_OPTIONS} defaultValue={draft?.assessmentMethod} />
         </div>
         <div className="mt-4">
           <p className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">Assessment Type (check all that apply)</p>
           <div className="flex flex-wrap gap-4">
-            {CNA_ASSESSMENT_TYPE_OPTIONS.map((opt) => (
+            {(fields["cna.assessmentType"]?.options ?? CNA_ASSESSMENT_TYPE_OPTIONS).map((opt) => (
               <label key={opt} className="flex items-center gap-2 text-sm text-stone-700">
                 <input
                   type="checkbox"
@@ -114,7 +125,7 @@ export function CnaTab({ memberId, record: draft, locked }: { memberId: string; 
           <div>
             <p className="mb-2 text-sm font-semibold text-charcoal">4. Do you have any special preferences we should be aware of?</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectField name="specialPreferences" label="" options={CNA_SPECIAL_PREFERENCES_OPTIONS} defaultValue={draft?.specialPreferences} />
+              <SelectField name="specialPreferences" label="" options={fields["cna.specialPreferences"]?.options ?? CNA_SPECIAL_PREFERENCES_OPTIONS} defaultValue={draft?.specialPreferences} />
               <TextField name="specialPreferencesDescribe" label="Describe" defaultValue={draft?.specialPreferencesDescribe} />
             </div>
           </div>
@@ -122,7 +133,7 @@ export function CnaTab({ memberId, record: draft, locked }: { memberId: string; 
           <div>
             <p className="mb-2 text-sm font-semibold text-charcoal">5. How many times have you been in the Emergency Room in the last 12 months?</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectField name="erVisitsLast12Months" label="" options={ER_VISITS_OPTIONS} defaultValue={draft?.erVisitsLast12Months} />
+              <SelectField name="erVisitsLast12Months" label="" options={fields["cna.erVisits"]?.options ?? ER_VISITS_OPTIONS} defaultValue={draft?.erVisitsLast12Months} />
               <TextField name="erVisitsDescribe" label="Describe" defaultValue={draft?.erVisitsDescribe} />
             </div>
           </div>
@@ -138,7 +149,7 @@ export function CnaTab({ memberId, record: draft, locked }: { memberId: string; 
           <div>
             <p className="mb-2 text-sm font-semibold text-charcoal">7. How many times have you been in the hospital in the last 6 months?</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectField name="hospitalStaysLast6Months" label="" options={HOSPITAL_STAYS_OPTIONS} defaultValue={draft?.hospitalStaysLast6Months} />
+              <SelectField name="hospitalStaysLast6Months" label="" options={fields["cna.hospitalStays"]?.options ?? HOSPITAL_STAYS_OPTIONS} defaultValue={draft?.hospitalStaysLast6Months} />
               <TextField name="hospitalStaysDescribe" label="Describe if appropriate" defaultValue={draft?.hospitalStaysDescribe} />
             </div>
           </div>
@@ -276,7 +287,7 @@ export function CnaTab({ memberId, record: draft, locked }: { memberId: string; 
           <SelectField
             name="overallHealthVsYearAgo"
             label="How would you describe your overall health compared to a year ago?"
-            options={OVERALL_HEALTH_OPTIONS}
+            options={fields["cna.overallHealth"]?.options ?? OVERALL_HEALTH_OPTIONS}
             defaultValue={draft?.overallHealthVsYearAgo}
           />
 
@@ -522,7 +533,7 @@ export function CnaTab({ memberId, record: draft, locked }: { memberId: string; 
           <SelectField
             name="phqDifficultyLevel"
             label="If you checked off any problems, how difficult have these problems made it for you to do your work, take care of things at home, or get along with other people?"
-            options={PHQ_DIFFICULTY_OPTIONS}
+            options={fields["cna.phqDifficulty"]?.options ?? PHQ_DIFFICULTY_OPTIONS}
             defaultValue={draft?.phqDifficultyLevel}
           />
         </div>
@@ -573,7 +584,7 @@ export function CnaTab({ memberId, record: draft, locked }: { memberId: string; 
             detailLabel="If yes, specify"
           />
           <div>
-            <SelectField name="livingArrangement" label="Do you live alone or with others?" options={LIVING_ARRANGEMENT_OPTIONS} defaultValue={draft?.livingArrangement} />
+            <SelectField name="livingArrangement" label="Do you live alone or with others?" options={fields["cna.livingArrangement"]?.options ?? LIVING_ARRANGEMENT_OPTIONS} defaultValue={draft?.livingArrangement} />
             <div className="mt-2 max-w-md">
               <TextField name="livingArrangementSpecify" label="If with others, specify" defaultValue={draft?.livingArrangementSpecify} />
             </div>
@@ -675,7 +686,7 @@ export function CnaTab({ memberId, record: draft, locked }: { memberId: string; 
           <SelectField
             name="referralsNeeded"
             label="Do you need help obtaining referrals for:"
-            options={REFERRAL_NEEDED_OPTIONS}
+            options={fields["cna.referralsNeeded"]?.options ?? REFERRAL_NEEDED_OPTIONS}
             defaultValue={draft?.referralsNeeded}
           />
         </div>

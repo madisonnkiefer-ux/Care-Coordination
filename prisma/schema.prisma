@@ -30,11 +30,12 @@ model Clinic {
   code      String   @unique
   createdAt DateTime @default(now())
 
-  users          User[]
-  members        Member[]
-  resources      ResourceEntry[]
-  notifications  Notification[]
-  billingExports BillingExport[]
+  users              User[]
+  members            Member[]
+  resources          ResourceEntry[]
+  notifications      Notification[]
+  billingExports     BillingExport[]
+  formFieldOverrides FormFieldOverride[]
 }
 
 model User {
@@ -75,6 +76,8 @@ model User {
   intakeVersionsDeleted IntakeVersion[] @relation("IntakeVersionDeletedBy")
   carePlansDeleted      CarePlan[]      @relation("CarePlanDeletedBy")
   tocRecordsDeleted     TocRecord[]     @relation("TocRecordDeletedBy")
+
+  formFieldOverridesUpdated FormFieldOverride[] @relation("FormFieldOverrideUpdatedBy")
 
   @@index([clinicId])
 }
@@ -1192,6 +1195,28 @@ model Notification {
 
   @@index([userId, read])
   @@index([clinicId])
+}
+
+// ---------- Form content overrides (admin-editable labels/option lists) ----------
+
+// Lets an office admin re-word a field's label or its dropdown/checkbox
+// option list when the state revises a standardized form (HRA, CNA, CCP,
+// TOC), without a code change. `fieldKey` matches a key in
+// lib/form-fields/registry.ts; options here fully replace that field's
+// default option list (no partial merge) — see lib/data/form-fields.ts for
+// how this is resolved against the registry defaults.
+model FormFieldOverride {
+  id          String   @id @default(cuid())
+  clinicId    String
+  clinic      Clinic   @relation(fields: [clinicId], references: [id])
+  fieldKey    String
+  label       String?
+  options     Json?
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  updatedBy   User?    @relation("FormFieldOverrideUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([clinicId, fieldKey])
 }
 
 // ---------- Resource directory (referral resources, programs, and key contacts) ----------

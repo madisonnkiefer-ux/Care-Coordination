@@ -10,6 +10,7 @@ import { createNewTocRecord, saveTocRecord, signTocRecord } from "@/app/actions/
 import { deleteTocRecord } from "@/app/actions/delete";
 import { toDateInputValue } from "@/lib/format";
 import type { TocRecord, TocNeed } from "@/app/generated/prisma/client";
+import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 
 type TocRecordWithRelations = TocRecord & { signedBy: { name: string } | null; needs: TocNeed[] };
 
@@ -18,11 +19,13 @@ export function TocForm({
   records,
   currentUserIsAdmin,
   defaultVersionId,
+  fields,
 }: {
   memberId: string;
   records: TocRecordWithRelations[];
   currentUserIsAdmin: boolean;
   defaultVersionId?: string;
+  fields: ResolvedFormFields;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(defaultVersionId ?? records[0]?.id ?? null);
   const draft = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
@@ -86,7 +89,12 @@ export function TocForm({
                 </div>
 
                 <div className="mt-4">
-                  <SelectField name="transitionType" label="Transition Type" options={TRANSITION_TYPE_OPTIONS} defaultValue={draft.transitionType} />
+                  <SelectField
+                    name="transitionType"
+                    label={fields["toc.transitionType"]?.label ?? "Transition Type"}
+                    options={fields["toc.transitionType"]?.options ?? TRANSITION_TYPE_OPTIONS}
+                    defaultValue={draft.transitionType}
+                  />
                 </div>
               </Card>
 

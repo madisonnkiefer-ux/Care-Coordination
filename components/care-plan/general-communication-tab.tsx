@@ -9,6 +9,7 @@ import { SelectField, DateField } from "@/components/intake/form-fields";
 import { CONTACT_METHOD_OPTIONS, PERSON_CONTACTED_OPTIONS, UNSUCCESSFUL_REASON_OPTIONS } from "@/components/care-plan/outreach-options";
 import { formatDateTime, toDateInputValue } from "@/lib/format";
 import { getComplianceCadence, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
+import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 
 type CommRecord = GeneralCommunication & { author: { name: string } | null };
 
@@ -16,10 +17,12 @@ export function GeneralCommunicationTab({
   memberId,
   records,
   program,
+  fields,
 }: {
   memberId: string;
   records: CommRecord[];
   program: string | null;
+  fields: ResolvedFormFields;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(records[0]?.id ?? null);
   const record = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
@@ -91,8 +94,18 @@ export function GeneralCommunicationTab({
               {record.updatedAt > record.createdAt && ` · last updated ${formatDateTime(record.updatedAt)}`}
             </p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <SelectField name="contactMethod" label="Contact Method" options={CONTACT_METHOD_OPTIONS} defaultValue={record.contactMethod} />
-              <SelectField name="personContacted" label="Person Contacted" options={PERSON_CONTACTED_OPTIONS} defaultValue={record.personContacted} />
+              <SelectField
+                name="contactMethod"
+                label={fields["generalComm.contactMethod"]?.label ?? "Contact Method"}
+                options={fields["generalComm.contactMethod"]?.options ?? CONTACT_METHOD_OPTIONS}
+                defaultValue={record.contactMethod}
+              />
+              <SelectField
+                name="personContacted"
+                label={fields["generalComm.personContacted"]?.label ?? "Person Contacted"}
+                options={fields["generalComm.personContacted"]?.options ?? PERSON_CONTACTED_OPTIONS}
+                defaultValue={record.personContacted}
+              />
             </div>
 
             <div className="mt-4">
@@ -112,8 +125,8 @@ export function GeneralCommunicationTab({
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <SelectField
                 name="unsuccessfulReason"
-                label="If unsuccessful, reason"
-                options={UNSUCCESSFUL_REASON_OPTIONS}
+                label={fields["generalComm.unsuccessfulReason"]?.label ?? "If unsuccessful, reason"}
+                options={fields["generalComm.unsuccessfulReason"]?.options ?? UNSUCCESSFUL_REASON_OPTIONS}
                 defaultValue={record.unsuccessfulReason}
               />
               <DateField name="nextAttemptDate" label="Next Attempt Date" defaultValue={toDateInputValue(record.nextAttemptDate)} />

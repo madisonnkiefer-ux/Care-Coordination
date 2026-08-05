@@ -8,10 +8,21 @@ import { GoalStatusSelect } from "@/components/goal-status-select";
 import { TextField, TextArea, DateField, SelectField, Checkbox } from "@/components/intake/form-fields";
 import { GOAL_PRIORITY_OPTIONS } from "@/components/intake/options";
 import type { CarePlanGoal, CarePlanProgressNote, GoalStatus } from "@/app/generated/prisma/client";
+import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 
 type Goal = CarePlanGoal & { progressNotes: CarePlanProgressNote[] };
 
-export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; carePlanId: string; goal: Goal }) {
+export function GoalCard({
+  memberId,
+  carePlanId,
+  goal,
+  fields,
+}: {
+  memberId: string;
+  carePlanId: string;
+  goal: Goal;
+  fields: ResolvedFormFields;
+}) {
   // Defaults to expanded so a full CCP print picks up every goal's detail
   // without the coordinator having to click through each one first.
   const [expanded, setExpanded] = useState(true);
@@ -47,7 +58,12 @@ export function GoalCard({ memberId, carePlanId, goal }: { memberId: string; car
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">Opportunity</p>
               <TextField name="opportunity" label="Opportunity" defaultValue={goal.opportunity} />
               <div className="mt-2 max-w-xs">
-                <SelectField name="priority" label="Priority" options={GOAL_PRIORITY_OPTIONS} defaultValue={goal.priority} />
+                <SelectField
+                  name="priority"
+                  label={fields["ccp.goalPriority"]?.label ?? "Priority"}
+                  options={fields["ccp.goalPriority"]?.options ?? GOAL_PRIORITY_OPTIONS}
+                  defaultValue={goal.priority}
+                />
               </div>
               <div className="mt-2">
                 <Checkbox
