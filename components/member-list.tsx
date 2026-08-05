@@ -10,6 +10,7 @@ import type { MemberStatus } from "@/app/generated/prisma/client";
 
 const CSV_HEADERS = [
   "Patient Name",
+  "Date of Birth",
   "Chart ID",
   "Type of Patient",
   "Last Contact",
@@ -39,6 +40,7 @@ function downloadCsv(rows: MemberRow[], filenamePrefix: string) {
   const lines = rows.map((m) =>
     [
       `${m.firstName} ${m.lastName}`,
+      formatDate(m.dateOfBirth),
       m.chartId ?? "",
       m.program ?? "",
       formatDate(m.lastContactDate),
@@ -77,6 +79,7 @@ type MemberRow = {
   id: string;
   firstName: string;
   lastName: string;
+  dateOfBirth: Date;
   status: MemberStatus;
   cclLevel: "CCL1" | "CCL2" | "CCL3" | "HIGH_RISK" | null;
   program: string | null;
@@ -117,6 +120,7 @@ export function MemberList({ members, currentUserId }: { members: MemberRow[]; c
       const name = `${m.firstName} ${m.lastName}`.toLowerCase();
       return (
         name.includes(q) ||
+        formatDate(m.dateOfBirth).includes(q) ||
         m.medicaidId?.toLowerCase().includes(q) ||
         m.chartId?.toLowerCase().includes(q) ||
         m.subscriberId?.toLowerCase().includes(q) ||
@@ -160,7 +164,7 @@ export function MemberList({ members, currentUserId }: { members: MemberRow[]; c
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name, IDs, provider, program…"
+            placeholder="Search by name, date of birth, IDs, provider, program…"
             className="w-full rounded-lg border border-stone-300 bg-white py-2 pl-9 pr-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
           />
         </div>
@@ -176,10 +180,11 @@ export function MemberList({ members, currentUserId }: { members: MemberRow[]; c
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-stone-100 bg-white shadow-sm">
-        <table className="w-full min-w-[2200px] text-sm">
+        <table className="w-full min-w-[2350px] text-sm">
           <thead className="bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">
             <tr>
               <th className="sticky left-0 z-10 bg-stone-50 px-4 py-3 font-medium">Patient Name</th>
+              <th className="px-4 py-3 font-medium">Date of Birth</th>
               <th className="px-4 py-3 font-medium">Chart ID</th>
               <th className="px-4 py-3 font-medium">Type of Patient</th>
               <th className="px-4 py-3 font-medium">Last Contact</th>
@@ -212,6 +217,7 @@ export function MemberList({ members, currentUserId }: { members: MemberRow[]; c
                     </span>
                   </Link>
                 </td>
+                <td className="px-4 py-3 whitespace-nowrap text-stone-600">{formatDate(member.dateOfBirth)}</td>
                 <td className="px-4 py-3 text-stone-600">{member.chartId ?? "—"}</td>
                 <td className="px-4 py-3 text-stone-600">{member.program ?? "—"}</td>
                 <td className="px-4 py-3 text-stone-600">{formatDate(member.lastContactDate)}</td>
@@ -249,7 +255,7 @@ export function MemberList({ members, currentUserId }: { members: MemberRow[]; c
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={19} className="px-4 py-10 text-center text-stone-400">
+                <td colSpan={20} className="px-4 py-10 text-center text-stone-400">
                   {scoped.length === 0
                     ? scope === "mine"
                       ? "No members assigned to you."
