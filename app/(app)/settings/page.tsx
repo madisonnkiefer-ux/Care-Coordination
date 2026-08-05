@@ -1,10 +1,11 @@
 import { requireRole, getCurrentUser } from "@/lib/dal";
-import { getClinicUsers } from "@/lib/data/settings";
+import { getClinicUsers, getAllOffices } from "@/lib/data/settings";
 import { getAuditLog } from "@/lib/data/audit";
 import { PageHeader } from "@/components/ui";
 import { Tabs } from "@/components/tabs";
 import { UsersTab } from "@/components/settings/users-tab";
 import { AuditLogTab } from "@/components/settings/audit-log-tab";
+import { OfficesTab } from "@/components/settings/offices-tab";
 
 export default async function SettingsPage({
   searchParams,
@@ -14,11 +15,16 @@ export default async function SettingsPage({
   await requireRole("ADMIN");
   const { tab, user } = await searchParams;
 
-  const [users, auditLogs, currentUser] = await Promise.all([getClinicUsers(), getAuditLog(user), getCurrentUser()]);
+  const [users, auditLogs, currentUser, offices] = await Promise.all([
+    getClinicUsers(),
+    getAuditLog(user),
+    getCurrentUser(),
+    getAllOffices(),
+  ]);
 
   return (
     <div>
-      <PageHeader title="Settings" description="Manage users, roles, and the audit trail." />
+      <PageHeader title="Settings" description="Manage users, roles, offices, and the audit trail." />
       <Tabs
         key={tab ?? "users"}
         defaultTabId={tab}
@@ -27,6 +33,11 @@ export default async function SettingsPage({
             id: "users",
             label: "Users & Roles",
             content: <UsersTab users={users} currentUserId={currentUser?.id ?? ""} />,
+          },
+          {
+            id: "offices",
+            label: "Offices",
+            content: <OfficesTab offices={offices} />,
           },
           {
             id: "audit",
