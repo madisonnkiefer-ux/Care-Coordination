@@ -4,11 +4,17 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { deleteMember } from "@/app/actions/delete";
 
+// Collapse whitespace and ignore case so a typed name matches even if the
+// stored name has stray/irregular whitespace that isn't visible on screen.
+function normalize(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 export function DeleteMemberButton({ memberId, memberName }: { memberId: string; memberName: string }) {
   const [open, setOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
 
-  const canConfirm = confirmText.trim() === memberName;
+  const canConfirm = confirmText.trim().length > 0 && normalize(confirmText) === normalize(memberName);
 
   return (
     <>
@@ -43,8 +49,12 @@ export function DeleteMemberButton({ memberId, memberName }: { memberId: string;
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
                 autoFocus
+                autoComplete="off"
                 className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
               />
+              {confirmText.length > 0 && !canConfirm && (
+                <p className="mt-1 text-xs text-stone-400">Doesn&apos;t match yet.</p>
+              )}
               <div className="mt-5 flex justify-end gap-2">
                 <button
                   type="button"
