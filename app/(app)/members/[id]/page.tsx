@@ -12,7 +12,8 @@ import { MemberStatusCard } from "@/components/member-status-card";
 import { formatDate, formatDateTime, titleCase, toDateInputValue } from "@/lib/format";
 import { saveQuickNote } from "@/app/actions/notes";
 import { toggleTask, createTask } from "@/app/actions/tasks";
-import { updateMemberDetails, updateMemberOverview } from "@/app/actions/member-details";
+import { updateMemberOverview } from "@/app/actions/member-details";
+import { PATIENT_TYPE_OPTIONS } from "@/lib/patient-type";
 import { statusBadgeColor } from "@/lib/member-status";
 import { QuickActionsBar } from "@/components/quick-actions-bar";
 import { AlertBanner } from "@/components/alert-banner";
@@ -185,6 +186,33 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Subscriber ID
+                </label>
+                <input
+                  name="subscriberId"
+                  defaultValue={member.subscriberId ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Type of Patient
+                </label>
+                <select
+                  name="program"
+                  defaultValue={member.program ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                >
+                  <option value="">—</option>
+                  {PATIENT_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
                   Language
                 </label>
                 <input
@@ -239,83 +267,6 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
             history={statusHistory}
             canEditDirectly={session.role !== "CARE_COORDINATOR"}
           />
-
-          <Card title="Insurance &amp; Provider">
-            <form
-              key={member.updatedAt.getTime()}
-              action={updateMemberDetails.bind(null, id)}
-              className="grid grid-cols-1 gap-4 sm:grid-cols-2"
-            >
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Chart ID</label>
-                <input
-                  name="memberIdExternal"
-                  defaultValue={member.memberIdExternal ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Program</label>
-                <input
-                  name="program"
-                  placeholder="e.g. Prenatal, Postpartum, GYN"
-                  defaultValue={member.program ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Subscriber ID</label>
-                <input
-                  name="subscriberId"
-                  defaultValue={member.subscriberId ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Availity ID</label>
-                <input
-                  name="availityId"
-                  defaultValue={member.availityId ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Insurance Plan</label>
-                <input
-                  name="insurancePlan"
-                  placeholder="e.g. Blue Cross, Molina"
-                  defaultValue={member.insurancePlan ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Provider</label>
-                <input
-                  name="provider"
-                  placeholder="Member's outside doctor"
-                  defaultValue={member.provider ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <label className="flex items-center gap-2 text-sm text-stone-700">
-                <input
-                  type="checkbox"
-                  name="medicaidEligibilityVerified"
-                  defaultChecked={member.medicaidEligibilityVerified ?? false}
-                  className="h-4 w-4 rounded border-stone-300"
-                />
-                Medicaid Eligibility Verified
-              </label>
-              <div className="flex items-end justify-end print:hidden">
-                <button
-                  type="submit"
-                  className="rounded-md bg-charcoal px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
-                >
-                  Save
-                </button>
-              </div>
-            </form>
-          </Card>
 
           <Card title="Quick Access" className="print:hidden">
             <div className="grid grid-cols-2 gap-3">

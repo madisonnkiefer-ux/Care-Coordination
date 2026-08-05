@@ -6,6 +6,9 @@ import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import type { CclLevel, MemberStatus } from "@/app/generated/prisma/client";
+import { PATIENT_TYPE_OPTIONS } from "@/lib/patient-type";
+
+const PATIENT_TYPES = PATIENT_TYPE_OPTIONS.map((o) => o.value);
 
 export async function createMember(formData: FormData) {
   const session = await verifySession();
@@ -26,6 +29,8 @@ export async function createMember(formData: FormData) {
   const cclLevel = str("cclLevel") as CclLevel | null;
   const assignedCoordinatorId = str("assignedCoordinatorId");
   const eddRaw = str("edd");
+  const programRaw = str("program");
+  const program = programRaw && PATIENT_TYPES.includes(programRaw) ? programRaw : null;
 
   const member = await db.member.create({
     data: {
@@ -36,7 +41,8 @@ export async function createMember(formData: FormData) {
       phone: str("phone"),
       medicaidId: str("medicaidId"),
       memberIdExternal: str("memberIdExternal"),
-      program: str("program"),
+      subscriberId: str("subscriberId"),
+      program,
       status,
       cclLevel,
       edd: eddRaw ? new Date(eddRaw) : null,
