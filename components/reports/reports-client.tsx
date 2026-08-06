@@ -518,8 +518,8 @@ function MonthlyActivityReport() {
   return (
     <Card title="Monthly Activity Report">
       <p className="mb-4 text-sm text-stone-500">
-        Downloads an Excel file with two sheets for the selected range: a per-patient detail sheet (touchpoints and
-        terminations in range, plus each patient&apos;s first-ever HRA/CNA/CCP dates) and a monthly summary sheet
+        Downloads an Excel file with two sheets: a detail sheet listing every patient (touchpoints and terminations
+        in the selected range, plus each patient&apos;s first-ever HRA/CNA/CCP dates) and a monthly summary sheet
         (total touchpoints, CCPs created, enrollments completed, and members termed, one row per month).
       </p>
       <form action="/api/reports/monthly-activity/export" method="POST" className="flex flex-wrap items-end gap-3">

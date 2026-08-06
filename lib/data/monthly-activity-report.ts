@@ -82,7 +82,7 @@ export async function getMonthlyActivityReport(
     }),
   ]);
 
-  // ---- Detail rows: one per member with a touchpoint or a termination in range ----
+  // ---- Detail rows: every patient in the clinic, not just those with activity in range ----
   const touchpointCountByMember = new Map<string, number>();
   for (const t of touchpoints) {
     touchpointCountByMember.set(t.memberId, (touchpointCountByMember.get(t.memberId) ?? 0) + 1);
@@ -91,58 +91,56 @@ export async function getMonthlyActivityReport(
   for (const t of termedChanges) {
     if (!termedDateByMember.has(t.memberId)) termedDateByMember.set(t.memberId, t.effectiveDate);
   }
-  const relevantMemberIds = [...new Set([...touchpointCountByMember.keys(), ...termedDateByMember.keys()])];
 
-  let detailRows: MonthlyActivityDetailRow[] = [];
-  if (relevantMemberIds.length > 0) {
-    const [members, intakeVersions, carePlansByMember] = await Promise.all([
-      db.member.findMany({
-        where: { id: { in: relevantMemberIds } },
-        select: { id: true, firstName: true, lastName: true, medicaidId: true },
-      }),
-      // Goes through IntakeVersion directly (not member.hraAssessments/cnaAssessments)
-      // so the soft-delete extension actually filters out deleted enrollments —
-      // a nested relation select on Member wouldn't apply it.
-      db.intakeVersion.findMany({
-        where: { memberId: { in: relevantMemberIds } },
-        orderBy: { createdAt: "asc" },
-        select: {
-          memberId: true,
-          hra: { select: { assessmentDate: true } },
-          cna: { select: { assessmentDate: true } },
-        },
-      }),
-      db.carePlan.findMany({
-        where: { memberId: { in: relevantMemberIds } },
-        orderBy: { createdAt: "asc" },
-        select: { memberId: true, ccpStartDate: true, createdAt: true },
-      }),
-    ]);
+  const members = await db.member.findMany({
+    where: { clinicId },
+    select: { id: true, firstName: true, lastName: true, medicaidId: true },
+  });
+  const allMemberIds = members.map((m) => m.id);
 
-    const firstHraByMember = new Map<string, Date>();
-    const firstCnaByMember = new Map<string, Date>();
-    for (const v of intakeVersions) {
-      if (v.hra?.assessmentDate && !firstHraByMember.has(v.memberId)) firstHraByMember.set(v.memberId, v.hra.assessmentDate);
-      if (v.cna?.assessmentDate && !firstCnaByMember.has(v.memberId)) firstCnaByMember.set(v.memberId, v.cna.assessmentDate);
-    }
-    const firstCcpByMember = new Map<string, Date>();
-    for (const p of carePlansByMember) {
-      if (!firstCcpByMember.has(p.memberId)) firstCcpByMember.set(p.memberId, p.ccpStartDate ?? p.createdAt);
-    }
+  const [intakeVersions, carePlansByMember] = await Promise.all([
+    // Goes through IntakeVersion directly (not member.hraAssessments/cnaAssessments)
+    // so the soft-delete extension actually filters out deleted enrollments —
+    // a nested relation select on Member wouldn't apply it.
+    db.intakeVersion.findMany({
+      where: { memberId: { in: allMemberIds } },
+      orderBy: { createdAt: "asc" },
+      select: {
+        memberId: true,
+        hra: { select: { assessmentDate: true } },
+        cna: { select: { assessmentDate: true } },
+      },
+    }),
+    db.carePlan.findMany({
+      where: { memberId: { in: allMemberIds } },
+      orderBy: { createdAt: "asc" },
+      select: { memberId: true, ccpStartDate: true, createdAt: true },
+    }),
+  ]);
 
-    detailRows = members
-      .map((m) => ({
-        firstName: m.firstName,
-        lastName: m.lastName,
-        medicaidId: m.medicaidId,
-        firstHraDate: firstHraByMember.get(m.id) ?? null,
-        firstCnaDate: firstCnaByMember.get(m.id) ?? null,
-        firstCcpDate: firstCcpByMember.get(m.id) ?? null,
-        touchpointsInRange: touchpointCountByMember.get(m.id) ?? 0,
-        termedDate: termedDateByMember.get(m.id) ?? null,
-      }))
-      .sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName));
+  const firstHraByMember = new Map<string, Date>();
+  const firstCnaByMember = new Map<string, Date>();
+  for (const v of intakeVersions) {
+    if (v.hra?.assessmentDate && !firstHraByMember.has(v.memberId)) firstHraByMember.set(v.memberId, v.hra.assessmentDate);
+    if (v.cna?.assessmentDate && !firstCnaByMember.has(v.memberId)) firstCnaByMember.set(v.memberId, v.cna.assessmentDate);
   }
+  const firstCcpByMember = new Map<string, Date>();
+  for (const p of carePlansByMember) {
+    if (!firstCcpByMember.has(p.memberId)) firstCcpByMember.set(p.memberId, p.ccpStartDate ?? p.createdAt);
+  }
+
+  const detailRows: MonthlyActivityDetailRow[] = members
+    .map((m) => ({
+      firstName: m.firstName,
+      lastName: m.lastName,
+      medicaidId: m.medicaidId,
+      firstHraDate: firstHraByMember.get(m.id) ?? null,
+      firstCnaDate: firstCnaByMember.get(m.id) ?? null,
+      firstCcpDate: firstCcpByMember.get(m.id) ?? null,
+      touchpointsInRange: touchpointCountByMember.get(m.id) ?? 0,
+      termedDate: termedDateByMember.get(m.id) ?? null,
+    }))
+    .sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName));
 
   // ---- Summary rows: one per calendar month in range ----
   const touchpointsByMonth = new Map<string, number>();
