@@ -9,7 +9,7 @@ import type { getReportsData } from "@/lib/data/reports";
 type ReportsData = Awaited<ReturnType<typeof getReportsData>>;
 type ReportMember = ReportsData["members"][number];
 
-type ReportId = "roster" | "caseload" | "outreach" | "cna" | "ccp";
+type ReportId = "roster" | "caseload" | "outreach" | "cna" | "ccp" | "monthly-activity";
 
 const REPORTS: { id: ReportId; label: string }[] = [
   { id: "roster", label: "Active Roster" },
@@ -17,6 +17,7 @@ const REPORTS: { id: ReportId; label: string }[] = [
   { id: "outreach", label: "Outreach Completion" },
   { id: "cna", label: "Annual CNA Status" },
   { id: "ccp", label: "CCP Completion" },
+  { id: "monthly-activity", label: "Monthly Activity" },
 ];
 
 function currentQuarterStart() {
@@ -78,6 +79,7 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
         ))}
       </div>
 
+      {active !== "monthly-activity" && (
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <FilterField label="Coordinator">
           <select value={coordinatorId} onChange={(e) => setCoordinatorId(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose">
@@ -125,12 +127,14 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
           </>
         )}
       </div>
+      )}
 
       {active === "roster" && <ActiveRosterReport members={filtered} />}
       {active === "caseload" && <CaseloadDistributionReport members={filtered} />}
       {active === "outreach" && <OutreachCompletionReport members={filtered} dateFrom={dateFrom} dateTo={dateTo} />}
       {active === "cna" && <AnnualCnaStatusReport members={filtered} />}
       {active === "ccp" && <CcpCompletionReport members={filtered} />}
+      {active === "monthly-activity" && <MonthlyActivityReport />}
     </div>
   );
 }
@@ -504,5 +508,47 @@ function CcpCompletionReport({ members }: { members: ReportMember[] }) {
         </tbody>
       </table>
     </ReportShell>
+  );
+}
+
+function MonthlyActivityReport() {
+  const [startDate, setStartDate] = useState(() => toInputDate(currentQuarterStart()));
+  const [endDate, setEndDate] = useState(() => toInputDate(new Date()));
+
+  return (
+    <Card title="Monthly Activity Report">
+      <p className="mb-4 text-sm text-stone-500">
+        Downloads an Excel file with two sheets for the selected range: a per-patient detail sheet (touchpoints and
+        terminations in range, plus each patient&apos;s first-ever HRA/CNA/CCP dates) and a monthly summary sheet
+        (total touchpoints, CCPs created, enrollments completed, and members termed, one row per month).
+      </p>
+      <form action="/api/reports/monthly-activity/export" method="POST" className="flex flex-wrap items-end gap-3">
+        <label className="flex flex-col gap-1 text-xs font-medium text-stone-500">
+          Start Date
+          <input
+            type="date"
+            name="startDate"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            required
+            className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-medium text-stone-500">
+          End Date
+          <input
+            type="date"
+            name="endDate"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            required
+            className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+          />
+        </label>
+        <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
+          Download Excel
+        </button>
+      </form>
+    </Card>
   );
 }
