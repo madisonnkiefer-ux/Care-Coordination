@@ -1,3 +1,15 @@
+"use client";
+
+import { useFieldOverride } from "@/lib/form-fields/context";
+
+// A hidden (retired) field only disappears once it's blank — if the record
+// already has an answer on file, it always keeps showing, so an admin
+// retiring a question from new forms can never make an already-recorded
+// answer vanish from an existing (possibly already-signed) record.
+function isHiddenAndEmpty(hidden: boolean | undefined, hasValue: boolean) {
+  return Boolean(hidden) && !hasValue;
+}
+
 export function TextField({
   name,
   label,
@@ -9,10 +21,14 @@ export function TextField({
   defaultValue?: string | null;
   className?: string;
 }) {
+  const override = useFieldOverride(name);
+  if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
+  const effectiveLabel = override?.label || label;
+
   return (
     <div className={className}>
       <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
-        {label}
+        {effectiveLabel}
       </label>
       <input
         id={name}
@@ -39,10 +55,14 @@ export function TextArea({
   rows?: number;
   form?: string;
 }) {
+  const override = useFieldOverride(name);
+  if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
+  const effectiveLabel = override?.label || label;
+
   return (
     <div className={className}>
       <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
-        {label}
+        {effectiveLabel}
       </label>
       <textarea
         id={name}
@@ -67,10 +87,14 @@ export function DateField({
   defaultValue?: string | null;
   form?: string;
 }) {
+  const override = useFieldOverride(name);
+  if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
+  const effectiveLabel = override?.label || label;
+
   return (
     <div>
       <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
-        {label}
+        {effectiveLabel}
       </label>
       <input
         type="date"
@@ -86,7 +110,9 @@ export function DateField({
 
 // A <select> of common options plus an always-visible override input (the
 // "not listed? type it here instead" pattern) — the override, when filled
-// in, wins over the dropdown when the form is saved.
+// in, wins over the dropdown when the form is saved. This is also why a
+// retired option never orphans historical data: the old value still saves
+// and displays fine as a custom entry even once it's off the picker.
 export function SelectField({
   name,
   label,
@@ -98,11 +124,16 @@ export function SelectField({
   options: string[];
   defaultValue?: string | null;
 }) {
-  const isCustom = Boolean(defaultValue) && !options.includes(defaultValue as string);
+  const override = useFieldOverride(name);
+  if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
+  const effectiveLabel = override?.label || label;
+  const effectiveOptions = override?.options ?? options;
+
+  const isCustom = Boolean(defaultValue) && !effectiveOptions.includes(defaultValue as string);
   return (
     <div>
       <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
-        {label}
+        {effectiveLabel}
       </label>
       <select
         id={name}
@@ -111,7 +142,7 @@ export function SelectField({
         className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
       >
         <option value="">—</option>
-        {options.map((opt) => (
+        {effectiveOptions.map((opt) => (
           <option key={opt} value={opt}>
             {opt}
           </option>
@@ -155,10 +186,14 @@ export function NumberScaleField({
 }
 
 export function Checkbox({ name, label, defaultChecked }: { name: string; label: string; defaultChecked?: boolean }) {
+  const override = useFieldOverride(name);
+  if (isHiddenAndEmpty(override?.hidden, Boolean(defaultChecked))) return null;
+  const effectiveLabel = override?.label || label;
+
   return (
     <label className="flex items-center gap-2 text-sm text-stone-700">
       <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 rounded border-stone-300" />
-      {label}
+      {effectiveLabel}
     </label>
   );
 }
@@ -174,9 +209,13 @@ export function CheckboxGroup({
   options: string[];
   defaultValues?: string[] | null;
 }) {
+  const override = useFieldOverride(name);
+  if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValues?.length))) return null;
+  const effectiveOptions = override?.options ?? options;
+
   return (
     <div className="space-y-2">
-      {options.map((opt) => (
+      {effectiveOptions.map((opt) => (
         <label key={opt} className="flex items-start gap-2 text-sm text-stone-700">
           <input
             type="checkbox"
@@ -193,9 +232,13 @@ export function CheckboxGroup({
 }
 
 export function YesNoField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: boolean | null }) {
+  const override = useFieldOverride(name);
+  if (isHiddenAndEmpty(override?.hidden, defaultValue !== null && defaultValue !== undefined)) return null;
+  const effectiveLabel = override?.label || label;
+
   return (
     <div>
-      <p className="mb-1 text-sm font-medium text-stone-700">{label}</p>
+      <p className="mb-1 text-sm font-medium text-stone-700">{effectiveLabel}</p>
       <div className="flex gap-6">
         <label className="flex items-center gap-2 text-sm text-stone-600">
           <input type="radio" name={name} value="yes" defaultChecked={defaultValue === true} className="h-4 w-4" />
@@ -213,9 +256,13 @@ export function YesNoField({ name, label, defaultValue }: { name: string; label:
 // Yes/No/N/A stored as the literal string "yes" | "no" | "na" (kept distinct
 // from an unanswered field, unlike a two-state boolean).
 export function YesNoNaField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: string | null }) {
+  const override = useFieldOverride(name);
+  if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
+  const effectiveLabel = override?.label || label;
+
   return (
     <div>
-      <p className="mb-1 text-sm font-medium text-stone-700">{label}</p>
+      <p className="mb-1 text-sm font-medium text-stone-700">{effectiveLabel}</p>
       <div className="flex gap-6">
         <label className="flex items-center gap-2 text-sm text-stone-600">
           <input type="radio" name={name} value="yes" defaultChecked={defaultValue === "yes"} className="h-4 w-4" />
@@ -249,9 +296,14 @@ export function YesNoWithDetail({
   detailDefault?: string | null;
   detailLabel?: string;
 }) {
+  const override = useFieldOverride(name);
+  const hasValue = (defaultValue !== null && defaultValue !== undefined) || Boolean(detailDefault);
+  if (isHiddenAndEmpty(override?.hidden, hasValue)) return null;
+  const effectiveLabel = override?.label || label;
+
   return (
     <div>
-      <p className="mb-1 text-sm font-medium text-stone-700">{label}</p>
+      <p className="mb-1 text-sm font-medium text-stone-700">{effectiveLabel}</p>
       <div className="flex flex-wrap items-center gap-6">
         <div className="flex gap-6">
           <label className="flex items-center gap-2 text-sm text-stone-600">

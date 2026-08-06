@@ -11,6 +11,7 @@ import { createNewIntakeVersion, signIntakeVersion } from "@/app/actions/intake"
 import { deleteIntakeVersion } from "@/app/actions/delete";
 import type { Demographics, CnaAssessment, HraAssessment, CareCoordinationNote } from "@/app/generated/prisma/client";
 import type { ResolvedFormFields } from "@/lib/form-fields/registry";
+import { mergeCustomQuestions, type CustomQuestionDef } from "@/lib/custom-questions-shared";
 
 type IntakeVersionRecord = {
   id: string;
@@ -32,6 +33,8 @@ export function IntakeShell({
   defaultSubTab,
   defaultVersionId,
   fields,
+  customQuestions,
+  customAnswersByRecord,
 }: {
   memberId: string;
   versions: IntakeVersionRecord[];
@@ -39,6 +42,8 @@ export function IntakeShell({
   defaultSubTab?: string;
   defaultVersionId?: string;
   fields: ResolvedFormFields;
+  customQuestions: { demographics: CustomQuestionDef[]; hra: CustomQuestionDef[]; cna: CustomQuestionDef[]; ccn: CustomQuestionDef[] };
+  customAnswersByRecord: Record<string, Record<string, unknown>>;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(defaultVersionId ?? versions[0]?.id ?? null);
   const version = versions.find((v) => v.id === selectedId) ?? versions[0] ?? null;
@@ -77,7 +82,13 @@ export function IntakeShell({
               id: "demographics",
               label: "Demographics",
               content: version.demographics ? (
-                <DemographicsTab memberId={memberId} record={version.demographics} locked={locked} fields={fields} />
+                <DemographicsTab
+                  memberId={memberId}
+                  record={version.demographics}
+                  locked={locked}
+                  fields={fields}
+                  customQuestions={mergeCustomQuestions(customQuestions.demographics, customAnswersByRecord[version.demographics.id])}
+                />
               ) : (
                 <MissingSection label="Demographics" />
               ),
@@ -86,7 +97,13 @@ export function IntakeShell({
               id: "hra",
               label: "HRA",
               content: version.hra ? (
-                <HraTab memberId={memberId} record={version.hra} locked={locked} fields={fields} />
+                <HraTab
+                  memberId={memberId}
+                  record={version.hra}
+                  locked={locked}
+                  fields={fields}
+                  customQuestions={mergeCustomQuestions(customQuestions.hra, customAnswersByRecord[version.hra.id])}
+                />
               ) : (
                 <MissingSection label="HRA" />
               ),
@@ -95,7 +112,13 @@ export function IntakeShell({
               id: "cna",
               label: "CNA",
               content: version.cna ? (
-                <CnaTab memberId={memberId} record={version.cna} locked={locked} fields={fields} />
+                <CnaTab
+                  memberId={memberId}
+                  record={version.cna}
+                  locked={locked}
+                  fields={fields}
+                  customQuestions={mergeCustomQuestions(customQuestions.cna, customAnswersByRecord[version.cna.id])}
+                />
               ) : (
                 <MissingSection label="CNA" />
               ),
@@ -104,7 +127,13 @@ export function IntakeShell({
               id: "notes",
               label: "Care Coordination Notes",
               content: version.note ? (
-                <CareCoordinationNotesTab memberId={memberId} record={version.note} locked={locked} fields={fields} />
+                <CareCoordinationNotesTab
+                  memberId={memberId}
+                  record={version.note}
+                  locked={locked}
+                  fields={fields}
+                  customQuestions={mergeCustomQuestions(customQuestions.ccn, customAnswersByRecord[version.note.id])}
+                />
               ) : (
                 <MissingSection label="Care Coordination Notes" />
               ),

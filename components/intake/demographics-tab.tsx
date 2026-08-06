@@ -13,19 +13,25 @@ import {
   SEXUAL_IDENTITY_OPTIONS,
 } from "@/components/intake/options";
 import type { ResolvedFormFields } from "@/lib/form-fields/registry";
+import { FormFieldsProvider } from "@/lib/form-fields/context";
+import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
+import type { CustomQuestionForRecord } from "@/lib/custom-questions-shared";
 
 export function DemographicsTab({
   memberId,
   record: selected,
   locked,
   fields,
+  customQuestions,
 }: {
   memberId: string;
   record: Demographics;
   locked: boolean;
   fields: ResolvedFormFields;
+  customQuestions: CustomQuestionForRecord[];
 }) {
   return (
+    <FormFieldsProvider form="demographics" fields={fields}>
     <div className="p-8">
       <form
         key={`${selected.id}-${selected.updatedAt.getTime()}`}
@@ -215,6 +221,8 @@ export function DemographicsTab({
               />
             </div>
           </Card>
+
+          <CustomQuestionsSection questions={customQuestions} />
         </fieldset>
 
         {!locked && (
@@ -234,5 +242,6 @@ export function DemographicsTab({
         )}
       </form>
     </div>
+    </FormFieldsProvider>
   );
 }

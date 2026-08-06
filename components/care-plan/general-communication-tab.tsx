@@ -10,6 +10,9 @@ import { CONTACT_METHOD_OPTIONS, PERSON_CONTACTED_OPTIONS, UNSUCCESSFUL_REASON_O
 import { formatDateTime, toDateInputValue } from "@/lib/format";
 import { getComplianceCadence, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
 import type { ResolvedFormFields } from "@/lib/form-fields/registry";
+import { FormFieldsProvider } from "@/lib/form-fields/context";
+import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
+import { mergeCustomQuestions, type CustomQuestionDef } from "@/lib/custom-questions-shared";
 
 type CommRecord = GeneralCommunication & { author: { name: string } | null };
 
@@ -18,14 +21,19 @@ export function GeneralCommunicationTab({
   records,
   program,
   fields,
+  customQuestionDefs,
+  customAnswersByRecord,
 }: {
   memberId: string;
   records: CommRecord[];
   program: string | null;
   fields: ResolvedFormFields;
+  customQuestionDefs: CustomQuestionDef[];
+  customAnswersByRecord: Record<string, Record<string, unknown>>;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(records[0]?.id ?? null);
   const record = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
+  const customQuestions = record ? mergeCustomQuestions(customQuestionDefs, customAnswersByRecord[record.id]) : [];
 
   const historyItems = records.map((r) => ({ id: r.id, dateLabel: r.createdAt }));
 
@@ -52,6 +60,7 @@ export function GeneralCommunicationTab({
   }, [records, program]);
 
   return (
+    <FormFieldsProvider form="generalComm" fields={fields}>
     <div className="p-8">
       {records.length > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-stone-500">
@@ -141,11 +150,15 @@ export function GeneralCommunicationTab({
               className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
             />
           </Card>
+
+          <CustomQuestionsSection questions={customQuestions} />
+
           <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden">
             Save
           </button>
         </form>
       )}
     </div>
+    </FormFieldsProvider>
   );
 }

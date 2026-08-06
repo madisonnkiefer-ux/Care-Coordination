@@ -4,6 +4,7 @@ import { getGeneralCommunicationFormData } from "@/lib/data/general-communicatio
 import { getHedisFormData } from "@/lib/data/hedis";
 import { getCurrentUser, verifySession } from "@/lib/dal";
 import { getFormFieldOverrides } from "@/lib/data/form-fields";
+import { getActiveCustomQuestionDefs, getCustomAnswersByRecord } from "@/lib/data/custom-questions";
 import { PageHeader } from "@/components/ui";
 import { Tabs } from "@/components/tabs";
 import { CcpTab } from "@/components/care-plan/ccp-tab";
@@ -35,6 +36,13 @@ export default async function CarePlanPage({
   const { member, records: carePlans } = carePlanData;
   const currentUserIsAdmin = currentUser?.role === "ADMIN";
 
+  const [ccpQuestionDefs, generalCommQuestionDefs, ccpAnswers, generalCommAnswers] = await Promise.all([
+    getActiveCustomQuestionDefs(session.clinicId, "ccp"),
+    getActiveCustomQuestionDefs(session.clinicId, "generalComm"),
+    getCustomAnswersByRecord(carePlans.map((p) => p.id)),
+    getCustomAnswersByRecord(commData.records.map((r) => r.id)),
+  ]);
+
   return (
     <div>
       <PageHeader
@@ -56,6 +64,8 @@ export default async function CarePlanPage({
                 defaultVersionId={version}
                 currentUserIsAdmin={currentUserIsAdmin}
                 fields={fields}
+                customQuestionDefs={ccpQuestionDefs}
+                customAnswersByRecord={ccpAnswers}
               />
             ),
           },
@@ -64,7 +74,14 @@ export default async function CarePlanPage({
             id: "general-communication",
             label: "General Communication",
             content: (
-              <GeneralCommunicationTab memberId={id} records={commData.records} program={member.program} fields={fields} />
+              <GeneralCommunicationTab
+                memberId={id}
+                records={commData.records}
+                program={member.program}
+                fields={fields}
+                customQuestionDefs={generalCommQuestionDefs}
+                customAnswersByRecord={generalCommAnswers}
+              />
             ),
           },
         ]}

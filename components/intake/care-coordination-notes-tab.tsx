@@ -13,19 +13,25 @@ import {
   COMPLEX_CASE_OPTIONS,
 } from "@/components/intake/options";
 import type { ResolvedFormFields } from "@/lib/form-fields/registry";
+import { FormFieldsProvider } from "@/lib/form-fields/context";
+import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
+import type { CustomQuestionForRecord } from "@/lib/custom-questions-shared";
 
 export function CareCoordinationNotesTab({
   memberId,
   record: draft,
   locked,
   fields,
+  customQuestions,
 }: {
   memberId: string;
   record: CareCoordinationNote;
   locked: boolean;
   fields: ResolvedFormFields;
+  customQuestions: CustomQuestionForRecord[];
 }) {
   return (
+    <FormFieldsProvider form="ccn" fields={fields}>
     <div className="p-8">
       <form
         key={`${draft.id}-${draft.updatedAt.getTime()}`}
@@ -96,7 +102,7 @@ export function CareCoordinationNotesTab({
             <p className="mb-2 text-xs font-semibold text-stone-700">*Members with the below indicators may not be leveled down.</p>
             <CheckboxGroup
               name="cannotBeLeveledDownIndicators"
-              options={fields["ccn.cannotBeLeveledDown"]?.options ?? CANNOT_BE_LEVELED_DOWN_OPTIONS}
+              options={fields["ccn.cannotBeLeveledDownIndicators"]?.options ?? CANNOT_BE_LEVELED_DOWN_OPTIONS}
               defaultValues={draft?.cannotBeLeveledDownIndicators}
             />
           </div>
@@ -175,11 +181,13 @@ export function CareCoordinationNotesTab({
           <SelectField
             name="complexCaseManagementOrNfloc"
             label="15. Is the Member being assessed for Complex Case Management or considered for initial NFLOC?"
-            options={fields["ccn.complexCase"]?.options ?? COMPLEX_CASE_OPTIONS}
+            options={fields["ccn.complexCaseManagementOrNfloc"]?.options ?? COMPLEX_CASE_OPTIONS}
             defaultValue={draft?.complexCaseManagementOrNfloc}
           />
         </div>
       </Card>
+
+      <CustomQuestionsSection questions={customQuestions} />
       </fieldset>
 
       {!locked && (
@@ -204,5 +212,6 @@ export function CareCoordinationNotesTab({
       )}
       </form>
     </div>
+    </FormFieldsProvider>
   );
 }

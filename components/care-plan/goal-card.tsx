@@ -60,8 +60,8 @@ export function GoalCard({
               <div className="mt-2 max-w-xs">
                 <SelectField
                   name="priority"
-                  label={fields["ccp.goalPriority"]?.label ?? "Priority"}
-                  options={fields["ccp.goalPriority"]?.options ?? GOAL_PRIORITY_OPTIONS}
+                  label={fields["ccp.priority"]?.label ?? "Priority"}
+                  options={fields["ccp.priority"]?.options ?? GOAL_PRIORITY_OPTIONS}
                   defaultValue={goal.priority}
                 />
               </div>

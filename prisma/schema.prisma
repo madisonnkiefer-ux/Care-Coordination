@@ -36,6 +36,7 @@ model Clinic {
   notifications      Notification[]
   billingExports     BillingExport[]
   formFieldOverrides FormFieldOverride[]
+  customQuestions    CustomQuestion[]
 }
 
 model User {
@@ -78,6 +79,7 @@ model User {
   tocRecordsDeleted     TocRecord[]     @relation("TocRecordDeletedBy")
 
   formFieldOverridesUpdated FormFieldOverride[] @relation("FormFieldOverrideUpdatedBy")
+  customQuestionsCreated    CustomQuestion[]
 
   @@index([clinicId])
 }
@@ -1212,11 +1214,75 @@ model FormFieldOverride {
   fieldKey    String
   label       String?
   options     Json?
+  // Retires a non-protected built-in question from new forms going forward.
+  // Never touches already-saved answers or already-signed records — those
+  // keep rendering/printing exactly as before, since the underlying Prisma
+  // column and its stored value are untouched.
+  hidden      Boolean  @default(false)
   updatedAt   DateTime @updatedAt
   updatedById String?
   updatedBy   User?    @relation("FormFieldOverrideUpdatedBy", fields: [updatedById], references: [id])
 
   @@unique([clinicId, fieldKey])
+}
+
+enum CustomQuestionType {
+  TEXT
+  TEXTAREA
+  SELECT
+  CHECKBOX_GROUP
+  YES_NO
+  DATE
+}
+
+// Admin-defined questions layered onto a standardized form, alongside its
+// built-in fields — the "add a new question" half of Settings → Form
+// Content. Kept fully separate from the built-in Prisma columns on
+// Demographics/HraAssessment/etc. on purpose: those stay typed and tied to
+// the compliance/scoring logic that reads them by name (see
+// lib/form-fields/registry.ts's PROTECTED_FIELDS), while custom questions
+// are free-form and admin-owned.
+model CustomQuestion {
+  id          String             @id @default(cuid())
+  clinicId    String
+  clinic      Clinic             @relation(fields: [clinicId], references: [id])
+  form        String // matches FormFieldDef["form"] in lib/form-fields/registry.ts
+  section     String?
+  type        CustomQuestionType
+  label       String
+  options     Json? // string[] — only for SELECT / CHECKBOX_GROUP
+  order       Int                @default(0)
+  // Retiring a custom question stops it from appearing on new forms without
+  // deleting previously-collected answers (same non-destructive pattern as
+  // `FormFieldOverride.hidden` above).
+  active      Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  createdById String?
+  createdBy   User?              @relation(fields: [createdById], references: [id])
+
+  answers CustomAnswer[]
+
+  @@index([clinicId, form])
+}
+
+// One answer to one CustomQuestion on one specific form record. `recordId`
+// deliberately isn't a typed foreign key — a custom question can attach to
+// any of 7 different record types (Demographics, HraAssessment,
+// CnaAssessment, CareCoordinationNote, CarePlan, GeneralCommunication,
+// TocRecord), and Prisma has no polymorphic relation; `question.form` says
+// which table `recordId` refers to. This is supplementary, admin-added
+// data — the primary PHI fields on those 7 models keep their normal typed
+// FKs and are unaffected by this design choice.
+model CustomAnswer {
+  id         String         @id @default(cuid())
+  questionId String
+  question   CustomQuestion @relation(fields: [questionId], references: [id])
+  recordId   String
+  value      Json?
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([questionId, recordId])
 }
 
 // ---------- Resource directory (referral resources, programs, and key contacts) ----------

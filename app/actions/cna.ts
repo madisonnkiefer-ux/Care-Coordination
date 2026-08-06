@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { saveCustomAnswers } from "@/lib/custom-questions-save";
 import type { AssessmentStatus } from "@/app/generated/prisma/client";
 
 export async function saveCna(memberId: string, cnaId: string, formData: FormData) {
@@ -261,6 +262,8 @@ export async function saveCna(memberId: string, cnaId: string, formData: FormDat
   };
 
   await db.cnaAssessment.update({ where: { id: cnaId }, data });
+
+  await saveCustomAnswers(member.clinicId, "cna", cnaId, formData);
 
   await writeAuditLog({
     userId: session.userId,

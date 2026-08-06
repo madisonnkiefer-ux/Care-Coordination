@@ -26,21 +26,27 @@ import {
   ADL_HELP_OPTIONS,
 } from "@/components/intake/options";
 import type { ResolvedFormFields } from "@/lib/form-fields/registry";
+import { FormFieldsProvider } from "@/lib/form-fields/context";
+import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
+import type { CustomQuestionForRecord } from "@/lib/custom-questions-shared";
 
 export function HraTab({
   memberId,
   record: draft,
   locked,
   fields,
+  customQuestions,
 }: {
   memberId: string;
   record: HraAssessment;
   locked: boolean;
   fields: ResolvedFormFields;
+  customQuestions: CustomQuestionForRecord[];
 }) {
   const cnaReasons = getCnaRequiredReasons(draft);
 
   return (
+    <FormFieldsProvider form="hra" fields={fields}>
     <div className="p-8">
       <form
         key={`${draft.id}-${draft.updatedAt.getTime()}`}
@@ -225,7 +231,7 @@ export function HraTab({
             <p className="mb-2 text-sm font-semibold text-charcoal">19. Do you need help with 2 or more of the following?</p>
             <YesNoField name="needsHelpWith2OrMoreAdls" label="" defaultValue={draft?.needsHelpWith2OrMoreAdls} />
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectField name="adlHelpNeeded" label="" options={fields["hra.adlHelp"]?.options ?? ADL_HELP_OPTIONS} defaultValue={draft?.adlHelpNeeded} />
+              <SelectField name="adlHelpNeeded" label="" options={fields["hra.adlHelpNeeded"]?.options ?? ADL_HELP_OPTIONS} defaultValue={draft?.adlHelpNeeded} />
               <TextField name="adlHelpOther" label="If other, please describe" defaultValue={draft?.adlHelpOther} />
             </div>
           </div>
@@ -267,6 +273,8 @@ export function HraTab({
           </div>
         </div>
       </Card>
+
+      <CustomQuestionsSection questions={customQuestions} />
       </fieldset>
 
       {!locked && (
@@ -291,5 +299,6 @@ export function HraTab({
       )}
       </form>
     </div>
+    </FormFieldsProvider>
   );
 }

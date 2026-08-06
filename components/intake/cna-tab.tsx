@@ -29,17 +29,22 @@ import {
   PHQ_DIFFICULTY_OPTIONS,
 } from "@/components/intake/options";
 import type { ResolvedFormFields } from "@/lib/form-fields/registry";
+import { FormFieldsProvider } from "@/lib/form-fields/context";
+import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
+import type { CustomQuestionForRecord } from "@/lib/custom-questions-shared";
 
 export function CnaTab({
   memberId,
   record: draft,
   locked,
   fields,
+  customQuestions,
 }: {
   memberId: string;
   record: CnaAssessment;
   locked: boolean;
   fields: ResolvedFormFields;
+  customQuestions: CustomQuestionForRecord[];
 }) {
   const safetyReasons = getSafetyConcernReasons(draft);
   const bmi = computeBmi(draft.heightInches, draft.weightLbs);
@@ -48,6 +53,7 @@ export function CnaTab({
   const cageTotal = computeCageTotal(draft);
 
   return (
+    <FormFieldsProvider form="cna" fields={fields}>
     <div className="p-8">
       <form
         key={`${draft.id}-${draft.updatedAt.getTime()}`}
@@ -133,7 +139,7 @@ export function CnaTab({
           <div>
             <p className="mb-2 text-sm font-semibold text-charcoal">5. How many times have you been in the Emergency Room in the last 12 months?</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectField name="erVisitsLast12Months" label="" options={fields["cna.erVisits"]?.options ?? ER_VISITS_OPTIONS} defaultValue={draft?.erVisitsLast12Months} />
+              <SelectField name="erVisitsLast12Months" label="" options={fields["cna.erVisitsLast12Months"]?.options ?? ER_VISITS_OPTIONS} defaultValue={draft?.erVisitsLast12Months} />
               <TextField name="erVisitsDescribe" label="Describe" defaultValue={draft?.erVisitsDescribe} />
             </div>
           </div>
@@ -149,7 +155,7 @@ export function CnaTab({
           <div>
             <p className="mb-2 text-sm font-semibold text-charcoal">7. How many times have you been in the hospital in the last 6 months?</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SelectField name="hospitalStaysLast6Months" label="" options={fields["cna.hospitalStays"]?.options ?? HOSPITAL_STAYS_OPTIONS} defaultValue={draft?.hospitalStaysLast6Months} />
+              <SelectField name="hospitalStaysLast6Months" label="" options={fields["cna.hospitalStaysLast6Months"]?.options ?? HOSPITAL_STAYS_OPTIONS} defaultValue={draft?.hospitalStaysLast6Months} />
               <TextField name="hospitalStaysDescribe" label="Describe if appropriate" defaultValue={draft?.hospitalStaysDescribe} />
             </div>
           </div>
@@ -287,7 +293,7 @@ export function CnaTab({
           <SelectField
             name="overallHealthVsYearAgo"
             label="How would you describe your overall health compared to a year ago?"
-            options={fields["cna.overallHealth"]?.options ?? OVERALL_HEALTH_OPTIONS}
+            options={fields["cna.overallHealthVsYearAgo"]?.options ?? OVERALL_HEALTH_OPTIONS}
             defaultValue={draft?.overallHealthVsYearAgo}
           />
 
@@ -533,7 +539,7 @@ export function CnaTab({
           <SelectField
             name="phqDifficultyLevel"
             label="If you checked off any problems, how difficult have these problems made it for you to do your work, take care of things at home, or get along with other people?"
-            options={fields["cna.phqDifficulty"]?.options ?? PHQ_DIFFICULTY_OPTIONS}
+            options={fields["cna.phqDifficultyLevel"]?.options ?? PHQ_DIFFICULTY_OPTIONS}
             defaultValue={draft?.phqDifficultyLevel}
           />
         </div>
@@ -785,6 +791,8 @@ export function CnaTab({
           </div>
         </div>
       </Card>
+
+      <CustomQuestionsSection questions={customQuestions} />
       </fieldset>
 
       {!locked && (
@@ -809,6 +817,7 @@ export function CnaTab({
       )}
       </form>
     </div>
+    </FormFieldsProvider>
   );
 }
 

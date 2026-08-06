@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTocFormData } from "@/lib/data/toc";
 import { getCurrentUser, verifySession } from "@/lib/dal";
 import { getFormFieldOverrides } from "@/lib/data/form-fields";
+import { getActiveCustomQuestionDefs, getCustomAnswersByRecord } from "@/lib/data/custom-questions";
 import { PageHeader } from "@/components/ui";
 import { TocForm } from "@/components/toc/toc-form";
 import { PrintButton } from "@/components/print-button";
@@ -27,6 +28,11 @@ export default async function TocPage({
   const { member, records } = tocData;
   const currentUserIsAdmin = currentUser?.role === "ADMIN";
 
+  const [customQuestionDefs, customAnswersByRecord] = await Promise.all([
+    getActiveCustomQuestionDefs(session.clinicId, "toc"),
+    getCustomAnswersByRecord(records.map((r) => r.id)),
+  ]);
+
   return (
     <div>
       <PageHeader
@@ -35,7 +41,15 @@ export default async function TocPage({
         backHref={`/members/${id}`}
         action={<PrintButton label="Print This TOC" />}
       />
-      <TocForm memberId={id} records={records} currentUserIsAdmin={currentUserIsAdmin} defaultVersionId={version} fields={fields} />
+      <TocForm
+        memberId={id}
+        records={records}
+        currentUserIsAdmin={currentUserIsAdmin}
+        defaultVersionId={version}
+        fields={fields}
+        customQuestionDefs={customQuestionDefs}
+        customAnswersByRecord={customAnswersByRecord}
+      />
     </div>
   );
 }

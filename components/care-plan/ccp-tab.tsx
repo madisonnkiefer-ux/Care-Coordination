@@ -19,6 +19,9 @@ import type {
   CarePlanProgressNote,
 } from "@/app/generated/prisma/client";
 import type { ResolvedFormFields } from "@/lib/form-fields/registry";
+import { FormFieldsProvider } from "@/lib/form-fields/context";
+import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
+import { mergeCustomQuestions, type CustomQuestionDef } from "@/lib/custom-questions-shared";
 
 type CarePlanRecord = CarePlan & {
   teamMembers: CarePlanTeamMember[];
@@ -39,19 +42,25 @@ export function CcpTab({
   defaultVersionId,
   currentUserIsAdmin,
   fields,
+  customQuestionDefs,
+  customAnswersByRecord,
 }: {
   memberId: string;
   records: CarePlanRecord[];
   defaultVersionId?: string;
   currentUserIsAdmin?: boolean;
   fields: ResolvedFormFields;
+  customQuestionDefs: CustomQuestionDef[];
+  customAnswersByRecord: Record<string, Record<string, unknown>>;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(defaultVersionId ?? records[0]?.id ?? null);
   const plan = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
+  const customQuestions = plan ? mergeCustomQuestions(customQuestionDefs, customAnswersByRecord[plan.id]) : [];
 
   const historyItems = records.map((r) => ({ id: r.id, dateLabel: r.createdAt }));
 
   return (
+    <FormFieldsProvider form="ccp" fields={fields}>
     <div className="p-8">
       <SimpleHistoryBar
         items={historyItems}
@@ -301,6 +310,8 @@ export function CcpTab({
               </div>
             </Card>
 
+            <CustomQuestionsSection questions={customQuestions} />
+
             <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden">
               Save Care Plan
             </button>
@@ -322,5 +333,6 @@ export function CcpTab({
         </div>
       )}
     </div>
+    </FormFieldsProvider>
   );
 }
