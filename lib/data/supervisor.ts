@@ -184,8 +184,10 @@ export async function getSupervisorData() {
     });
 
   // Touchpoint compliance is program-based: Prenatal/Postpartum members need
-  // 1 successful contact (or 3 attempts) every month; everyone else needs
-  // the same every quarter. See lib/touchpoint-compliance.ts.
+  // 1 successful contact (or 3 attempts) every month; GYN members need 1
+  // successful contact (or 1 attempt) every month; everyone else needs 1
+  // successful contact (or 3 attempts) every quarter. See
+  // lib/touchpoint-compliance.ts.
   const touchpointGaps = membersForContactCadence
     .map((m) => {
       const cadence = getComplianceCadence(m.program);

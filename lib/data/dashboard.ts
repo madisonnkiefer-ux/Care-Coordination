@@ -118,7 +118,9 @@ export async function getDashboardData() {
 
   // Touchpoint compliance is program-based (see lib/touchpoint-compliance.ts):
   // Prenatal/Postpartum members need 1 successful contact (or 3 attempts)
-  // every month; everyone else needs the same every quarter.
+  // every month; GYN members need 1 successful contact (or 1 attempt) every
+  // month; everyone else needs 1 successful contact (or 3 attempts) every
+  // quarter.
   const touchpointGaps = membersForContactCheck
     .map((m) => ({
       id: m.id,

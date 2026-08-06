@@ -70,7 +70,7 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
     : null;
 
   // Touchpoint due date is the end of the member's current compliance
-  // window (month for Prenatal/Postpartum, quarter otherwise) — see
+  // window (month for Prenatal/Postpartum/GYN, quarter otherwise) — see
   // lib/touchpoint-compliance.ts.
   const touchpointDueDate = windowEnd;
 

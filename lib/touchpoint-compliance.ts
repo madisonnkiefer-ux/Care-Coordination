@@ -1,10 +1,12 @@
 // Program-based touchpoint compliance cadence, shared by every place in the
 // app that flags a member as under-contacted.
 //
-// Prenatal and Postpartum members are checked monthly: 1 successful contact
-// this month, or 3 attempts (successful or not) this month — either one
-// satisfies the cadence. Every other program (GYN, Chronic Care, none set,
-// etc.) is checked quarterly on the same 1-successful-or-3-attempts rule.
+// Prenatal and Postpartum (OB) members are checked monthly: 1 successful
+// contact this month, or 3 attempts (successful or not) this month — either
+// one satisfies the cadence. GYN members are also checked monthly, but only
+// need 1 attempt (successful or not) when there's no successful contact.
+// Every other program (Chronic Care, none set, etc.) is checked quarterly on
+// the 1-successful-or-3-attempts rule.
 export type ComplianceUnit = "month" | "quarter";
 
 export type ComplianceCadence = {
@@ -16,6 +18,9 @@ export type ComplianceCadence = {
 export function getComplianceCadence(program: string | null | undefined): ComplianceCadence {
   if (program === "Prenatal" || program === "Postpartum") {
     return { unit: "month", requiredSuccessful: 1, requiredAttempts: 3 };
+  }
+  if (program === "GYN") {
+    return { unit: "month", requiredSuccessful: 1, requiredAttempts: 1 };
   }
   return { unit: "quarter", requiredSuccessful: 1, requiredAttempts: 3 };
 }
