@@ -62,32 +62,6 @@ export async function createCustomQuestion(form: string, formData: FormData) {
   revalidatePath("/settings");
 }
 
-export async function updateCustomQuestion(questionId: string, formData: FormData) {
-  const session = await requireRole("ADMIN");
-  const question = await db.customQuestion.findUnique({ where: { id: questionId } });
-  if (!question || question.clinicId !== session.clinicId) throw new Error("Not found.");
-
-  const label = String(formData.get("label") ?? "").trim();
-  if (!label) throw new Error("A question label is required.");
-
-  let options: string[] | undefined;
-  if (OPTIONS_TYPES.includes(question.type)) {
-    options = parseOptions(formData);
-    if (options.length === 0) throw new Error("At least one option is required for this question type.");
-  }
-
-  const sectionRaw = String(formData.get("section") ?? "").trim();
-
-  await db.customQuestion.update({
-    where: { id: questionId },
-    data: { label, options, section: sectionRaw || null },
-  });
-
-  await writeAuditLog({ userId: session.userId, action: "UPDATE", resource: "CustomQuestion", resourceId: questionId });
-
-  revalidatePath("/settings");
-}
-
 export async function setCustomQuestionActive(questionId: string, active: boolean) {
   const session = await requireRole("ADMIN");
   const question = await db.customQuestion.findUnique({ where: { id: questionId } });

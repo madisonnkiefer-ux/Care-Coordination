@@ -144,6 +144,8 @@ export async function saveTocRecord(memberId: string, tocId: string, formData: F
     }
   });
 
+  await saveCustomAnswers(member.clinicId, "toc", tocId, formData);
+
   await writeAuditLog({
     userId: session.userId,
     memberId,
