@@ -299,8 +299,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                         className="flex items-center justify-between gap-3 py-2 text-sm text-stone-700 hover:text-charcoal"
                       >
                         <span className="min-w-0 truncate">
-                          <span className="font-medium">{entry.name}</span>
-                          <span className="ml-2 text-stone-400">{formatDate(entry.date)}</span>
+                          <span className="text-stone-400">{formatDate(entry.date)}</span>
+                          <span className="ml-2 font-medium">{entry.name}</span>
                         </span>
                         <Badge color={entry.badge.color}>{entry.badge.label}</Badge>
                       </a>
@@ -312,8 +312,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                         className="flex items-center justify-between gap-3 py-2 text-sm text-stone-700 hover:text-charcoal"
                       >
                         <span className="min-w-0 truncate">
-                          <span className="font-medium">{entry.name}</span>
-                          <span className="ml-2 text-stone-400">{formatDate(entry.date)}</span>
+                          <span className="text-stone-400">{formatDate(entry.date)}</span>
+                          <span className="ml-2 font-medium">{entry.name}</span>
                         </span>
                         <Badge color={entry.badge.color}>{entry.badge.label}</Badge>
                       </Link>
