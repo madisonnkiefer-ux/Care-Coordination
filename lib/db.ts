@@ -28,25 +28,30 @@ function createClient() {
         findMany: ({ args, query }) => query(withDefaultNotDeleted(args)),
         findFirst: ({ args, query }) => query(withDefaultNotDeleted(args)),
         count: ({ args, query }) => query(withDefaultNotDeleted(args)),
-        findUnique: ({ args }) => base.member.findFirst({ where: { ...args.where, deletedAt: null } }),
+        // Rewritten as findFirst (findUnique can't take a non-unique deletedAt
+        // filter) but must forward the *entire* args object — an earlier
+        // version rebuilt this as `{ where: { ...args.where, deletedAt: null } }`,
+        // which silently dropped `include`/`select`/etc., leaving every
+        // relation on the result `undefined` instead of populated or null.
+        findUnique: ({ args }) => base.member.findFirst(withDefaultNotDeleted(args)),
       },
       intakeVersion: {
         findMany: ({ args, query }) => query(withDefaultNotDeleted(args)),
         findFirst: ({ args, query }) => query(withDefaultNotDeleted(args)),
         count: ({ args, query }) => query(withDefaultNotDeleted(args)),
-        findUnique: ({ args }) => base.intakeVersion.findFirst({ where: { ...args.where, deletedAt: null } }),
+        findUnique: ({ args }) => base.intakeVersion.findFirst(withDefaultNotDeleted(args)),
       },
       carePlan: {
         findMany: ({ args, query }) => query(withDefaultNotDeleted(args)),
         findFirst: ({ args, query }) => query(withDefaultNotDeleted(args)),
         count: ({ args, query }) => query(withDefaultNotDeleted(args)),
-        findUnique: ({ args }) => base.carePlan.findFirst({ where: { ...args.where, deletedAt: null } }),
+        findUnique: ({ args }) => base.carePlan.findFirst(withDefaultNotDeleted(args)),
       },
       tocRecord: {
         findMany: ({ args, query }) => query(withDefaultNotDeleted(args)),
         findFirst: ({ args, query }) => query(withDefaultNotDeleted(args)),
         count: ({ args, query }) => query(withDefaultNotDeleted(args)),
-        findUnique: ({ args }) => base.tocRecord.findFirst({ where: { ...args.where, deletedAt: null } }),
+        findUnique: ({ args }) => base.tocRecord.findFirst(withDefaultNotDeleted(args)),
       },
     },
   });
