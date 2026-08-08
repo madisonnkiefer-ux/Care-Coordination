@@ -34,7 +34,7 @@ export function GoalCard({
       <div className="flex items-start justify-between gap-4">
         <button type="button" onClick={() => setExpanded((v) => !v)} className="flex-1 text-left">
           <p className="text-sm font-semibold text-charcoal">{goal.opportunity || goal.goalText || "Untitled goal"}</p>
-          {goal.priority && <p className="text-xs text-stone-500">{goal.priority}</p>}
+          {goal.priority && <p className="text-xs text-stone-600">{goal.priority}</p>}
         </button>
         <GoalStatusSelect memberId={memberId} goalId={goal.id} status={goal.status as GoalStatus} />
         <button
@@ -48,6 +48,9 @@ export function GoalCard({
 
       {expanded && (
         <div className="mt-5 space-y-6 border-t border-stone-100 pt-5">
+          {/* No submit button here — the page's single "Save Care Plan" button submits this
+              (and every other goal's form, plus the coordinator-action fields below that
+              point back at this id via `form=`) together via requestSubmit(). */}
           <form
             key={`${goal.id}-${goal.updatedAt.getTime()}`}
             id={`goal-form-${goal.id}`}
@@ -55,10 +58,11 @@ export function GoalCard({
             className="space-y-5"
           >
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">Opportunity</p>
-              <TextField name="opportunity" label="Opportunity" defaultValue={goal.opportunity} />
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-600">Opportunity</p>
+              <TextField id={`${goal.id}-opportunity`} name="opportunity" label="Opportunity" defaultValue={goal.opportunity} />
               <div className="mt-2 max-w-xs">
                 <SelectField
+                  id={`${goal.id}-priority`}
                   name="priority"
                   label={fields["ccp.priority"]?.label ?? "Priority"}
                   options={fields["ccp.priority"]?.options ?? GOAL_PRIORITY_OPTIONS}
@@ -75,40 +79,47 @@ export function GoalCard({
             </div>
 
             <div className="space-y-4">
-              <TextArea name="strengths" label="Strengths" defaultValue={goal.strengths} rows={3} />
-              <TextArea name="barriers" label="Barriers" defaultValue={goal.barriers} rows={3} />
+              <TextArea id={`${goal.id}-strengths`} name="strengths" label="Strengths" defaultValue={goal.strengths} rows={3} />
+              <TextArea id={`${goal.id}-barriers`} name="barriers" label="Barriers" defaultValue={goal.barriers} rows={3} />
             </div>
 
             <div className="space-y-4">
               <div>
                 <Checkbox name="memberDeferredDiscussion" label="Member deferred discussion" defaultChecked={goal.memberDeferredDiscussion ?? false} />
                 <div className="mt-2">
-                  <TextField name="deferredReason" label="Reason deferred (if stated)" defaultValue={goal.deferredReason} />
+                  <TextField id={`${goal.id}-deferredReason`} name="deferredReason" label="Reason deferred (if stated)" defaultValue={goal.deferredReason} />
                 </div>
               </div>
               <div>
                 <Checkbox name="memberDeclinedDiscussion" label="Member declined discussion" defaultChecked={goal.memberDeclinedDiscussion ?? false} />
                 <div className="mt-2">
-                  <TextField name="declinedReason" label="Reason declined (if stated)" defaultValue={goal.declinedReason} />
+                  <TextField id={`${goal.id}-declinedReason`} name="declinedReason" label="Reason declined (if stated)" defaultValue={goal.declinedReason} />
                 </div>
               </div>
             </div>
 
-            <TextArea name="goalText" label="Goal" defaultValue={goal.goalText} rows={3} />
+            <TextArea id={`${goal.id}-goalText`} name="goalText" label="Goal" defaultValue={goal.goalText} rows={8} />
 
             <div className="rounded-lg border border-stone-100 bg-stone-50 p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-500">Action I will take (Member)</p>
-              <TextArea name="memberActionText" label="Action I will take to achieve this goal" defaultValue={goal.memberActionText} rows={2} />
-              <div className="mt-3 space-y-3">
-                <DateField name="memberActionBeginDate" label="Begin Date" defaultValue={toInputDate(goal.memberActionBeginDate)} />
-                <DateField name="memberActionTargetEndDate" label="Target End Date" defaultValue={toInputDate(goal.memberActionTargetEndDate)} />
-                <DateField name="memberActionAccomplishedDate" label="Date Goal Accomplished" defaultValue={toInputDate(goal.memberActionAccomplishedDate)} />
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-600">Action I will take (Member)</p>
+              <TextArea
+                id={`${goal.id}-memberActionText`}
+                name="memberActionText"
+                label="Action I will take to achieve this goal"
+                defaultValue={goal.memberActionText}
+                rows={2}
+              />
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <DateField id={`${goal.id}-memberActionBeginDate`} name="memberActionBeginDate" label="Begin Date" defaultValue={toInputDate(goal.memberActionBeginDate)} />
+                <DateField id={`${goal.id}-memberActionTargetEndDate`} name="memberActionTargetEndDate" label="Target End Date" defaultValue={toInputDate(goal.memberActionTargetEndDate)} />
+                <DateField id={`${goal.id}-memberActionAccomplishedDate`} name="memberActionAccomplishedDate" label="Date Completed" defaultValue={toInputDate(goal.memberActionAccomplishedDate)} />
               </div>
             </div>
           </form>
 
           <div className="border-t border-stone-100 pt-5">
             <ProgressNoteColumn
+              idPrefix={`${goal.id}-member`}
               label="Member Progress Updates"
               notes={memberNotes}
               action={addProgressNote.bind(null, memberId, carePlanId, goal.id)}
@@ -117,30 +128,42 @@ export function GoalCard({
           </div>
 
           <div className="rounded-lg border border-stone-100 bg-stone-50 p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-500">Action my care coordinator will take</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-600">Action my care coordinator will take</p>
             <TextArea
+              id={`${goal.id}-coordinatorActionText`}
               name="coordinatorActionText"
               label="Action my care coordinator will take to help me achieve this goal"
               defaultValue={goal.coordinatorActionText}
               rows={2}
               form={`goal-form-${goal.id}`}
             />
-            <div className="mt-3 space-y-3">
-              <DateField name="coordinatorActionBeginDate" label="Begin Date" defaultValue={toInputDate(goal.coordinatorActionBeginDate)} form={`goal-form-${goal.id}`} />
-              <DateField name="coordinatorActionTargetEndDate" label="Target End Date" defaultValue={toInputDate(goal.coordinatorActionTargetEndDate)} form={`goal-form-${goal.id}`} />
-              <DateField name="coordinatorActionAccomplishedDate" label="Date Goal Accomplished" defaultValue={toInputDate(goal.coordinatorActionAccomplishedDate)} form={`goal-form-${goal.id}`} />
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <DateField
+                id={`${goal.id}-coordinatorActionBeginDate`}
+                name="coordinatorActionBeginDate"
+                label="Begin Date"
+                defaultValue={toInputDate(goal.coordinatorActionBeginDate)}
+                form={`goal-form-${goal.id}`}
+              />
+              <DateField
+                id={`${goal.id}-coordinatorActionTargetEndDate`}
+                name="coordinatorActionTargetEndDate"
+                label="Target End Date"
+                defaultValue={toInputDate(goal.coordinatorActionTargetEndDate)}
+                form={`goal-form-${goal.id}`}
+              />
+              <DateField
+                id={`${goal.id}-coordinatorActionAccomplishedDate`}
+                name="coordinatorActionAccomplishedDate"
+                label="Date Completed"
+                defaultValue={toInputDate(goal.coordinatorActionAccomplishedDate)}
+                form={`goal-form-${goal.id}`}
+              />
             </div>
           </div>
 
-          <button
-            type="submit"
-            form={`goal-form-${goal.id}`}
-            className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden"
-          >
-            Save Goal
-          </button>
-
           <ProgressNoteColumn
+            idPrefix={`${goal.id}-coordinator`}
             label="Care Coordinator Progress Updates"
             notes={coordinatorNotes}
             action={addProgressNote.bind(null, memberId, carePlanId, goal.id)}
@@ -153,11 +176,13 @@ export function GoalCard({
 }
 
 function ProgressNoteColumn({
+  idPrefix,
   label,
   notes,
   action,
   track,
 }: {
+  idPrefix: string;
   label: string;
   notes: CarePlanProgressNote[];
   action: (formData: FormData) => Promise<void>;
@@ -165,20 +190,20 @@ function ProgressNoteColumn({
 }) {
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">{label}</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-600">{label}</p>
       <ul className="mb-3 space-y-2">
-        {notes.length === 0 && <li className="text-sm text-stone-400">No progress updates yet.</li>}
+        {notes.length === 0 && <li className="text-sm text-stone-500">No progress updates yet.</li>}
         {notes.map((n) => (
           <li key={n.id} className="rounded-md border border-stone-100 bg-white p-2 text-sm text-stone-700">
             <p>{n.note}</p>
-            {n.date && <p className="mt-1 text-xs text-stone-400">{formatDate(n.date)}</p>}
+            {n.date && <p className="mt-1 text-xs text-stone-500">{formatDate(n.date)}</p>}
           </li>
         ))}
       </ul>
       <form action={action} className="space-y-2 print:hidden">
         <input type="hidden" name="track" value={track} />
-        <TextArea name="note" label="Progress Update" rows={2} />
-        <DateField name="date" label="Date" />
+        <TextArea id={`${idPrefix}-note`} name="note" label="Progress Update" rows={2} />
+        <DateField id={`${idPrefix}-date`} name="date" label="Date" />
         <button type="submit" className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50">
           + Add Update
         </button>

@@ -72,11 +72,12 @@ export function CcpTab({
       />
 
       {!plan ? (
-        <p className="text-sm text-stone-500">No Comprehensive Care Plan yet — click &quot;+ New CCP&quot; to start one.</p>
+        <p className="text-sm text-stone-600">No Comprehensive Care Plan yet — click &quot;+ New CCP&quot; to start one.</p>
       ) : (
         <div className="max-w-4xl space-y-6">
           <form
             key={`${plan.id}-${plan.updatedAt.getTime()}`}
+            id="ccp-form"
             action={saveCarePlan.bind(null, memberId, plan.id)}
             className="space-y-6"
           >
@@ -86,7 +87,7 @@ export function CcpTab({
                 <DateField name="mostRecentCnaCompletionDate" label="Most Recent CNA Completion Date" defaultValue={toInputDate(plan.mostRecentCnaCompletionDate)} />
               </div>
               <div className="mt-4">
-                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">Preferred Method of Contact</p>
+                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-600">Preferred Method of Contact</p>
                 <div className="flex flex-wrap gap-6">
                   {(fields["ccp.preferredContactMethod"]?.options ?? PREFERRED_CONTACT_METHOD_OPTIONS).map((opt) => (
                     <label key={opt} className="flex items-center gap-2 text-sm text-stone-600">
@@ -99,7 +100,7 @@ export function CcpTab({
             </Card>
 
             <Card title="Interdisciplinary Care Team (ICT) Information" className="overflow-visible">
-              <p className="mb-3 text-xs text-stone-400">Power of Attorney, parent, spouse, partner, providers, natural supports, etc. — if applicable.</p>
+              <p className="mb-3 text-xs text-stone-600">Power of Attorney, parent, spouse, partner, providers, natural supports, etc. — if applicable.</p>
               <RepeatableRows
                 initialRows={plan.teamMembers}
                 minRows={1}
@@ -117,12 +118,12 @@ export function CcpTab({
             </Card>
 
             <Card title="Services that will be Authorized by the MCO">
-              <p className="mb-2 text-xs text-stone-400">Including amount, frequency, duration and scope (tasks and functions to be performed) of each service to be provided.</p>
+              <p className="mb-2 text-xs text-stone-600">Including amount, frequency, duration and scope (tasks and functions to be performed) of each service to be provided.</p>
               <TextArea name="servicesAuthorizedByMco" label="Services authorized by the MCO" defaultValue={plan.servicesAuthorizedByMco} rows={4} />
             </Card>
 
             <Card title="Physical Health (PH) and Behavioral Health (BH) Conditions/Diagnoses">
-              <p className="mb-2 text-xs text-stone-400">
+              <p className="mb-2 text-xs text-stone-600">
                 Conditions, needs and functional status; relevant information regarding the Member&apos;s PH and BH condition(s), including treatment needed by a
                 Provider, caregiver, or the care coordinator to ensure appropriate delivery of services or coordination of care.
               </p>
@@ -130,7 +131,7 @@ export function CcpTab({
             </Card>
 
             <Card title="Medications">
-              <p className="mb-3 text-xs text-stone-400">Including names, dosages, frequency, and discontinued medications.</p>
+              <p className="mb-3 text-xs text-stone-600">Including names, dosages, frequency, and discontinued medications.</p>
               <RepeatableRows
                 initialRows={plan.medications.map((m) => ({ ...m, startDate: toInputDate(m.startDate), endDate: toInputDate(m.endDate) }))}
                 minRows={1}
@@ -148,7 +149,7 @@ export function CcpTab({
             </Card>
 
             <Card title="Backup Plan">
-              <p className="mb-3 text-xs text-stone-400">
+              <p className="mb-3 text-xs text-stone-600">
                 I will talk with backup paid or unpaid caregivers about when they are available and my care needs before a situation comes up. I will call one
                 of the people listed below if my scheduled paid or unpaid caregiver does not show up at his/her scheduled time.
               </p>
@@ -176,7 +177,7 @@ export function CcpTab({
             </Card>
 
             <Card title="Disaster Preparedness Plan">
-              <p className="mb-3 text-xs text-stone-400">
+              <p className="mb-3 text-xs text-stone-600">
                 I will make and post a list of emergency contacts that my providers can easily find in the event of an unsafe or harmful situation.
               </p>
               <RepeatableRows
@@ -201,7 +202,7 @@ export function CcpTab({
               </div>
 
               <div className="mt-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-600">
                   Review needed items to take (check all that apply)
                 </p>
                 <CheckboxGroup
@@ -233,7 +234,7 @@ export function CcpTab({
             </Card>
 
             <Card title="Other Services that will be Provided to the Member">
-              <p className="mb-2 text-xs text-stone-400">
+              <p className="mb-2 text-xs text-stone-600">
                 Any non-covered services including services provided by other community resources, including social support services, and assistance needed
                 in order to ensure the Member&apos;s health, safety and welfare.
               </p>
@@ -244,7 +245,7 @@ export function CcpTab({
             </Card>
 
             <Card title="Services Provided by Medicare Payers, Medicare Advantage Plans and Medicare Providers">
-              <p className="mb-2 text-xs text-stone-400">To coordinate services for Members who are also Dual Eligible, as reported by the Member.</p>
+              <p className="mb-2 text-xs text-stone-600">To coordinate services for Members who are also Dual Eligible, as reported by the Member.</p>
               <div className="flex gap-6">
                 <Checkbox name="dualEligibleNoNeedsIdentified" label="No needs identified" defaultChecked={plan.dualEligibleNoNeedsIdentified ?? false} />
                 <Checkbox name="dualEligibleNa" label="N/A" defaultChecked={plan.dualEligibleNa ?? false} />
@@ -311,28 +312,48 @@ export function CcpTab({
             </Card>
 
             <CustomQuestionsSection questions={customQuestions} />
-
-            <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden">
-              Save Care Plan
-            </button>
           </form>
 
           <Card title="Opportunities, Goals, Interventions and Desired Health, Functional and Quality of Life Outcomes for the Member">
             <div className="space-y-4">
-              {plan.goals.length === 0 && <p className="text-sm text-stone-400">No goals yet. Add the first one below.</p>}
+              {plan.goals.length === 0 && <p className="text-sm text-stone-600">No goals yet. Add the first one below.</p>}
               {plan.goals.map((goal) => (
                 <GoalCard key={goal.id} memberId={memberId} carePlanId={plan.id} goal={goal} fields={fields} />
               ))}
               <form action={addGoal.bind(null, memberId, plan.id)} className="print:hidden">
-                <button type="submit" className="rounded-md border border-dashed border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-charcoal">
+                <button type="submit" className="rounded-md border border-dashed border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-600 hover:border-stone-400 hover:text-charcoal">
                   + Add Opportunity/Goal
                 </button>
               </form>
             </div>
           </Card>
+
+          <SaveCarePlanButton goalIds={plan.goals.map((g) => g.id)} />
         </div>
       )}
     </div>
     </FormFieldsProvider>
+  );
+}
+
+// One button, always at the very bottom, saves everything: the CCP form and
+// every goal's own form (each goal keeps its own <form> — HTML doesn't allow
+// nesting one inside the CCP form's, since each goal card also holds its own
+// independent "add progress update" mini-forms). No per-goal submit button
+// exists any more; this is the only way any of it gets saved.
+function SaveCarePlanButton({ goalIds }: { goalIds: string[] }) {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        (document.getElementById("ccp-form") as HTMLFormElement | null)?.requestSubmit();
+        for (const goalId of goalIds) {
+          (document.getElementById(`goal-form-${goalId}`) as HTMLFormElement | null)?.requestSubmit();
+        }
+      }}
+      className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden"
+    >
+      Save Care Plan
+    </button>
   );
 }

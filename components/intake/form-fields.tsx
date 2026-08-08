@@ -15,23 +15,26 @@ export function TextField({
   label,
   defaultValue,
   className = "",
+  id,
 }: {
   name: string;
   label: string;
   defaultValue?: string | null;
   className?: string;
+  id?: string;
 }) {
   const override = useFieldOverride(name);
   if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
   const effectiveLabel = override?.label || label;
+  const fieldId = id ?? name;
 
   return (
     <div className={className}>
-      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
+      <label htmlFor={fieldId} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
         {effectiveLabel}
       </label>
       <input
-        id={name}
+        id={fieldId}
         name={name}
         defaultValue={defaultValue ?? ""}
         className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
@@ -47,6 +50,7 @@ export function TextArea({
   className = "",
   rows = 2,
   form,
+  id,
 }: {
   name: string;
   label: string;
@@ -54,18 +58,20 @@ export function TextArea({
   className?: string;
   rows?: number;
   form?: string;
+  id?: string;
 }) {
   const override = useFieldOverride(name);
   if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
   const effectiveLabel = override?.label || label;
+  const fieldId = id ?? name;
 
   return (
     <div className={className}>
-      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
+      <label htmlFor={fieldId} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
         {effectiveLabel}
       </label>
       <textarea
-        id={name}
+        id={fieldId}
         name={name}
         form={form}
         rows={rows}
@@ -81,24 +87,27 @@ export function DateField({
   label,
   defaultValue,
   form,
+  id,
 }: {
   name: string;
   label: string;
   defaultValue?: string | null;
   form?: string;
+  id?: string;
 }) {
   const override = useFieldOverride(name);
   if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
   const effectiveLabel = override?.label || label;
+  const fieldId = id ?? name;
 
   return (
     <div>
-      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
+      <label htmlFor={fieldId} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
         {effectiveLabel}
       </label>
       <input
         type="date"
-        id={name}
+        id={fieldId}
         name={name}
         form={form}
         defaultValue={defaultValue ?? ""}
@@ -118,25 +127,28 @@ export function SelectField({
   label,
   options,
   defaultValue,
+  id,
 }: {
   name: string;
   label: string;
   options: string[];
   defaultValue?: string | null;
+  id?: string;
 }) {
   const override = useFieldOverride(name);
   if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
   const effectiveLabel = override?.label || label;
   const effectiveOptions = override?.options ?? options;
+  const fieldId = id ?? name;
 
   const isCustom = Boolean(defaultValue) && !effectiveOptions.includes(defaultValue as string);
   return (
     <div>
-      <label htmlFor={name} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
+      <label htmlFor={fieldId} className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
         {effectiveLabel}
       </label>
       <select
-        id={name}
+        id={fieldId}
         name={name}
         defaultValue={isCustom ? "" : defaultValue ?? ""}
         className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
