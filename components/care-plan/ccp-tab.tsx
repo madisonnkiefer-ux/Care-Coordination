@@ -336,11 +336,15 @@ export function CcpTab({
   );
 }
 
-// One button, always at the very bottom, saves everything: the CCP form and
-// every goal's own form (each goal keeps its own <form> — HTML doesn't allow
-// nesting one inside the CCP form's, since each goal card also holds its own
-// independent "add progress update" mini-forms). No per-goal submit button
-// exists any more; this is the only way any of it gets saved.
+// One button, always at the very bottom, saves everything: the CCP form,
+// every goal's own form, and any progress-update note that's been typed but
+// not yet added (each goal keeps its own <form>s — HTML doesn't allow
+// nesting them inside the CCP form's). No per-goal submit button exists any
+// more; this is the only way any of it gets saved. Progress-note forms are
+// only submitted when they actually have a note typed in, both to avoid
+// spamming empty saves and because the server action no-ops on an empty
+// note anyway — the point here is to never silently lose a typed draft to
+// the page refresh the other submits trigger.
 function SaveCarePlanButton({ goalIds }: { goalIds: string[] }) {
   return (
     <button
@@ -349,6 +353,11 @@ function SaveCarePlanButton({ goalIds }: { goalIds: string[] }) {
         (document.getElementById("ccp-form") as HTMLFormElement | null)?.requestSubmit();
         for (const goalId of goalIds) {
           (document.getElementById(`goal-form-${goalId}`) as HTMLFormElement | null)?.requestSubmit();
+          for (const track of ["member", "coordinator"]) {
+            const form = document.getElementById(`${goalId}-${track}-progress-form`) as HTMLFormElement | null;
+            const note = form?.querySelector<HTMLTextAreaElement>('textarea[name="note"]');
+            if (note?.value.trim()) form?.requestSubmit();
+          }
         }
       }}
       className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden"

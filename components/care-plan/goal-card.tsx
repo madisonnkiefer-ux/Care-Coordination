@@ -200,7 +200,7 @@ function ProgressNoteColumn({
           </li>
         ))}
       </ul>
-      <form action={action} className="space-y-2 print:hidden">
+      <form id={`${idPrefix}-progress-form`} action={action} className="space-y-2 print:hidden">
         <input type="hidden" name="track" value={track} />
         <TextArea id={`${idPrefix}-note`} name="note" label="Progress Update" rows={2} />
         <DateField id={`${idPrefix}-date`} name="date" label="Date" />
