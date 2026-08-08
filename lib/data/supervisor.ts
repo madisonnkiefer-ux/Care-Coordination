@@ -5,9 +5,8 @@ import { TERMINAL_STATUSES } from "@/lib/member-status";
 import { getComplianceCadence, getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
 import { addBusinessDays, businessDaysBetween } from "@/lib/business-days";
 
-// A member's first CCP is due 14 business days after their enrollment
-// starts (their chart is created). Renewals after that follow the annual
-// cadence with no grace period.
+// A member's CCP is due 14 business days after their enrollment starts
+// (their chart is created). No renewal cadence — once it's done, it's done.
 const INITIAL_CCP_DUE_BUSINESS_DAYS = 14;
 
 export async function getSupervisorData() {
@@ -18,7 +17,6 @@ export async function getSupervisorData() {
   const dayOfWeek = now.getDay();
   const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMonday);
-  const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
   // Widest window either cadence (monthly or quarterly) ever needs — quarters
   // always fully contain their months, so fetching from quarter-start covers
   // both without a per-member query.
@@ -31,7 +29,7 @@ export async function getSupervisorData() {
     membersWithCarePlan,
     coordinators,
     highRiskMembers,
-    declinationsCount,
+    activeMembersCount,
     graduationsCount,
     terminationsCount,
     unsignedIntakesCount,
@@ -64,7 +62,7 @@ export async function getSupervisorData() {
       select: { id: true, firstName: true, lastName: true, assignedCoordinator: { select: { name: true } } },
       take: 10,
     }),
-    db.member.count({ where: { clinicId, status: "DECLINED" } }),
+    db.member.count({ where: { clinicId, status: "ACTIVE" } }),
     db.member.count({ where: { clinicId, status: "GRADUATED" } }),
     db.member.count({ where: { clinicId, status: "TERMED" } }),
     db.intakeVersion.count({ where: { member: { clinicId }, signedAt: null } }),
@@ -99,14 +97,13 @@ export async function getSupervisorData() {
       select: { id: true, firstName: true, lastName: true, status: true },
     }),
     db.member.findMany({
-      where: { clinicId },
+      where: { clinicId, carePlans: { none: {} } },
       select: {
         id: true,
         firstName: true,
         lastName: true,
         createdAt: true,
         assignedCoordinator: { select: { name: true } },
-        carePlans: { orderBy: { createdAt: "desc" }, take: 1, select: { ccpStartDate: true, createdAt: true } },
       },
     }),
     db.member.findMany({
@@ -169,35 +166,29 @@ export async function getSupervisorData() {
 
   const annualCnaPastDue = cnaDueRows.filter((m) => !m.dueDate || m.dueDate < now).sort(byDueDateAsc);
 
-  // CCP due dates: a member's *first* CCP is due 14 business days after
-  // enrollment starts (chart creation) — a grace period, not an immediate
-  // overdue flag. Renewals after that follow the same annual cadence as CNA
-  // with no grace period. Both cases resolve to a single dueDate so the
-  // section can show a countdown ("N business days left") before the
-  // deadline and "overdue" after it, instead of only ever showing overdue.
+  // CCP due date: a member's CCP is due 14 business days after enrollment
+  // starts (chart creation) — a grace period, not an immediate overdue flag.
+  // There's no renewal cadence — once a member has a CCP on file they're
+  // off this list for good, so it shows a countdown ("N business days
+  // left") before the deadline and "overdue" after it for members who
+  // still don't have one.
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const overdueCcps = membersForCcpDueDates
     .map((m) => {
-      const latest = m.carePlans[0];
-      const lastCcpDate = latest ? (latest.ccpStartDate ?? latest.createdAt) : null;
       const enrollmentStart = new Date(m.createdAt.getFullYear(), m.createdAt.getMonth(), m.createdAt.getDate());
-      const dueDate = lastCcpDate
-        ? new Date(lastCcpDate.getFullYear() + 1, lastCcpDate.getMonth(), lastCcpDate.getDate())
-        : addBusinessDays(enrollmentStart, INITIAL_CCP_DUE_BUSINESS_DAYS);
+      const dueDate = addBusinessDays(enrollmentStart, INITIAL_CCP_DUE_BUSINESS_DAYS);
       const businessDaysLeft = businessDaysBetween(today, dueDate);
       return {
         id: m.id,
         firstName: m.firstName,
         lastName: m.lastName,
         coordinatorName: m.assignedCoordinator?.name ?? "Unassigned",
-        lastCcpDate,
         dueDate,
         businessDaysLeft,
         overdue: businessDaysLeft < 0,
       };
     })
-    .filter((m) => m.lastCcpDate === null || m.lastCcpDate < oneYearAgo)
     .sort((a, b) => a.businessDaysLeft - b.businessDaysLeft);
 
   // Touchpoint compliance is program-based: Prenatal/Postpartum members need
@@ -242,7 +233,7 @@ export async function getSupervisorData() {
     carePlanCompletionPct: pct(membersWithCarePlan),
     coordinatorStats,
     highRiskMembers,
-    declinationsCount,
+    activeMembersCount,
     graduationsCount,
     terminationsCount,
     draftOrUnsignedNotesCount: unsignedIntakesCount,

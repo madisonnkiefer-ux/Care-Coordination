@@ -17,7 +17,7 @@ export default async function SupervisorDashboardPage() {
       carePlanCompletionPct,
       coordinatorStats,
       highRiskMembers,
-      declinationsCount,
+      activeMembersCount,
       graduationsCount,
       terminationsCount,
       draftOrUnsignedNotesCount,
@@ -62,7 +62,7 @@ export default async function SupervisorDashboardPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-          <StatTile label="Declinations" value={declinationsCount} />
+          <StatTile label="Active Members" value={activeMembersCount} />
           <StatTile label="Graduations" value={graduationsCount} />
           <StatTile label="Terminations" value={terminationsCount} />
           <StatTile label="Draft/Unsigned Notes" value={draftOrUnsignedNotesCount} />
@@ -305,9 +305,7 @@ export default async function SupervisorDashboardPage() {
                     <span className="text-xs text-stone-500">{m.coordinatorName}</span>
                     {m.overdue ? (
                       <Badge color="red">
-                        {m.lastCcpDate
-                          ? `Renewal overdue since ${formatDate(m.dueDate)}`
-                          : `Overdue by ${Math.abs(m.businessDaysLeft)} business day${Math.abs(m.businessDaysLeft) === 1 ? "" : "s"}`}
+                        Overdue by {Math.abs(m.businessDaysLeft)} business day{Math.abs(m.businessDaysLeft) === 1 ? "" : "s"}
                       </Badge>
                     ) : m.businessDaysLeft === 0 ? (
                       <Badge color="yellow">Due today</Badge>
