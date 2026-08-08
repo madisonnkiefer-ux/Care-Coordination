@@ -42,7 +42,16 @@ export async function createCustomQuestion(form: string, formData: FormData) {
 
   const sectionRaw = String(formData.get("section") ?? "").trim();
 
-  const last = await db.customQuestion.findFirst({ where: { clinicId: session.clinicId, form }, orderBy: { order: "desc" } });
+  // "Position" on the add-question form: which existing question (in this
+  // form's list) the new one should be inserted directly after. Empty/unset
+  // means "at the end" — the previous, only behavior.
+  const afterQuestionId = String(formData.get("afterQuestionId") ?? "").trim() || null;
+
+  const existing = await db.customQuestion.findMany({
+    where: { clinicId: session.clinicId, form },
+    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+    select: { id: true },
+  });
 
   const question = await db.customQuestion.create({
     data: {
@@ -52,12 +61,39 @@ export async function createCustomQuestion(form: string, formData: FormData) {
       type,
       label,
       options,
-      order: (last?.order ?? 0) + 1,
+      order: existing.length,
       createdById: session.userId,
     },
   });
 
+  // Splice the new question into the desired position, then renumber
+  // everyone in this form so `order` stays a dense, gap-free sequence.
+  const orderedIds = existing.map((q) => q.id);
+  const afterIndex = afterQuestionId ? orderedIds.indexOf(afterQuestionId) : -1;
+  const insertAt = afterIndex === -1 ? orderedIds.length : afterIndex + 1;
+  orderedIds.splice(insertAt, 0, question.id);
+
+  await db.$transaction(orderedIds.map((id, index) => db.customQuestion.update({ where: { id }, data: { order: index } })));
+
   await writeAuditLog({ userId: session.userId, action: "CREATE", resource: "CustomQuestion", resourceId: question.id });
+
+  revalidatePath("/settings");
+}
+
+export async function deleteCustomQuestion(questionId: string) {
+  const session = await requireRole("ADMIN");
+  const question = await db.customQuestion.findUnique({
+    where: { id: questionId },
+    include: { _count: { select: { answers: true } } },
+  });
+  if (!question || question.clinicId !== session.clinicId) throw new Error("Not found.");
+  if (question._count.answers > 0) {
+    throw new Error("This question already has answers on file — retire it instead of deleting it.");
+  }
+
+  await db.customQuestion.delete({ where: { id: questionId } });
+
+  await writeAuditLog({ userId: session.userId, action: "DELETE", resource: "CustomQuestion", resourceId: questionId });
 
   revalidatePath("/settings");
 }

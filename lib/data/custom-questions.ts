@@ -49,6 +49,7 @@ export type SettingsCustomQuestion = {
   active: boolean;
   createdAt: Date;
   createdByName: string | null;
+  answerCount: number;
 };
 
 // Settings → Form Content → Additional Questions: every question (active or
@@ -58,7 +59,7 @@ export async function getCustomQuestionsForSettings(): Promise<SettingsCustomQue
   const questions = await db.customQuestion.findMany({
     where: { clinicId: session.clinicId },
     orderBy: [{ form: "asc" }, { order: "asc" }, { createdAt: "asc" }],
-    include: { createdBy: { select: { name: true } } },
+    include: { createdBy: { select: { name: true } }, _count: { select: { answers: true } } },
   });
 
   return questions.map((q) => ({
@@ -72,5 +73,6 @@ export async function getCustomQuestionsForSettings(): Promise<SettingsCustomQue
     active: q.active,
     createdAt: q.createdAt,
     createdByName: q.createdBy?.name ?? null,
+    answerCount: q._count.answers,
   }));
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui";
-import { createCustomQuestion, setCustomQuestionActive } from "@/app/actions/custom-questions";
+import { createCustomQuestion, setCustomQuestionActive, deleteCustomQuestion } from "@/app/actions/custom-questions";
 import type { SettingsCustomQuestion } from "@/lib/data/custom-questions";
 
 const FORM_ORDER = ["demographics", "hra", "cna", "ccn", "ccp", "generalComm", "toc"] as const;
@@ -48,7 +48,7 @@ export function CustomQuestionsTab({ questions }: { questions: SettingsCustomQue
               <ExistingQuestionRow key={q.id} question={q} />
             ))}
             {(byForm.get(form) ?? []).length === 0 && <p className="text-sm text-stone-400">No additional questions yet.</p>}
-            <AddQuestionForm form={form} />
+            <AddQuestionForm form={form} existingQuestions={byForm.get(form) ?? []} />
           </div>
         </Card>
       ))}
@@ -57,6 +57,8 @@ export function CustomQuestionsTab({ questions }: { questions: SettingsCustomQue
 }
 
 function ExistingQuestionRow({ question }: { question: SettingsCustomQuestion }) {
+  const canDelete = question.answerCount === 0;
+
   return (
     <div className={`flex items-start justify-between gap-4 rounded-lg border p-3 ${question.active ? "border-stone-200" : "border-stone-200 bg-stone-50"}`}>
       <div>
@@ -65,18 +67,33 @@ function ExistingQuestionRow({ question }: { question: SettingsCustomQuestion })
           {TYPE_LABELS[question.type]}
           {question.section ? ` · ${question.section}` : ""}
           {!question.active ? " · Retired" : ""}
+          {question.answerCount > 0 ? ` · ${question.answerCount} answer${question.answerCount === 1 ? "" : "s"} on file` : ""}
         </p>
       </div>
-      <form action={setCustomQuestionActive.bind(null, question.id, !question.active)}>
-        <button type="submit" className="shrink-0 text-xs font-medium text-stone-500 hover:text-charcoal hover:underline">
-          {question.active ? "Retire" : "Restore"}
-        </button>
-      </form>
+      <div className="flex shrink-0 items-center gap-3">
+        <form action={setCustomQuestionActive.bind(null, question.id, !question.active)}>
+          <button type="submit" className="text-xs font-medium text-stone-500 hover:text-charcoal hover:underline">
+            {question.active ? "Retire" : "Restore"}
+          </button>
+        </form>
+        {canDelete && (
+          <form
+            action={deleteCustomQuestion.bind(null, question.id)}
+            onSubmit={(e) => {
+              if (!confirm(`Permanently delete "${question.label}"? This can't be undone.`)) e.preventDefault();
+            }}
+          >
+            <button type="submit" className="text-xs font-medium text-red-600 hover:text-red-800 hover:underline">
+              Delete
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
 
-function AddQuestionForm({ form }: { form: string }) {
+function AddQuestionForm({ form, existingQuestions }: { form: string; existingQuestions: SettingsCustomQuestion[] }) {
   const [type, setType] = useState("TEXT");
   const needsOptions = OPTIONS_TYPES.has(type);
 
@@ -113,6 +130,23 @@ function AddQuestionForm({ form }: { form: string }) {
           </select>
         </div>
       </div>
+      {existingQuestions.length > 0 && (
+        <div>
+          <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Position</label>
+          <select
+            name="afterQuestionId"
+            defaultValue=""
+            className="w-full max-w-sm rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+          >
+            <option value="">At the end</option>
+            {existingQuestions.map((q) => (
+              <option key={q.id} value={q.id}>
+                After: {q.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       {needsOptions && (
         <div>
           <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Options (one per line)</label>
