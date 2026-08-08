@@ -213,6 +213,39 @@ export default async function SupervisorDashboardPage() {
           </Card>
         </div>
 
+        <Card
+          title="Members Needing Assignment"
+          action={
+            membersNeedingAssignment.length > 0 ? (
+              <Badge color="red">{membersNeedingAssignment.length} unassigned</Badge>
+            ) : undefined
+          }
+        >
+          {membersNeedingAssignment.length === 0 ? (
+            <p className="py-4 text-center text-sm text-stone-400">Everyone has a coordinator assigned.</p>
+          ) : (
+            <ul className="space-y-2">
+              {membersNeedingAssignment.map((m) => (
+                <li
+                  key={m.id}
+                  className="flex items-center justify-between rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-2.5 w-2.5 flex-shrink-0 rounded-full bg-red-500" aria-hidden="true" />
+                    <Link href={`/members/${m.id}`} className="font-medium text-stone-800 hover:underline">
+                      {m.firstName} {m.lastName}
+                    </Link>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge color="slate">{titleCase(m.status)}</Badge>
+                    <Badge color="red">Unassigned</Badge>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card title="Members Discharged This Week">
             {dischargedThisWeek.length === 0 ? (
@@ -227,45 +260,6 @@ export default async function SupervisorDashboardPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-stone-500">{formatDate(change.effectiveDate)}</span>
                       <Badge color="slate">{titleCase(change.toStatus)}</Badge>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-
-          <Card title="Members Needing Assignment">
-            {membersNeedingAssignment.length === 0 ? (
-              <p className="py-4 text-center text-sm text-stone-400">Everyone has a coordinator assigned.</p>
-            ) : (
-              <ul className="divide-y divide-stone-100">
-                {membersNeedingAssignment.map((m) => (
-                  <li key={m.id} className="flex items-center justify-between py-2 text-sm">
-                    <Link href={`/members/${m.id}`} className="font-medium text-stone-800 hover:underline">
-                      {m.firstName} {m.lastName}
-                    </Link>
-                    <Badge color="yellow">{titleCase(m.status)}</Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card title="Overdue CCPs">
-            {overdueCcps.length === 0 ? (
-              <p className="py-4 text-center text-sm text-stone-400">No overdue care plans.</p>
-            ) : (
-              <ul className="divide-y divide-stone-100">
-                {overdueCcps.map((m) => (
-                  <li key={m.id} className="flex items-center justify-between py-2 text-sm">
-                    <Link href={`/members/${m.id}`} className="font-medium text-stone-800 hover:underline">
-                      {m.firstName} {m.lastName}
-                    </Link>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-stone-500">{m.coordinatorName}</span>
-                      <Badge color="red">{m.lastCcpDate ? formatDate(m.lastCcpDate) : "No CCP"}</Badge>
                     </div>
                   </li>
                 ))}
@@ -296,6 +290,38 @@ export default async function SupervisorDashboardPage() {
             )}
           </Card>
         </div>
+
+        <Card title="Overdue CCPs">
+          {overdueCcps.length === 0 ? (
+            <p className="py-4 text-center text-sm text-stone-400">No overdue or upcoming care plans.</p>
+          ) : (
+            <ul className="divide-y divide-stone-100">
+              {overdueCcps.map((m) => (
+                <li key={m.id} className="flex items-center justify-between py-2 text-sm">
+                  <Link href={`/members/${m.id}`} className="font-medium text-stone-800 hover:underline">
+                    {m.firstName} {m.lastName}
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-stone-500">{m.coordinatorName}</span>
+                    {m.overdue ? (
+                      <Badge color="red">
+                        {m.lastCcpDate
+                          ? `Renewal overdue since ${formatDate(m.dueDate)}`
+                          : `Overdue by ${Math.abs(m.businessDaysLeft)} business day${Math.abs(m.businessDaysLeft) === 1 ? "" : "s"}`}
+                      </Badge>
+                    ) : m.businessDaysLeft === 0 ? (
+                      <Badge color="yellow">Due today</Badge>
+                    ) : (
+                      <Badge color="yellow">
+                        {m.businessDaysLeft} business day{m.businessDaysLeft === 1 ? "" : "s"} left
+                      </Badge>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
 
         <Card title="Caseload Management">
           <div className="mb-4 flex flex-wrap gap-2">

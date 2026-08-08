@@ -3,6 +3,12 @@ import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
 import { TERMINAL_STATUSES } from "@/lib/member-status";
 import { getComplianceCadence, getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
+import { addBusinessDays, businessDaysBetween } from "@/lib/business-days";
+
+// A member's first CCP is due 14 business days after their enrollment
+// starts (their chart is created). Renewals after that follow the annual
+// cadence with no grace period.
+const INITIAL_CCP_DUE_BUSINESS_DAYS = 14;
 
 export async function getSupervisorData() {
   const session = await requireRole("SUPERVISOR", "ADMIN");
@@ -98,6 +104,7 @@ export async function getSupervisorData() {
         id: true,
         firstName: true,
         lastName: true,
+        createdAt: true,
         assignedCoordinator: { select: { name: true } },
         carePlans: { orderBy: { createdAt: "desc" }, take: 1, select: { ccpStartDate: true, createdAt: true } },
       },
@@ -162,26 +169,36 @@ export async function getSupervisorData() {
 
   const annualCnaPastDue = cnaDueRows.filter((m) => !m.dueDate || m.dueDate < now).sort(byDueDateAsc);
 
-  // Overdue CCP mirrors the same "annual renewal" cadence as CNA: no care
-  // plan at all, or the most recent one is over 12 months old.
+  // CCP due dates: a member's *first* CCP is due 14 business days after
+  // enrollment starts (chart creation) — a grace period, not an immediate
+  // overdue flag. Renewals after that follow the same annual cadence as CNA
+  // with no grace period. Both cases resolve to a single dueDate so the
+  // section can show a countdown ("N business days left") before the
+  // deadline and "overdue" after it, instead of only ever showing overdue.
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
   const overdueCcps = membersForCcpDueDates
     .map((m) => {
       const latest = m.carePlans[0];
       const lastCcpDate = latest ? (latest.ccpStartDate ?? latest.createdAt) : null;
+      const enrollmentStart = new Date(m.createdAt.getFullYear(), m.createdAt.getMonth(), m.createdAt.getDate());
+      const dueDate = lastCcpDate
+        ? new Date(lastCcpDate.getFullYear() + 1, lastCcpDate.getMonth(), lastCcpDate.getDate())
+        : addBusinessDays(enrollmentStart, INITIAL_CCP_DUE_BUSINESS_DAYS);
+      const businessDaysLeft = businessDaysBetween(today, dueDate);
       return {
         id: m.id,
         firstName: m.firstName,
         lastName: m.lastName,
         coordinatorName: m.assignedCoordinator?.name ?? "Unassigned",
         lastCcpDate,
+        dueDate,
+        businessDaysLeft,
+        overdue: businessDaysLeft < 0,
       };
     })
-    .filter((m) => !m.lastCcpDate || m.lastCcpDate < oneYearAgo)
-    .sort((a, b) => {
-      if (!a.lastCcpDate) return -1;
-      if (!b.lastCcpDate) return 1;
-      return a.lastCcpDate.getTime() - b.lastCcpDate.getTime();
-    });
+    .filter((m) => m.lastCcpDate === null || m.lastCcpDate < oneYearAgo)
+    .sort((a, b) => a.businessDaysLeft - b.businessDaysLeft);
 
   // Touchpoint compliance is program-based: Prenatal/Postpartum members need
   // 1 successful contact (or 3 attempts) every month; GYN members need 1
