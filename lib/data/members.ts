@@ -106,7 +106,7 @@ export async function getMemberChart(memberId: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) notFound();
 
-  const [tasks, recentContacts, appointments, documents, goalCounts, latestCarePlan] =
+  const [tasks, recentContacts, appointments, documents, notes, goalCounts, latestCarePlan] =
     await Promise.all([
       db.task.findMany({ where: { memberId }, orderBy: { dueDate: "asc" }, take: 6 }),
       db.generalCommunication.findMany({
@@ -121,6 +121,12 @@ export async function getMemberChart(memberId: string) {
         take: 3,
       }),
       db.document.findMany({ where: { memberId }, orderBy: { createdAt: "desc" }, take: 5 }),
+      db.quickNote.findMany({
+        where: { memberId },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: { author: { select: { name: true } } },
+      }),
       db.carePlanGoal.groupBy({
         by: ["status"],
         where: { carePlan: { memberId } },
@@ -152,6 +158,7 @@ export async function getMemberChart(memberId: string) {
     recentContacts,
     appointments,
     documents,
+    notes,
     goalTotals,
     latestCarePlanId: latestCarePlan?.id ?? null,
   };

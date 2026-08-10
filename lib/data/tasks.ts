@@ -22,8 +22,9 @@ export async function getTasksPageData() {
       take: 10,
       include: { member: { select: { id: true, firstName: true, lastName: true } } },
     }),
-    // Personal reminders, scoped to their author — never surfaced on the
-    // member chart or in any clinical form.
+    // This author's own notes across all their patients, as a personal
+    // reminder feed — the member chart shows the full per-patient history
+    // instead (see getMemberChart), never scoped to just one author.
     db.quickNote.findMany({
       where: { authorId: session.userId },
       orderBy: { createdAt: "desc" },

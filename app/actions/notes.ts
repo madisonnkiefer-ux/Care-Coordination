@@ -5,8 +5,9 @@ import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 
-// Personal reminders tagged to a patient — shown only on the author's Tasks
-// & Reminders page, never on the member's chart or in any clinical form.
+// Freeform notes tagged to a patient — shown on the member's chart (to
+// anyone with chart access) and on the author's Tasks & Reminders page as a
+// personal reminder. Never part of any clinical form (intake/HRA/CNA/CCP).
 export async function saveQuickNote(formData: FormData) {
   const memberId = String(formData.get("memberId") ?? "");
   const body = String(formData.get("body") ?? "").trim();
@@ -27,5 +28,6 @@ export async function saveQuickNote(formData: FormData) {
     resourceId: note.id,
   });
 
+  revalidatePath(`/members/${memberId}`);
   revalidatePath("/tasks");
 }

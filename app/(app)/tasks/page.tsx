@@ -73,7 +73,8 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
 
           <Card id="notes" title="My Notes">
             <p className="mb-3 text-xs text-slate-400">
-              Personal reminders about a patient — visible only to you here, never added to the patient&apos;s chart.
+              Your notes across every patient, gathered here as a reminder feed. Never part of any clinical form —
+              also visible on each patient&apos;s chart under Quick Notes.
             </p>
             {notes.length === 0 ? (
               <p className="py-4 text-center text-sm text-slate-400">No notes yet.</p>

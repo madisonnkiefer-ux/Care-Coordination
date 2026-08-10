@@ -11,6 +11,7 @@ import { DocumentUpload } from "@/components/document-upload";
 import { MemberStatusCard } from "@/components/member-status-card";
 import { formatDate, formatDateTime, titleCase, toDateInputValue } from "@/lib/format";
 import { toggleTask, createTask } from "@/app/actions/tasks";
+import { saveQuickNote } from "@/app/actions/notes";
 import { updateMemberOverview } from "@/app/actions/member-details";
 import { PATIENT_TYPE_OPTIONS } from "@/lib/patient-type";
 import { statusBadgeColor } from "@/lib/member-status";
@@ -26,7 +27,7 @@ import { SaveButton } from "@/components/save-button";
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [
-    { session, member, tasks, recentContacts, appointments, documents, goalTotals },
+    { session, member, tasks, recentContacts, appointments, documents, notes, goalTotals },
     statusHistory,
     snapshot,
     chartHistory,
@@ -405,6 +406,36 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 Add
               </button>
             </form>
+          </Card>
+
+          <Card id="quick-notes" title="Quick Notes">
+            <form action={saveQuickNote} className="space-y-2 print:hidden">
+              <input type="hidden" name="memberId" value={id} />
+              <textarea
+                name="body"
+                rows={3}
+                placeholder="Type note here..."
+                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+              />
+              <button
+                type="submit"
+                className="rounded-md bg-charcoal px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
+              >
+                Save Note
+              </button>
+            </form>
+            {notes.length > 0 && (
+              <ul className="mt-3 space-y-2 border-t border-stone-100 pt-3">
+                {notes.map((n) => (
+                  <li key={n.id} className="text-sm">
+                    <p className="whitespace-pre-wrap text-stone-700">{n.body}</p>
+                    <p className="mt-0.5 text-xs text-stone-400">
+                      {n.author.name} · {formatDateTime(n.createdAt)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
 
           <Card title="Upcoming Appointments">
