@@ -1111,6 +1111,7 @@ model QuickNote {
   createdAt DateTime @default(now())
 
   @@index([memberId])
+  @@index([authorId])
 }
 
 enum DocumentCategory {

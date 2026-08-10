@@ -12,7 +12,7 @@ import {
 
 export function QuickActionsBar({ memberId }: { memberId: string }) {
   const actions: { label: string; href: string; icon: React.ComponentType<{ className?: string }>; disabled?: boolean }[] = [
-    { label: "Add Note", href: `/members/${memberId}#quick-notes`, icon: StickyNote },
+    { label: "Add Note", href: `/tasks?note=${memberId}#notes`, icon: StickyNote },
     { label: "Log Touchpoint", href: `/members/${memberId}/care-plan?tab=general-communication`, icon: PhoneCall },
     { label: "Update CCP", href: `/members/${memberId}/care-plan?tab=ccp`, icon: ListTree },
     { label: "Complete CNA", href: `/members/${memberId}/intake?tab=cna`, icon: ClipboardCheck },

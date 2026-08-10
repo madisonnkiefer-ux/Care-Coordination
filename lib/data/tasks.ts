@@ -10,7 +10,7 @@ export async function getTasksPageData() {
       ? { clinicId: session.clinicId, assignedCoordinatorId: session.userId }
       : { clinicId: session.clinicId };
 
-  const [openTasks, completedTasks, members] = await Promise.all([
+  const [openTasks, completedTasks, notes, members] = await Promise.all([
     db.task.findMany({
       where: { assigneeId: session.userId, status: "OPEN" },
       orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
@@ -22,6 +22,14 @@ export async function getTasksPageData() {
       take: 10,
       include: { member: { select: { id: true, firstName: true, lastName: true } } },
     }),
+    // Personal reminders, scoped to their author — never surfaced on the
+    // member chart or in any clinical form.
+    db.quickNote.findMany({
+      where: { authorId: session.userId },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      include: { member: { select: { id: true, firstName: true, lastName: true } } },
+    }),
     db.member.findMany({
       where: memberScope,
       orderBy: { lastName: "asc" },
@@ -29,5 +37,5 @@ export async function getTasksPageData() {
     }),
   ]);
 
-  return { session, openTasks, completedTasks, members };
+  return { session, openTasks, completedTasks, notes, members };
 }

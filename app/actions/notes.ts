@@ -5,12 +5,15 @@ import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 
-export async function saveQuickNote(memberId: string, formData: FormData) {
+// Personal reminders tagged to a patient — shown only on the author's Tasks
+// & Reminders page, never on the member's chart or in any clinical form.
+export async function saveQuickNote(formData: FormData) {
+  const memberId = String(formData.get("memberId") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+  if (!memberId || !body) return;
+
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
-
-  const body = String(formData.get("body") ?? "").trim();
-  if (!body) return;
 
   const note = await db.quickNote.create({
     data: { memberId, authorId: session.userId, body },
@@ -24,5 +27,5 @@ export async function saveQuickNote(memberId: string, formData: FormData) {
     resourceId: note.id,
   });
 
-  revalidatePath(`/members/${memberId}`);
+  revalidatePath("/tasks");
 }
