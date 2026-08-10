@@ -5,8 +5,8 @@
 // contact this month, or 3 attempts (successful or not) this month — either
 // one satisfies the cadence. GYN members are also checked monthly, but only
 // need 1 attempt (successful or not) when there's no successful contact.
-// Every other program (Chronic Care, none set, etc.) is checked quarterly on
-// the 1-successful-or-3-attempts rule.
+// Every other program (none set, etc.) is checked quarterly on the
+// 1-successful-or-3-attempts rule.
 export type ComplianceUnit = "month" | "quarter";
 
 export type ComplianceCadence = {

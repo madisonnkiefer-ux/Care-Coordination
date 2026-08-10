@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card, Badge } from "@/components/ui";
+import { Card, Badge, StatTile } from "@/components/ui";
 import { formatDate, titleCase } from "@/lib/format";
 import { statusBadgeColor, ALL_STATUSES } from "@/lib/member-status";
 import type { getReportsData } from "@/lib/data/reports";
@@ -24,6 +24,11 @@ function currentQuarterStart() {
   const now = new Date();
   const startMonth = Math.floor(now.getMonth() / 3) * 3;
   return new Date(now.getFullYear(), startMonth, 1);
+}
+
+function currentMonthStart() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
 }
 
 function toInputDate(d: Date) {
@@ -335,52 +340,82 @@ function OutreachCompletionReport({ members, dateFrom, dateTo }: { members: Repo
 
   const contactedCount = rows.filter((r) => r.contactedInRange).length;
 
-  return (
-    <ReportShell
-      title={`Outreach Completion (${contactedCount}/${rows.length} contacted in range)`}
-      count={rows.length}
-      onExport={() =>
-        downloadCsv(
-          "outreach-completion.csv",
-          ["Name", "Coordinator", "Attempts in Range", "Successful in Range", "Last Successful Contact", "Contacted in Range"],
-          rows.map((r) => [
-            r.name,
-            r.coordinator,
-            r.attempts,
-            r.successful,
-            r.lastSuccessful ? formatDate(r.lastSuccessful) : "Never",
-            r.contactedInRange ? "Yes" : "No",
-          ])
-        )
+  const quarterStats = useMemo(() => {
+    const quarterStart = currentQuarterStart();
+    const monthStart = currentMonthStart();
+    let completedThisQuarter = 0;
+    let completedThisMonth = 0;
+    let notContactedThisQuarter = 0;
+
+    for (const m of members) {
+      let hasSuccessfulThisQuarter = false;
+      for (const c of m.contacts) {
+        if (!c.successful) continue;
+        if (c.createdAt >= quarterStart) {
+          completedThisQuarter += 1;
+          hasSuccessfulThisQuarter = true;
+        }
+        if (c.createdAt >= monthStart) completedThisMonth += 1;
       }
-    >
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-xs text-stone-400">
-            <th className="pb-2 font-medium">Name</th>
-            <th className="pb-2 font-medium">Coordinator</th>
-            <th className="pb-2 font-medium">Attempts</th>
-            <th className="pb-2 font-medium">Successful</th>
-            <th className="pb-2 font-medium">Last Successful Contact</th>
-            <th className="pb-2 font-medium">Status</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-stone-100">
-          {rows.map((r) => (
-            <tr key={r.id}>
-              <td className="py-2 font-medium text-stone-800">{r.name}</td>
-              <td className="py-2 text-stone-600">{r.coordinator}</td>
-              <td className="py-2 text-stone-600">{r.attempts}</td>
-              <td className="py-2 text-stone-600">{r.successful}</td>
-              <td className="py-2 text-stone-600">{r.lastSuccessful ? formatDate(r.lastSuccessful) : "Never"}</td>
-              <td className="py-2">
-                <Badge color={r.contactedInRange ? "green" : "red"}>{r.contactedInRange ? "Contacted" : "Not Contacted"}</Badge>
-              </td>
+      if (!hasSuccessfulThisQuarter) notContactedThisQuarter += 1;
+    }
+
+    return { completedThisQuarter, completedThisMonth, notContactedThisQuarter };
+  }, [members]);
+
+  return (
+    <div>
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatTile label="Completed Touchpoints (Quarter)" value={quarterStats.completedThisQuarter} />
+        <StatTile label="Completed Touchpoints (Month)" value={quarterStats.completedThisMonth} />
+        <StatTile label="Members Not Contacted (Quarter)" value={quarterStats.notContactedThisQuarter} />
+      </div>
+      <ReportShell
+        title={`Outreach Completion (${contactedCount}/${rows.length} contacted in range)`}
+        count={rows.length}
+        onExport={() =>
+          downloadCsv(
+            "outreach-completion.csv",
+            ["Name", "Coordinator", "Attempts in Range", "Successful in Range", "Last Successful Contact", "Contacted in Range"],
+            rows.map((r) => [
+              r.name,
+              r.coordinator,
+              r.attempts,
+              r.successful,
+              r.lastSuccessful ? formatDate(r.lastSuccessful) : "Never",
+              r.contactedInRange ? "Yes" : "No",
+            ])
+          )
+        }
+      >
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs text-stone-400">
+              <th className="pb-2 font-medium">Name</th>
+              <th className="pb-2 font-medium">Coordinator</th>
+              <th className="pb-2 font-medium">Attempts</th>
+              <th className="pb-2 font-medium">Successful</th>
+              <th className="pb-2 font-medium">Last Successful Contact</th>
+              <th className="pb-2 font-medium">Status</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </ReportShell>
+          </thead>
+          <tbody className="divide-y divide-stone-100">
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td className="py-2 font-medium text-stone-800">{r.name}</td>
+                <td className="py-2 text-stone-600">{r.coordinator}</td>
+                <td className="py-2 text-stone-600">{r.attempts}</td>
+                <td className="py-2 text-stone-600">{r.successful}</td>
+                <td className="py-2 text-stone-600">{r.lastSuccessful ? formatDate(r.lastSuccessful) : "Never"}</td>
+                <td className="py-2">
+                  <Badge color={r.contactedInRange ? "green" : "red"}>{r.contactedInRange ? "Contacted" : "Not Contacted"}</Badge>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </ReportShell>
+    </div>
   );
 }
 
