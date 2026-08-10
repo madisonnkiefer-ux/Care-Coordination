@@ -5,7 +5,10 @@ import {
   encrypt,
   isWithinAbsoluteLifetime,
   sessionCookieOptions,
+  expiryCookieOptions,
   SESSION_COOKIE_NAME,
+  SESSION_EXPIRY_COOKIE_NAME,
+  IDLE_TIMEOUT_MINUTES,
 } from "@/lib/session";
 
 const PUBLIC_ROUTES = ["/login"];
@@ -30,7 +33,10 @@ export default async function proxy(request: NextRequest) {
   if (!isPublicRoute && !session) {
     const loginUrl = new URL("/login", request.url);
     const response = NextResponse.redirect(loginUrl);
-    if (token) response.cookies.delete(SESSION_COOKIE_NAME);
+    if (token) {
+      response.cookies.delete(SESSION_COOKIE_NAME);
+      response.cookies.delete(SESSION_EXPIRY_COOKIE_NAME);
+    }
     return response;
   }
 
@@ -42,6 +48,13 @@ export default async function proxy(request: NextRequest) {
   if (session) {
     const refreshed = await encrypt(session);
     response.cookies.set(SESSION_COOKIE_NAME, refreshed, sessionCookieOptions);
+    // Client-readable mirror of the same idle-timeout window, so the
+    // browser can warn the user before this slides out of validity.
+    response.cookies.set(
+      SESSION_EXPIRY_COOKIE_NAME,
+      String(Date.now() + IDLE_TIMEOUT_MINUTES * 60 * 1000),
+      expiryCookieOptions
+    );
   }
   return response;
 }

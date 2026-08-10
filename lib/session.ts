@@ -2,6 +2,9 @@ import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import type { Role } from "@/app/generated/prisma/client";
+import { SESSION_EXPIRY_COOKIE_NAME } from "@/lib/session-shared";
+
+export { SESSION_EXPIRY_COOKIE_NAME } from "@/lib/session-shared";
 
 const secretKey = process.env.SESSION_SECRET;
 if (!secretKey) {
@@ -64,6 +67,7 @@ export async function createSession(user: {
   const session = await encrypt(payload);
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, session, sessionCookieOptions);
+  cookieStore.set(SESSION_EXPIRY_COOKIE_NAME, String(Date.now() + IDLE_TIMEOUT_MINUTES * 60 * 1000), expiryCookieOptions);
 }
 
 export function isWithinAbsoluteLifetime(payload: SessionPayload) {
@@ -74,6 +78,7 @@ export function isWithinAbsoluteLifetime(payload: SessionPayload) {
 export async function deleteSession() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);
+  cookieStore.delete(SESSION_EXPIRY_COOKIE_NAME);
 }
 
 // Read-only: safe to call from Server Components, which (per Next.js) may
@@ -94,4 +99,12 @@ export const sessionCookieOptions = {
   sameSite: "lax" as const,
   path: "/",
   maxAge: IDLE_TIMEOUT_MINUTES * 60,
+};
+
+// Same lifetime/security posture as the session cookie, just readable by
+// client JS (httpOnly: false) since its whole purpose is to let the
+// browser show a countdown before the real, httpOnly session expires.
+export const expiryCookieOptions = {
+  ...sessionCookieOptions,
+  httpOnly: false,
 };
