@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { logout } from "@/app/actions/auth";
@@ -31,20 +31,34 @@ export function SessionTimeoutWarning() {
   const loggedOutRef = useRef(false);
   const sawSessionRef = useRef(false);
 
-  useEffect(() => {
-    function triggerLogout() {
-      if (loggedOutRef.current) return;
-      loggedOutRef.current = true;
-      // A plain navigation, not the logout Server Action — by the time this
-      // fires, proxy.ts already sees no valid session (the real httpOnly
-      // cookie expires on the same clock as the one this component reads)
-      // and will redirect any request to /login on its own. Calling
-      // logout() here instead races that: proxy.ts intercepts the action's
-      // POST first and answers with a redirect instead of the RSC action
-      // response the client expected, surfacing as a console error.
-      router.push("/login");
-    }
+  const triggerLogout = useCallback(() => {
+    if (loggedOutRef.current) return;
+    loggedOutRef.current = true;
+    // A plain navigation, not the logout Server Action — by the time this
+    // fires, proxy.ts already sees no valid session (the real httpOnly
+    // cookie expires on the same clock as the one this component reads)
+    // and will redirect any request to /login on its own. Calling
+    // logout() here instead races that: proxy.ts intercepts the action's
+    // POST first and answers with a redirect instead of the RSC action
+    // response the client expected, surfacing as a console error.
+    router.push("/login");
+  }, [router]);
 
+  // Manual "Log Out Now" click. Unlike the auto-trigger above, the session
+  // is usually still valid here (the user hasn't actually timed out yet),
+  // so it's worth firing the real Server Action to clear the cookie and
+  // audit-log the logout server-side. But it's fire-and-forget: this can
+  // still lose the same proxy.ts race in the last seconds before expiry —
+  // that used to leave the button looking like it did nothing — so
+  // navigation never waits on the action's response.
+  function manualLogout() {
+    if (loggedOutRef.current) return;
+    loggedOutRef.current = true;
+    logout().catch(() => {});
+    router.push("/login");
+  }
+
+  useEffect(() => {
     function tick() {
       const expiresAt = readExpiryCookie();
       if (expiresAt === null) {
@@ -70,7 +84,7 @@ export function SessionTimeoutWarning() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", tick);
     };
-  }, [router]);
+  }, [router, triggerLogout]);
 
   const showWarning = msLeft !== null && msLeft > 0 && msLeft <= WARNING_WINDOW_MS;
   if (!showWarning) return null;
@@ -89,14 +103,13 @@ export function SessionTimeoutWarning() {
           <span className="font-semibold text-charcoal">{display}</span>.
         </p>
         <div className="mt-5 flex justify-end gap-2">
-          <form action={logout}>
-            <button
-              type="submit"
-              className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
-            >
-              Log Out Now
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={manualLogout}
+            className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
+          >
+            Log Out Now
+          </button>
           <button
             type="button"
             disabled={refreshing}
