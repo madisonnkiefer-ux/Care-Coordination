@@ -12,6 +12,7 @@ import { MemberStatusCard } from "@/components/member-status-card";
 import { formatDate, formatDateTime, titleCase, toDateInputValue } from "@/lib/format";
 import { toggleTask, createTask } from "@/app/actions/tasks";
 import { saveQuickNote } from "@/app/actions/notes";
+import { createAppointment } from "@/app/actions/appointments";
 import { updateMemberOverview } from "@/app/actions/member-details";
 import { PATIENT_TYPE_OPTIONS } from "@/lib/patient-type";
 import { statusBadgeColor } from "@/lib/member-status";
@@ -442,17 +443,50 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
             {appointments.length === 0 ? (
               <EmptyState label="Nothing scheduled." />
             ) : (
-              <ul className="space-y-2 text-sm">
+              <ul className="mb-3 space-y-2 text-sm">
                 {appointments.map((appt) => (
                   <li key={appt.id}>
                     <p className="font-medium text-stone-800">{appt.title}</p>
                     <p className="text-xs text-stone-500">
                       {formatDateTime(appt.startsAt)} {appt.location ? `· ${appt.location}` : ""}
+                      {appt.isVirtual ? " · Virtual" : ""}
                     </p>
                   </li>
                 ))}
               </ul>
             )}
+            <form
+              action={createAppointment.bind(null, id)}
+              className="space-y-2 border-t border-stone-100 pt-3 print:hidden"
+            >
+              <input
+                name="title"
+                required
+                placeholder="Appointment title..."
+                className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+              />
+              <input
+                type="datetime-local"
+                name="startsAt"
+                required
+                className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+              />
+              <input
+                name="location"
+                placeholder="Location (optional)"
+                className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+              />
+              <label className="flex items-center gap-2 text-xs text-stone-600">
+                <input type="checkbox" name="isVirtual" className="rounded border-stone-300" />
+                Virtual visit
+              </label>
+              <button
+                type="submit"
+                className="w-full rounded-md bg-charcoal px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
+              >
+                Add Appointment
+              </button>
+            </form>
           </Card>
 
           <Card id="documents" title="Documents">
