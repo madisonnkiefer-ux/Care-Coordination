@@ -15,7 +15,6 @@ export default async function SupervisorDashboardPage() {
       cnaCompletionPct,
       hraCompletionPct,
       carePlanCompletionPct,
-      coordinatorStats,
       highRiskMembers,
       activeMembersCount,
       graduationsCount,
@@ -124,49 +123,25 @@ export default async function SupervisorDashboardPage() {
 
         <GraduationsCard graduations={upcomingGraduations} coordinators={caseloadCoordinators} />
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card title="CNA Completion by Coordinator">
-            {coordinatorStats.length === 0 ? (
-              <p className="py-4 text-center text-sm text-stone-400">No care coordinators yet.</p>
-            ) : (
-              <ul className="space-y-3">
-                {coordinatorStats.map((c) => (
-                  <li key={c.id}>
-                    <div className="mb-1 flex items-center justify-between text-sm">
-                      <span className="font-medium text-stone-800">{c.name}</span>
-                      <span className="text-stone-500">
-                        {c.completed}/{c.total} · {c.pct}%
-                      </span>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-stone-100">
-                      <div className="h-full rounded-full bg-charcoal" style={{ width: `${c.pct}%` }} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-
-          <Card title="High Risk Members">
-            {highRiskMembers.length === 0 ? (
-              <p className="py-4 text-center text-sm text-stone-400">No high-risk members flagged.</p>
-            ) : (
-              <ul className="divide-y divide-stone-100">
-                {highRiskMembers.map((m) => (
-                  <li key={m.id} className="flex items-center justify-between py-2 text-sm">
-                    <Link href={`/members/${m.id}`} className="font-medium text-stone-800 hover:underline">
-                      {m.firstName} {m.lastName}
-                    </Link>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-stone-500">{m.assignedCoordinator?.name ?? "Unassigned"}</span>
-                      <Badge color="red">High Risk</Badge>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </div>
+        <Card title="High Risk Members">
+          {highRiskMembers.length === 0 ? (
+            <p className="py-4 text-center text-sm text-stone-400">No high-risk members flagged.</p>
+          ) : (
+            <ul className="divide-y divide-stone-100">
+              {highRiskMembers.map((m) => (
+                <li key={m.id} className="flex items-center justify-between py-2 text-sm">
+                  <Link href={`/members/${m.id}`} className="font-medium text-stone-800 hover:underline">
+                    {m.firstName} {m.lastName}
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-stone-500">{m.assignedCoordinator?.name ?? "Unassigned"}</span>
+                    <Badge color="red">High Risk</Badge>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card title="Annual CNAs Due This Quarter">
