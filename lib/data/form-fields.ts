@@ -7,6 +7,15 @@ import { FORM_FIELD_REGISTRY, type ResolvedFormFields } from "@/lib/form-fields/
 // (via lib/form-fields/context.tsx) never need a fallback for a field that's
 // been customized. Fields not in the registry simply resolve to undefined,
 // which callers already treat as "no override, use my own default."
+//
+// `label` is left undefined when the clinic hasn't actually customized this
+// field — it must NOT fall back to the registry's own `def.name` here. That
+// name is Settings' admin-facing catalog text (getFormFieldsForSettings
+// below uses it for exactly that), sometimes annotated for the editor's
+// benefit (e.g. "(also used on the HRA)") and often intentionally blank at
+// the call site because the tab already renders its own numbered heading —
+// falling back to it here would override every field's own default/blank
+// label with that catalog text even when nobody customized anything.
 export async function getFormFieldOverrides(clinicId: string): Promise<ResolvedFormFields> {
   const overrides = await db.formFieldOverride.findMany({ where: { clinicId } });
   const overrideByKey = new Map(overrides.map((o) => [o.fieldKey, o]));
@@ -16,7 +25,7 @@ export async function getFormFieldOverrides(clinicId: string): Promise<ResolvedF
     const override = overrideByKey.get(def.key);
     const options = Array.isArray(override?.options) ? (override.options as string[]) : def.defaultOptions;
     resolved[def.key] = {
-      label: override?.label || def.name,
+      label: override?.label || undefined,
       options,
       hidden: override?.hidden ?? false,
     };

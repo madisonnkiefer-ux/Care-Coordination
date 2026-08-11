@@ -24,6 +24,7 @@ import {
   CURRENT_SITUATIONS_OPTIONS,
   LIVING_SITUATION_OPTIONS,
   ADL_HELP_OPTIONS,
+  MEDICATIONS_COUNT_OPTIONS,
 } from "@/components/intake/options";
 import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 import { FormFieldsProvider } from "@/lib/form-fields/context";
@@ -125,18 +126,13 @@ export function HraTab({
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-charcoal">7. What are your preferred pronouns?</p>
-            <TextField name="preferredPronouns" label="" defaultValue={draft?.preferredPronouns} />
-          </div>
-
-          <div>
-            <p className="mb-2 text-sm font-semibold text-charcoal">8. Are you pregnant?</p>
+            <p className="mb-2 text-sm font-semibold text-charcoal">7. Are you pregnant?</p>
             <YesNoField name="isPregnant" label="" defaultValue={draft?.isPregnant} />
           </div>
 
           <div>
             <p className="mb-2 text-sm font-semibold text-charcoal">
-              9. For individuals in the Perinatal/Postpartum population and those with children up to five (5) years of age in the home.
+              8. For individuals in the Perinatal/Postpartum population and those with children up to five (5) years of age in the home.
             </p>
             <p className="mb-2 text-xs text-stone-500">
               You qualify for a program called Medicaid Home Visiting. This program offers support and tips on breastfeeding and
@@ -148,7 +144,7 @@ export function HraTab({
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-charcoal">10. Do you currently use tobacco and/or nicotine products?</p>
+            <p className="mb-2 text-sm font-semibold text-charcoal">9. Do you currently use tobacco and/or nicotine products?</p>
             <YesNoNaField name="usesTobaccoNicotine" label="" defaultValue={draft?.usesTobaccoNicotine} />
             <div className="mt-3">
               <YesNoNaField
@@ -169,7 +165,7 @@ export function HraTab({
           <div>
             <YesNoNaField
               name="worriedAboutFood"
-              label="11. Within the past 12 months, have you worried that you would run out of food or that the food you bought would run out and you did not have the money to get more? (If yes, refer for assistance)"
+              label="10. Within the past 12 months, have you worried that you would run out of food or that the food you bought would run out and you did not have the money to get more? (If yes, refer for assistance)"
               defaultValue={draft?.worriedAboutFood}
             />
           </div>
@@ -177,7 +173,7 @@ export function HraTab({
           <div>
             <YesNoNaField
               name="reliableTransportation"
-              label="12. Do you have reliable transportation? (If no, refer for assistance)"
+              label="11. Do you have reliable transportation? (If no, refer for assistance)"
               defaultValue={draft?.reliableTransportation}
             />
           </div>
@@ -185,13 +181,13 @@ export function HraTab({
           <div>
             <YesNoNaField
               name="needsHelpFindingProvider"
-              label="13. Do you need help finding a physical or behavioral healthcare provider?"
+              label="12. Do you need help finding a physical or behavioral healthcare provider?"
               defaultValue={draft?.needsHelpFindingProvider}
             />
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-charcoal">14. Have you visited the Emergency Room in the past 12 months?</p>
+            <p className="mb-2 text-sm font-semibold text-charcoal">13. Have you visited the Emergency Room in the past 12 months?</p>
             <YesNoField name="erVisitsPast12Months" label="" defaultValue={draft?.erVisitsPast12Months} />
             <div className="mt-3 max-w-xs">
               <TextField name="erVisitCount" label="If yes, how many visits?" defaultValue={draft?.erVisitCount} />
@@ -199,7 +195,7 @@ export function HraTab({
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-charcoal">15. Have you stayed overnight in the hospital in the past 6 months?</p>
+            <p className="mb-2 text-sm font-semibold text-charcoal">14. Have you stayed overnight in the hospital in the past 6 months?</p>
             <YesNoField name="hospitalOvernightPast6Months" label="" defaultValue={draft?.hospitalOvernightPast6Months} />
             <div className="mt-3">
               <YesNoField
@@ -211,16 +207,21 @@ export function HraTab({
           </div>
 
           <div className="max-w-xs">
-            <TextField name="medicationsCount" label="16. How many medications are you currently taking?" defaultValue={draft?.medicationsCount} />
+            <SelectField
+              name="medicationsCount"
+              label="15. How many medications are you currently taking? (if 6 or more, CNA required)"
+              options={fields["hra.medicationsCount"]?.options ?? MEDICATIONS_COUNT_OPTIONS}
+              defaultValue={draft?.medicationsCount}
+            />
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-charcoal">17. Are you currently in any of the following situations?</p>
+            <p className="mb-2 text-sm font-semibold text-charcoal">16. Are you currently in any of the following situations?</p>
             <SelectField name="currentSituations" label="" options={fields["hra.currentSituations"]?.options ?? CURRENT_SITUATIONS_OPTIONS} defaultValue={draft?.currentSituations} />
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-charcoal">18. What is your current living situation?</p>
+            <p className="mb-2 text-sm font-semibold text-charcoal">17. What is your current living situation?</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <SelectField name="livingSituation" label="" options={fields["hra.livingSituation"]?.options ?? LIVING_SITUATION_OPTIONS} defaultValue={draft?.livingSituation} />
               <TextField name="livingSituationOther" label="If other, please describe" defaultValue={draft?.livingSituationOther} />
@@ -228,7 +229,7 @@ export function HraTab({
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-semibold text-charcoal">19. Do you need help with 2 or more of the following?</p>
+            <p className="mb-2 text-sm font-semibold text-charcoal">18. Do you need help with 2 or more of the following?</p>
             <YesNoField name="needsHelpWith2OrMoreAdls" label="" defaultValue={draft?.needsHelpWith2OrMoreAdls} />
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <SelectField name="adlHelpNeeded" label="" options={fields["hra.adlHelpNeeded"]?.options ?? ADL_HELP_OPTIONS} defaultValue={draft?.adlHelpNeeded} />
@@ -238,7 +239,7 @@ export function HraTab({
 
           <div>
             <p className="mb-2 text-sm font-semibold text-charcoal">
-              20. An advance directive is a form that lets your loved ones know your health care choices if you are too sick to make
+              19. An advance directive is a form that lets your loved ones know your health care choices if you are too sick to make
               them yourself.
             </p>
             <YesNoField
@@ -255,11 +256,11 @@ export function HraTab({
             </div>
           </div>
 
-          <TextArea name="mainHealthConcerns" label="21. What are your main health concerns right now?" defaultValue={draft?.mainHealthConcerns} rows={3} />
+          <TextArea name="mainHealthConcerns" label="20. What are your main health concerns right now?" defaultValue={draft?.mainHealthConcerns} rows={3} />
 
           <TextArea
             name="mostSignificantNeedsToday"
-            label="22. What are your most significant needs today?"
+            label="21. What are your most significant needs today?"
             defaultValue={draft?.mostSignificantNeedsToday}
             rows={3}
           />
@@ -267,7 +268,7 @@ export function HraTab({
           <div>
             <YesNoField
               name="interestedInCareCoordination"
-              label="23. Is the Member interested in receiving Care Coordination Services?"
+              label="22. Is the Member interested in receiving Care Coordination Services?"
               defaultValue={draft?.interestedInCareCoordination}
             />
           </div>

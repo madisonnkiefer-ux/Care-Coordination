@@ -114,6 +114,10 @@ export const CNA_SPECIAL_PREFERENCES_OPTIONS = ["Cultural preference", "Literacy
 export const ER_VISITS_OPTIONS = ["0", "1", "2", "3", "4 or more", "unknown"];
 export const HOSPITAL_STAYS_OPTIONS = ["0", "1", "2", "3 or more"];
 
+// lib/hra-cna-required.ts parses this with parseInt, so "6 or more" still
+// correctly trips the >= 6 CNA-required rule.
+export const MEDICATIONS_COUNT_OPTIONS = ["0", "1", "2", "3", "4", "5", "6 or more"];
+
 export const OVERALL_HEALTH_OPTIONS = ["Excellent", "Good", "Fair", "Poor"];
 
 export const LIVING_ARRANGEMENT_OPTIONS = ["Alone", "With others"];

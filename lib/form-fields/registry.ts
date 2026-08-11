@@ -17,6 +17,7 @@ import {
   CNA_SPECIAL_PREFERENCES_OPTIONS,
   ER_VISITS_OPTIONS,
   HOSPITAL_STAYS_OPTIONS,
+  MEDICATIONS_COUNT_OPTIONS,
   OVERALL_HEALTH_OPTIONS,
   LIVING_ARRANGEMENT_OPTIONS,
   REFERRAL_NEEDED_OPTIONS,
@@ -138,33 +139,32 @@ const HRA: Spec[] = [
   ["hra.needsTranslationServices", "HRA", "Do you need translation services?"],
   ["hra.specialPreferences", "HRA", "2. Do you have any special preferences we should be aware of?", SPECIAL_PREFERENCES_OPTIONS],
   ["hra.healthConditions", "HRA", "3. Do you have any current or past physical and/or behavioral health conditions or diagnoses?", HEALTH_CONDITIONS_OPTIONS],
-  ["hra.preferredPronouns", "HRA", "7. What are your preferred pronouns?"],
-  ["hra.isPregnant", "HRA", "8. Are you pregnant?"],
+  ["hra.isPregnant", "HRA", "7. Are you pregnant?"],
   [
     "hra.perinatalPostpartumOrYoungChild",
     "HRA",
-    "9. For individuals in the Perinatal/Postpartum population and those with children up to five (5) years of age in the home.",
+    "8. For individuals in the Perinatal/Postpartum population and those with children up to five (5) years of age in the home.",
   ],
-  ["hra.usesTobaccoNicotine", "HRA", "10. Do you currently use tobacco and/or nicotine products?"],
+  ["hra.usesTobaccoNicotine", "HRA", "9. Do you currently use tobacco and/or nicotine products?"],
   ["hra.interestedInCessationProgram", "HRA", "If yes, are you interested in receiving information on cessation programs?"],
   ["hra.historyOfTobaccoUse", "HRA", "Do you have a history of using tobacco and/or nicotine products?"],
-  ["hra.worriedAboutFood", "HRA", "11. Within the past 12 months, have you worried that you would run out of food or that the food you bought would run out?"],
-  ["hra.reliableTransportation", "HRA", "12. Do you have reliable transportation? (If no, refer for assistance)"],
-  ["hra.needsHelpFindingProvider", "HRA", "13. Do you need help finding a physical or behavioral healthcare provider?"],
-  ["hra.erVisitsPast12Months", "HRA", "14. Have you visited the Emergency Room in the past 12 months?"],
+  ["hra.worriedAboutFood", "HRA", "10. Within the past 12 months, have you worried that you would run out of food or that the food you bought would run out?"],
+  ["hra.reliableTransportation", "HRA", "11. Do you have reliable transportation? (If no, refer for assistance)"],
+  ["hra.needsHelpFindingProvider", "HRA", "12. Do you need help finding a physical or behavioral healthcare provider?"],
+  ["hra.erVisitsPast12Months", "HRA", "13. Have you visited the Emergency Room in the past 12 months?"],
   ["hra.erVisitCount", "HRA", "If yes, how many visits?"],
-  ["hra.hospitalOvernightPast6Months", "HRA", "15. Have you stayed overnight in the hospital in the past 6 months?"],
+  ["hra.hospitalOvernightPast6Months", "HRA", "14. Have you stayed overnight in the hospital in the past 6 months?"],
   ["hra.readmittedWithin30Days", "HRA", "If yes, were you readmitted within 30 days of discharge?"],
-  ["hra.medicationsCount", "HRA", "16. How many medications are you currently taking?"],
-  ["hra.currentSituations", "HRA", "17. Are you currently in any of the following situations?", CURRENT_SITUATIONS_OPTIONS],
-  ["hra.livingSituation", "HRA", "18. What is your current living situation?", LIVING_SITUATION_OPTIONS],
-  ["hra.needsHelpWith2OrMoreAdls", "HRA", "19. Do you need help with 2 or more of the following?"],
+  ["hra.medicationsCount", "HRA", "15. How many medications are you currently taking? (if 6 or more, CNA required)", MEDICATIONS_COUNT_OPTIONS],
+  ["hra.currentSituations", "HRA", "16. Are you currently in any of the following situations?", CURRENT_SITUATIONS_OPTIONS],
+  ["hra.livingSituation", "HRA", "17. What is your current living situation?", LIVING_SITUATION_OPTIONS],
+  ["hra.needsHelpWith2OrMoreAdls", "HRA", "18. Do you need help with 2 or more of the following?"],
   ["hra.adlHelpNeeded", "HRA", "ADL Help Needed options", ADL_HELP_OPTIONS],
-  ["hra.hasLivingWillOrAdvanceDirective", "HRA", "20. Do you currently have a living will or an advanced directive in place?"],
+  ["hra.hasLivingWillOrAdvanceDirective", "HRA", "19. Do you currently have a living will or an advanced directive in place?"],
   ["hra.wantsMoreAdvanceDirectiveInfo", "HRA", "Would you like more information regarding advanced directives?"],
-  ["hra.mainHealthConcerns", "HRA", "21. What are your main health concerns right now?"],
-  ["hra.mostSignificantNeedsToday", "HRA", "22. What are your most significant needs today?"],
-  ["hra.interestedInCareCoordination", "HRA", "23. Is the Member interested in receiving Care Coordination Services?"],
+  ["hra.mainHealthConcerns", "HRA", "20. What are your main health concerns right now?"],
+  ["hra.mostSignificantNeedsToday", "HRA", "21. What are your most significant needs today?"],
+  ["hra.interestedInCareCoordination", "HRA", "22. Is the Member interested in receiving Care Coordination Services?"],
 ];
 
 // ---------- Enrollment: CNA ----------
@@ -433,7 +433,7 @@ export const FORM_FIELD_REGISTRY: FormFieldDef[] = [
   ...expand(TOC_NEEDS, "toc"),
 ];
 
-export type ResolvedField = { label: string; options: string[]; hidden: boolean };
+export type ResolvedField = { label: string | undefined; options: string[]; hidden: boolean };
 export type ResolvedFormFields = Record<string, ResolvedField>;
 
 export function getFieldDef(key: string): FormFieldDef | undefined {
