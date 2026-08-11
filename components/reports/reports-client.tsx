@@ -9,14 +9,13 @@ import type { getReportsData } from "@/lib/data/reports";
 type ReportsData = Awaited<ReturnType<typeof getReportsData>>;
 type ReportMember = ReportsData["members"][number];
 
-type ReportId = "roster" | "caseload" | "outreach" | "cna" | "ccp" | "monthly-activity";
+type ReportId = "roster" | "caseload" | "outreach" | "cna" | "monthly-activity";
 
 const REPORTS: { id: ReportId; label: string }[] = [
   { id: "roster", label: "Active Roster" },
   { id: "caseload", label: "Caseload Distribution" },
   { id: "outreach", label: "Outreach Completion" },
   { id: "cna", label: "Annual CNA Status" },
-  { id: "ccp", label: "CCP Completion" },
   { id: "monthly-activity", label: "Monthly Activity" },
 ];
 
@@ -138,7 +137,6 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
       {active === "caseload" && <CaseloadDistributionReport members={filtered} />}
       {active === "outreach" && <OutreachCompletionReport members={filtered} dateFrom={dateFrom} dateTo={dateTo} />}
       {active === "cna" && <AnnualCnaStatusReport members={filtered} />}
-      {active === "ccp" && <CcpCompletionReport members={filtered} />}
       {active === "monthly-activity" && <MonthlyActivityReport />}
     </div>
   );
@@ -489,55 +487,6 @@ function AnnualCnaStatusReport({ members }: { members: ReportMember[] }) {
               <td className="py-2">
                 <Badge color={badgeColor(r.category)}>{r.category}</Badge>
               </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </ReportShell>
-  );
-}
-
-function CcpCompletionReport({ members }: { members: ReportMember[] }) {
-  const inPlaceCount = members.filter((m) => m.hasCarePlan).length;
-
-  return (
-    <ReportShell
-      title={`CCP Completion (${inPlaceCount}/${members.length} in place)`}
-      count={members.length}
-      onExport={() =>
-        downloadCsv(
-          "ccp-completion.csv",
-          ["Name", "Coordinator", "Care Plan Status", "CCP Start Date", "Last Updated"],
-          members.map((m) => [
-            `${m.firstName} ${m.lastName}`,
-            coordinatorOrUnassigned(m),
-            m.hasCarePlan ? "In Place" : "Missing",
-            m.ccpStartDate ? formatDate(m.ccpStartDate) : "",
-            m.ccpLastUpdated ? formatDate(m.ccpLastUpdated) : "",
-          ])
-        )
-      }
-    >
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-xs text-stone-400">
-            <th className="pb-2 font-medium">Name</th>
-            <th className="pb-2 font-medium">Coordinator</th>
-            <th className="pb-2 font-medium">Status</th>
-            <th className="pb-2 font-medium">CCP Start Date</th>
-            <th className="pb-2 font-medium">Last Updated</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-stone-100">
-          {members.map((m) => (
-            <tr key={m.id}>
-              <td className="py-2 font-medium text-stone-800">{m.firstName} {m.lastName}</td>
-              <td className="py-2 text-stone-600">{coordinatorOrUnassigned(m)}</td>
-              <td className="py-2">
-                <Badge color={m.hasCarePlan ? "green" : "red"}>{m.hasCarePlan ? "In Place" : "Missing"}</Badge>
-              </td>
-              <td className="py-2 text-stone-600">{m.ccpStartDate ? formatDate(m.ccpStartDate) : "—"}</td>
-              <td className="py-2 text-stone-600">{m.ccpLastUpdated ? formatDate(m.ccpLastUpdated) : "—"}</td>
             </tr>
           ))}
         </tbody>

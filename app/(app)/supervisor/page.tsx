@@ -69,7 +69,7 @@ export default async function SupervisorDashboardPage() {
         </div>
 
         <p className="text-sm text-stone-500">
-          For caseload distribution, outreach compliance, annual CNA status, and CCP completion breakdowns, see{" "}
+          For caseload distribution, outreach compliance, and annual CNA status breakdowns, see{" "}
           <Link href="/reports" className="font-medium text-charcoal hover:underline">
             Reports →
           </Link>
