@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Card, Badge } from "@/components/ui";
-import { createUser, updateUserRole, setUserActive, resetUserPassword } from "@/app/actions/users";
+import { createUser, updateUserRole, setUserActive, resetUserPassword, unlockUser } from "@/app/actions/users";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { Role } from "@/app/generated/prisma/client";
 
@@ -23,6 +23,7 @@ type ClinicUser = {
   active: boolean;
   createdAt: Date;
   lastLoginAt: Date | null;
+  lockedUntil: Date | null;
 };
 
 export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; currentUserId: string }) {
@@ -80,23 +81,38 @@ export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; curren
                     )}
                   </td>
                   <td className="px-4 py-2.5">
-                    {u.id === currentUserId ? (
-                      <Badge color={u.active ? "green" : "slate"}>{u.active ? "Active" : "Deactivated"}</Badge>
-                    ) : (
-                      <form action={setUserActive.bind(null, u.id)}>
-                        <input type="hidden" name="active" value={u.active ? "false" : "true"} />
-                        <button
-                          type="submit"
-                          className={`rounded-md border px-2 py-1 text-xs font-medium ${
-                            u.active
-                              ? "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
-                              : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                          }`}
-                        >
-                          {u.active ? "Deactivate" : "Reactivate"}
-                        </button>
-                      </form>
-                    )}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {u.id === currentUserId ? (
+                        <Badge color={u.active ? "green" : "slate"}>{u.active ? "Active" : "Deactivated"}</Badge>
+                      ) : (
+                        <form action={setUserActive.bind(null, u.id)}>
+                          <input type="hidden" name="active" value={u.active ? "false" : "true"} />
+                          <button
+                            type="submit"
+                            className={`rounded-md border px-2 py-1 text-xs font-medium ${
+                              u.active
+                                ? "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
+                                : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                            }`}
+                          >
+                            {u.active ? "Deactivate" : "Reactivate"}
+                          </button>
+                        </form>
+                      )}
+                      {u.lockedUntil && u.lockedUntil > new Date() && (
+                        <>
+                          <Badge color="red">Locked</Badge>
+                          <form action={unlockUser.bind(null, u.id)}>
+                            <button
+                              type="submit"
+                              className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+                            >
+                              Unlock
+                            </button>
+                          </form>
+                        </>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-2.5">
                     <ResetPasswordControl userId={u.id} />

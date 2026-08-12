@@ -142,3 +142,26 @@ export async function setUserActive(userId: string, formData: FormData) {
 
   revalidatePath("/settings");
 }
+
+// Clears an active brute-force lockout (see LOCKOUT_THRESHOLD in
+// app/actions/auth.ts) early, before its self-healing timer expires — e.g.
+// once an admin has confirmed with the user it was them, not an attacker.
+export async function unlockUser(userId: string) {
+  const session = await requireRole("ADMIN");
+
+  const target = await db.user.findUnique({ where: { id: userId } });
+  if (!target || target.clinicId !== session.clinicId) throw new Error("Not found");
+  if (!target.lockedUntil) return;
+
+  await db.user.update({ where: { id: userId }, data: { failedLoginAttempts: 0, lockedUntil: null } });
+
+  await writeAuditLog({
+    userId: session.userId,
+    action: "UPDATE",
+    resource: "User",
+    resourceId: userId,
+    metadata: { unlocked: true },
+  });
+
+  revalidatePath("/settings");
+}

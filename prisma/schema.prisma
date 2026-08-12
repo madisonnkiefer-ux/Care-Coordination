@@ -51,6 +51,15 @@ model User {
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
 
+  // Brute-force lockout: failedLoginAttempts resets to 0 on any successful
+  // login. Hitting LOCKOUT_THRESHOLD (see app/actions/auth.ts) sets
+  // lockedUntil instead of blocking permanently — self-healing, no admin
+  // unlock action needed. A login attempt during an active lockout is
+  // rejected with the same generic error as a wrong password, so it can't
+  // be used to enumerate which emails have an account.
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
   assignedMembers        Member[]               @relation("AssignedCoordinator")
   tasks                  Task[]                 @relation("TaskAssignee")
   touchpoints            Touchpoint[]
