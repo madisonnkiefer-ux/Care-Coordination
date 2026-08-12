@@ -81,6 +81,46 @@ export async function deleteSession() {
   cookieStore.delete(SESSION_EXPIRY_COOKIE_NAME);
 }
 
+// Short-lived cookie for the gap between "password + office code verified"
+// and "MFA code verified" on an MFA-enabled account — deliberately carries
+// only a userId (no role/clinicId/name), so proxy.ts's session check can't
+// mistake it for a real, authenticated session even if misread.
+const MFA_PENDING_COOKIE_NAME = "cch_mfa_pending";
+const MFA_PENDING_TIMEOUT_MINUTES = 5;
+
+export async function createMfaPendingCookie(userId: string) {
+  const token = await new SignJWT({ userId })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${MFA_PENDING_TIMEOUT_MINUTES}m`)
+    .sign(encodedKey);
+  const cookieStore = await cookies();
+  cookieStore.set(MFA_PENDING_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: MFA_PENDING_TIMEOUT_MINUTES * 60,
+  });
+}
+
+export async function readMfaPendingUserId(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(MFA_PENDING_COOKIE_NAME)?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, encodedKey, { algorithms: ["HS256"] });
+    return (payload as { userId: string }).userId;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearMfaPendingCookie() {
+  const cookieStore = await cookies();
+  cookieStore.delete(MFA_PENDING_COOKIE_NAME);
+}
+
 // Read-only: safe to call from Server Components, which (per Next.js) may
 // only read cookies, never write them. Sliding the idle-timeout window
 // forward happens in proxy.ts instead, where writing response cookies is

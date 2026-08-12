@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Card, Badge } from "@/components/ui";
 import { createUser, updateUserRole, setUserActive, resetUserPassword, unlockUser } from "@/app/actions/users";
+import { adminResetMfa } from "@/app/actions/mfa";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { Role } from "@/app/generated/prisma/client";
 
@@ -24,6 +25,7 @@ type ClinicUser = {
   createdAt: Date;
   lastLoginAt: Date | null;
   lockedUntil: Date | null;
+  mfaEnabled: boolean;
 };
 
 export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; currentUserId: string }) {
@@ -43,6 +45,7 @@ export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; curren
                 <th className="px-4 py-3 font-medium">Role</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Password</th>
+                <th className="px-4 py-3 font-medium">2FA</th>
                 <th className="px-4 py-3 font-medium">Created</th>
                 <th className="px-4 py-3 font-medium">Last Login</th>
                 <th className="px-4 py-3 font-medium">Audit</th>
@@ -117,6 +120,23 @@ export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; curren
                   <td className="px-4 py-2.5">
                     <ResetPasswordControl userId={u.id} />
                   </td>
+                  <td className="px-4 py-2.5">
+                    {u.mfaEnabled ? (
+                      <div className="flex items-center gap-1.5">
+                        <Badge color="green">On</Badge>
+                        <form action={adminResetMfa.bind(null, u.id)}>
+                          <button
+                            type="submit"
+                            className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+                          >
+                            Reset
+                          </button>
+                        </form>
+                      </div>
+                    ) : (
+                      <Badge color="slate">Off</Badge>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5 whitespace-nowrap text-stone-500">{formatDate(u.createdAt)}</td>
                   <td className="px-4 py-2.5 whitespace-nowrap text-stone-500">{formatDateTime(u.lastLoginAt)}</td>
                   <td className="px-4 py-2.5">
@@ -128,7 +148,7 @@ export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; curren
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-stone-400">
+                  <td colSpan={9} className="px-4 py-10 text-center text-stone-400">
                     No users yet.
                   </td>
                 </tr>

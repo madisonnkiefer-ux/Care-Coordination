@@ -60,6 +60,16 @@ model User {
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
 
+  // TOTP-based MFA (person/entity authentication, HIPAA §164.312(d)).
+  // mfaSecret is set as soon as enrollment starts but mfaEnabled stays false
+  // until the user confirms a code — login only challenges for MFA once
+  // enabled. Backup codes are single-use: each hash is removed from the
+  // array on redemption. An admin "reset" (app/actions/mfa.ts) clears all
+  // three, for a lost device, without needing the old secret.
+  mfaEnabled          Boolean   @default(false)
+  mfaSecret           String?
+  mfaBackupCodeHashes String[]  @default([])
+
   assignedMembers        Member[]               @relation("AssignedCoordinator")
   tasks                  Task[]                 @relation("TaskAssignee")
   touchpoints            Touchpoint[]

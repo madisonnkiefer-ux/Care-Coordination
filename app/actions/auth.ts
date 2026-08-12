@@ -5,9 +5,17 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
-import { createSession, deleteSession } from "@/lib/session";
+import {
+  createSession,
+  deleteSession,
+  createMfaPendingCookie,
+  readMfaPendingUserId,
+  clearMfaPendingCookie,
+} from "@/lib/session";
 import { writeAuditLog } from "@/lib/audit";
 import { getSession } from "@/lib/dal";
+import { isLockedOut, recordLoginFailure, recordLoginSuccess, GENERIC_LOGIN_ERROR } from "@/lib/auth-lockout";
+import { verifyTotpCode, consumeBackupCode } from "@/lib/mfa";
 
 const LoginSchema = z.object({
   email: z.email({ error: "Enter a valid email." }),
@@ -15,14 +23,7 @@ const LoginSchema = z.object({
   officeCode: z.string().min(1, { error: "Office code is required." }),
 });
 
-export type LoginState = { error?: string } | undefined;
-
-// Brute-force protection. The lockout is time-based (no admin unlock step)
-// and always surfaces the same generic error as a wrong password — telling
-// a caller "this account is locked" would confirm the email exists.
-const LOCKOUT_THRESHOLD = 5;
-const LOCKOUT_MINUTES = 15;
-const GENERIC_LOGIN_ERROR = "Invalid email, password, or office code.";
+export type LoginState = { error?: string; mfaRequired?: boolean } | undefined;
 
 export async function login(_state: LoginState, formData: FormData): Promise<LoginState> {
   const validated = LoginSchema.safeParse({
@@ -50,7 +51,7 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
     return { error: GENERIC_LOGIN_ERROR };
   }
 
-  if (user.lockedUntil && user.lockedUntil > new Date()) {
+  if (isLockedOut(user)) {
     await writeAuditLog({
       userId: user.id,
       action: "LOGIN_FAILED",
@@ -61,49 +62,90 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
     return { error: GENERIC_LOGIN_ERROR };
   }
 
-  const recordFailure = async (reason: string) => {
-    // A lockout that has already expired starts this attempt's count fresh
-    // instead of continuing to build on the stale pre-lockout count.
-    const attempts = (user.lockedUntil ? 0 : user.failedLoginAttempts) + 1;
-    const lockingOut = attempts >= LOCKOUT_THRESHOLD;
-    await db.user.update({
-      where: { id: user.id },
-      data: {
-        failedLoginAttempts: lockingOut ? 0 : attempts,
-        lockedUntil: lockingOut ? new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000) : null,
-      },
-    });
-    await writeAuditLog({
-      userId: user.id,
-      action: "LOGIN_FAILED",
-      resource: "User",
-      resourceId: user.id,
-      metadata: { email, ipAddress, reason, lockedOut: lockingOut },
-    });
-  };
-
   if (user.clinic.code.toUpperCase() !== officeCode.trim().toUpperCase()) {
-    await recordFailure("office_code_mismatch");
+    await recordLoginFailure(user, "office_code_mismatch", { email, ipAddress });
     return { error: GENERIC_LOGIN_ERROR };
   }
 
   const passwordValid = await bcrypt.compare(password, user.passwordHash);
   if (!passwordValid) {
-    await recordFailure("bad_password");
+    await recordLoginFailure(user, "bad_password", { email, ipAddress });
     return { error: GENERIC_LOGIN_ERROR };
   }
 
+  if (user.mfaEnabled) {
+    await createMfaPendingCookie(user.id);
+    await writeAuditLog({
+      userId: user.id,
+      action: "LOGIN_FAILED",
+      resource: "User",
+      resourceId: user.id,
+      metadata: { email, ipAddress, reason: "mfa_required" },
+    });
+    return { mfaRequired: true };
+  }
+
   await createSession(user);
-  await db.user.update({
-    where: { id: user.id },
-    data: { lastLoginAt: new Date(), failedLoginAttempts: 0, lockedUntil: null },
-  });
+  await recordLoginSuccess(user.id);
   await writeAuditLog({
     userId: user.id,
     action: "LOGIN",
     resource: "User",
     resourceId: user.id,
     metadata: { ipAddress },
+  });
+
+  redirect("/");
+}
+
+export type MfaVerifyState = { error?: string } | undefined;
+
+export async function verifyMfaCode(_state: MfaVerifyState, formData: FormData): Promise<MfaVerifyState> {
+  const code = String(formData.get("code") ?? "").trim();
+  const ipAddress = (await headers()).get("x-forwarded-for") ?? undefined;
+
+  const userId = await readMfaPendingUserId();
+  if (!userId) {
+    return { error: "Your session expired. Please sign in again." };
+  }
+
+  const user = await db.user.findUnique({ where: { id: userId } });
+  if (!user || !user.active || !user.mfaEnabled || !user.mfaSecret) {
+    await clearMfaPendingCookie();
+    return { error: "Your session expired. Please sign in again." };
+  }
+
+  if (isLockedOut(user)) {
+    await clearMfaPendingCookie();
+    return { error: GENERIC_LOGIN_ERROR };
+  }
+
+  if (!code) {
+    return { error: "Enter the 6-digit code from your authenticator app, or a backup code." };
+  }
+
+  const totpValid = verifyTotpCode(user.mfaSecret, user.email, code);
+  let usedBackupCode = false;
+
+  if (!totpValid) {
+    const { matched, remainingHashes } = await consumeBackupCode(user.mfaBackupCodeHashes, code);
+    if (!matched) {
+      await recordLoginFailure(user, "mfa_invalid_code", { email: user.email, ipAddress });
+      return { error: "Invalid code. Please try again." };
+    }
+    usedBackupCode = true;
+    await db.user.update({ where: { id: user.id }, data: { mfaBackupCodeHashes: remainingHashes } });
+  }
+
+  await createSession(user);
+  await recordLoginSuccess(user.id);
+  await clearMfaPendingCookie();
+  await writeAuditLog({
+    userId: user.id,
+    action: "LOGIN",
+    resource: "User",
+    resourceId: user.id,
+    metadata: { ipAddress, mfa: true, usedBackupCode },
   });
 
   redirect("/");

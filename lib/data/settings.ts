@@ -17,6 +17,7 @@ export async function getClinicUsers() {
       createdAt: true,
       lastLoginAt: true,
       lockedUntil: true,
+      mfaEnabled: true,
     },
   });
 }
