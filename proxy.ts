@@ -13,6 +13,40 @@ import {
 
 const PUBLIC_ROUTES = ["/login"];
 
+// Security headers, applied to every response. CSP uses the Next.js-
+// documented nonce + 'strict-dynamic' pattern (nextjs.org/docs/app/guides/
+// content-security-policy) so its own hydration/chunk-loading scripts keep
+// working without 'unsafe-inline'. style-src needs 'unsafe-inline' because
+// components/goal-donut.tsx sets a computed inline `style` attribute; every
+// other directive stays same-origin-only since the app has no external
+// scripts, fonts (next/font self-hosts at build time), images, or API calls.
+function securityHeaders(nonce: string) {
+  const csp = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self';
+    font-src 'self';
+    connect-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+  `
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  return {
+    "Content-Security-Policy": csp,
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  };
+}
+
 // Optimistic, cookie-only check that runs on every request. This is the
 // first line of defense (fast redirects, no DB hit) — every page/action/
 // route handler still re-verifies via lib/dal.ts's verifySession(), since
@@ -26,6 +60,13 @@ export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const headers = securityHeaders(nonce);
+  const applyHeaders = (response: NextResponse) => {
+    for (const [key, value] of Object.entries(headers)) response.headers.set(key, value);
+    return response;
+  };
+
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const payload = await decrypt(token);
   const session = payload && isWithinAbsoluteLifetime(payload) ? payload : null;
@@ -37,14 +78,18 @@ export default async function proxy(request: NextRequest) {
       response.cookies.delete(SESSION_COOKIE_NAME);
       response.cookies.delete(SESSION_EXPIRY_COOKIE_NAME);
     }
-    return response;
+    return applyHeaders(response);
   }
 
   if (isPublicRoute && session) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return applyHeaders(NextResponse.redirect(new URL("/", request.url)));
   }
 
-  const response = NextResponse.next();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", headers["Content-Security-Policy"]);
+
+  const response = applyHeaders(NextResponse.next({ request: { headers: requestHeaders } }));
   if (session) {
     const refreshed = await encrypt(session);
     response.cookies.set(SESSION_COOKIE_NAME, refreshed, sessionCookieOptions);
