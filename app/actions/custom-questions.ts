@@ -80,6 +80,36 @@ export async function createCustomQuestion(form: string, formData: FormData) {
   revalidatePath("/settings");
 }
 
+export async function moveCustomQuestion(questionId: string, direction: "up" | "down") {
+  const session = await requireRole("ADMIN");
+  const question = await db.customQuestion.findUnique({ where: { id: questionId } });
+  if (!question || question.clinicId !== session.clinicId) throw new Error("Not found.");
+
+  const siblings = await db.customQuestion.findMany({
+    where: { clinicId: session.clinicId, form: question.form },
+    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+    select: { id: true },
+  });
+  const orderedIds = siblings.map((q) => q.id);
+  const index = orderedIds.indexOf(questionId);
+  const swapWith = direction === "up" ? index - 1 : index + 1;
+  if (index === -1 || swapWith < 0 || swapWith >= orderedIds.length) return;
+
+  [orderedIds[index], orderedIds[swapWith]] = [orderedIds[swapWith], orderedIds[index]];
+
+  await db.$transaction(orderedIds.map((id, i) => db.customQuestion.update({ where: { id }, data: { order: i } })));
+
+  await writeAuditLog({
+    userId: session.userId,
+    action: "UPDATE",
+    resource: "CustomQuestion",
+    resourceId: questionId,
+    metadata: { moved: direction },
+  });
+
+  revalidatePath("/settings");
+}
+
 export async function deleteCustomQuestion(questionId: string) {
   const session = await requireRole("ADMIN");
   const question = await db.customQuestion.findUnique({

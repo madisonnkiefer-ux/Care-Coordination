@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui";
-import { createCustomQuestion, setCustomQuestionActive, deleteCustomQuestion } from "@/app/actions/custom-questions";
+import { createCustomQuestion, setCustomQuestionActive, deleteCustomQuestion, moveCustomQuestion } from "@/app/actions/custom-questions";
 import type { SettingsCustomQuestion } from "@/lib/data/custom-questions";
 
 const FORM_ORDER = ["demographics", "hra", "cna", "ccn", "ccp", "generalComm", "toc"] as const;
@@ -41,34 +41,71 @@ export function CustomQuestionsTab({ questions }: { questions: SettingsCustomQue
         end of the chosen form as an &quot;Additional Questions&quot; section. Retiring a question stops it from
         appearing on new forms; answers already collected stay on file.
       </p>
-      {FORM_ORDER.map((form) => (
-        <Card key={form} title={FORM_LABELS[form]}>
-          <div className="space-y-3">
-            {(byForm.get(form) ?? []).map((q) => (
-              <ExistingQuestionRow key={q.id} question={q} />
-            ))}
-            {(byForm.get(form) ?? []).length === 0 && <p className="text-sm text-stone-400">No additional questions yet.</p>}
-            <AddQuestionForm form={form} existingQuestions={byForm.get(form) ?? []} />
-          </div>
-        </Card>
-      ))}
+      {FORM_ORDER.map((form) => {
+        const formQuestions = byForm.get(form) ?? [];
+        return (
+          <Card key={form} title={FORM_LABELS[form]}>
+            <div className="space-y-3">
+              {formQuestions.map((q, i) => (
+                <ExistingQuestionRow key={q.id} question={q} isFirst={i === 0} isLast={i === formQuestions.length - 1} />
+              ))}
+              {formQuestions.length === 0 && <p className="text-sm text-stone-400">No additional questions yet.</p>}
+              <AddQuestionForm form={form} existingQuestions={formQuestions} />
+            </div>
+          </Card>
+        );
+      })}
     </div>
   );
 }
 
-function ExistingQuestionRow({ question }: { question: SettingsCustomQuestion }) {
+function ExistingQuestionRow({
+  question,
+  isFirst,
+  isLast,
+}: {
+  question: SettingsCustomQuestion;
+  isFirst: boolean;
+  isLast: boolean;
+}) {
   const canDelete = question.answerCount === 0;
 
   return (
     <div className={`flex items-start justify-between gap-4 rounded-lg border p-3 ${question.active ? "border-stone-200" : "border-stone-200 bg-stone-50"}`}>
-      <div>
-        <p className={`text-sm font-medium ${question.active ? "text-charcoal" : "text-stone-400"}`}>{question.label}</p>
-        <p className="text-xs text-stone-400">
-          {TYPE_LABELS[question.type]}
-          {question.section ? ` · ${question.section}` : ""}
-          {!question.active ? " · Retired" : ""}
-          {question.answerCount > 0 ? ` · ${question.answerCount} answer${question.answerCount === 1 ? "" : "s"} on file` : ""}
-        </p>
+      <div className="flex items-start gap-2">
+        <div className="flex flex-col">
+          <form action={moveCustomQuestion.bind(null, question.id, "up")}>
+            <button
+              type="submit"
+              disabled={isFirst}
+              aria-label="Move up"
+              title="Move up"
+              className="text-stone-400 hover:text-charcoal disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              ▲
+            </button>
+          </form>
+          <form action={moveCustomQuestion.bind(null, question.id, "down")}>
+            <button
+              type="submit"
+              disabled={isLast}
+              aria-label="Move down"
+              title="Move down"
+              className="text-stone-400 hover:text-charcoal disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              ▼
+            </button>
+          </form>
+        </div>
+        <div>
+          <p className={`text-sm font-medium ${question.active ? "text-charcoal" : "text-stone-400"}`}>{question.label}</p>
+          <p className="text-xs text-stone-400">
+            {TYPE_LABELS[question.type]}
+            {question.section ? ` · ${question.section}` : ""}
+            {!question.active ? " · Retired" : ""}
+            {question.answerCount > 0 ? ` · ${question.answerCount} answer${question.answerCount === 1 ? "" : "s"} on file` : ""}
+          </p>
+        </div>
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <form action={setCustomQuestionActive.bind(null, question.id, !question.active)}>
