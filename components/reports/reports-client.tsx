@@ -10,7 +10,7 @@ import type { getReportsData } from "@/lib/data/reports";
 type ReportsData = Awaited<ReturnType<typeof getReportsData>>;
 type ReportMember = ReportsData["members"][number];
 
-type ReportId = "roster" | "caseload" | "outreach" | "cna" | "monthly-activity";
+type ReportId = "roster" | "caseload" | "outreach" | "cna" | "monthly-activity" | "monthly-dashboard";
 
 const REPORTS: { id: ReportId; label: string }[] = [
   { id: "roster", label: "Active Roster" },
@@ -18,7 +18,18 @@ const REPORTS: { id: ReportId; label: string }[] = [
   { id: "outreach", label: "Outreach Completion" },
   { id: "cna", label: "Annual CNA Status" },
   { id: "monthly-activity", label: "Monthly Activity" },
+  { id: "monthly-dashboard", label: "Monthly Dashboard" },
 ];
+
+function currentMonthValue() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthLabel(monthValue: string) {
+  const [year, month] = monthValue.split("-").map(Number);
+  return new Date(year, month - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
 
 function currentQuarterStart() {
   const now = new Date();
@@ -60,6 +71,7 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
   // Empty = no filter, shows every member's current status (the original
   // behavior). Format matches <input type="month">'s value: "YYYY-MM".
   const [cnaMonth, setCnaMonth] = useState("");
+  const [dashboardMonth, setDashboardMonth] = useState(currentMonthValue);
 
   const filtered = useMemo(() => {
     return members.filter((m) => {
@@ -152,6 +164,17 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
             </div>
           </FilterField>
         )}
+
+        {active === "monthly-dashboard" && (
+          <FilterField label="Month">
+            <input
+              type="month"
+              value={dashboardMonth}
+              onChange={(e) => setDashboardMonth(e.target.value)}
+              className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+            />
+          </FilterField>
+        )}
       </div>
       )}
 
@@ -159,6 +182,7 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
       {active === "caseload" && <CaseloadDistributionReport members={filtered} />}
       {active === "outreach" && <OutreachCompletionReport members={filtered} dateFrom={dateFrom} dateTo={dateTo} />}
       {active === "cna" && <AnnualCnaStatusReport members={filtered} month={cnaMonth} />}
+      {active === "monthly-dashboard" && <MonthlyDashboardReport members={filtered} coordinators={coordinators} month={dashboardMonth} />}
       {active === "monthly-activity" && <MonthlyActivityReport />}
     </div>
   );
@@ -520,6 +544,124 @@ function AnnualCnaStatusReport({ members, month }: { members: ReportMember[]; mo
               <td className="py-2">
                 <Badge color={badgeColor(r.category)}>{r.category}</Badge>
               </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </ReportShell>
+  );
+}
+
+// "Still due" mirrors AnnualCnaStatusReport's own categories, collapsed to
+// a single yes/no: never completed, or completed but past its 1-year
+// renewal date. Unlike the rest of this report it isn't scoped to the
+// selected month — it's each coordinator's current outstanding count.
+function isCnaStillDue(lastCnaDate: Date | null, now: Date): boolean {
+  if (!lastCnaDate) return true;
+  const dueDate = new Date(lastCnaDate.getFullYear() + 1, lastCnaDate.getMonth(), lastCnaDate.getDate());
+  return dueDate < now;
+}
+
+function MonthlyDashboardReport({
+  members,
+  coordinators,
+  month,
+}: {
+  members: ReportMember[];
+  coordinators: ReportsData["coordinators"];
+  month: string;
+}) {
+  const rows = useMemo(() => {
+    const now = new Date();
+    const [year, monthNum] = month.split("-").map(Number);
+    const monthStart = new Date(year, monthNum - 1, 1);
+    const monthEnd = new Date(year, monthNum, 0, 23, 59, 59, 999);
+    const inMonth = (d: Date) => d >= monthStart && d <= monthEnd;
+
+    return coordinators.map((c) => {
+      const caseload = members.filter((m) => m.coordinatorId === c.id);
+      const activePatients = caseload.filter((m) => m.status === "ACTIVE").length;
+
+      let successful = 0;
+      let attempts = 0;
+      let cnaCompletedInMonth = 0;
+      let cnaStillDue = 0;
+
+      for (const m of caseload) {
+        const contactsInMonth = m.contacts.filter((contact) => inMonth(contact.createdAt));
+        attempts += contactsInMonth.length;
+        successful += contactsInMonth.filter((contact) => contact.successful).length;
+        cnaCompletedInMonth += m.cnaCompletions.filter(inMonth).length;
+        if (isCnaStillDue(m.lastCnaDate, now)) cnaStillDue += 1;
+      }
+
+      return {
+        id: c.id,
+        name: c.name,
+        patients: activePatients,
+        successful,
+        attempts,
+        successRate: attempts > 0 ? Math.round((successful / attempts) * 100) : null,
+        cnaCompletedInMonth,
+        cnaStillDue,
+      };
+    });
+  }, [members, coordinators, month]);
+
+  const label = monthLabel(month);
+
+  return (
+    <ReportShell
+      title={`Monthly Dashboard — ${label}`}
+      count={rows.length}
+      unit="coordinator"
+      emptyMessage="No care coordinators match these filters."
+      onExport={() =>
+        downloadCsv(
+          `monthly-dashboard-${month}.csv`,
+          [
+            "Care Coordinator",
+            "# of Patients",
+            `Total Successful (${label})`,
+            "% of Successful Touchpoints",
+            `Total Attempts (${label})`,
+            `CNAs Completed (${label})`,
+            "CNAs Still Due",
+          ],
+          rows.map((r) => [
+            r.name,
+            r.patients,
+            r.successful,
+            r.successRate === null ? "—" : `${r.successRate}%`,
+            r.attempts,
+            r.cnaCompletedInMonth,
+            r.cnaStillDue,
+          ])
+        )
+      }
+    >
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-left text-xs text-stone-400">
+            <th className="pb-2 font-medium">Care Coordinator</th>
+            <th className="pb-2 font-medium"># of Patients</th>
+            <th className="pb-2 font-medium">Total Successful ({label})</th>
+            <th className="pb-2 font-medium">% Successful</th>
+            <th className="pb-2 font-medium">Total Attempts ({label})</th>
+            <th className="pb-2 font-medium">CNAs Completed ({label})</th>
+            <th className="pb-2 font-medium">CNAs Still Due</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-stone-100">
+          {rows.map((r) => (
+            <tr key={r.id}>
+              <td className="py-2 font-medium text-stone-800">{r.name}</td>
+              <td className="py-2 text-stone-600">{r.patients}</td>
+              <td className="py-2 text-stone-600">{r.successful}</td>
+              <td className="py-2 text-stone-600">{r.successRate === null ? "—" : `${r.successRate}%`}</td>
+              <td className="py-2 text-stone-600">{r.attempts}</td>
+              <td className="py-2 text-stone-600">{r.cnaCompletedInMonth}</td>
+              <td className="py-2 text-stone-600">{r.cnaStillDue}</td>
             </tr>
           ))}
         </tbody>

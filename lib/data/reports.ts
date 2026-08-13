@@ -57,6 +57,7 @@ export async function getReportsData() {
       coordinatorName: m.assignedCoordinator?.name ?? null,
       lastCnaDate: mostRecentCna?.assessmentDate ?? null,
       lastCnaType: mostRecentCna?.assessmentType[0] ?? null,
+      cnaCompletions: m.cnaAssessments.map((c) => c.assessmentDate),
       contacts: m.generalCommunications,
       enrollmentDate: firstEnrollmentDate(m),
     };
