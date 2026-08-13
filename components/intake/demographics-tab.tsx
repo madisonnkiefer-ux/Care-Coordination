@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui";
+import { FloatingSaveBar } from "@/components/floating-save-bar";
 import { saveDemographics } from "@/app/actions/demographics";
 import { toDateInputValue } from "@/lib/format";
 import type { Demographics } from "@/app/generated/prisma/client";
@@ -226,7 +227,7 @@ export function DemographicsTab({
         </fieldset>
 
         {!locked && (
-          <div className="flex gap-3 print:hidden">
+          <FloatingSaveBar>
             <button
               type="submit"
               name="intent"
@@ -238,7 +239,7 @@ export function DemographicsTab({
             <button type="submit" name="intent" value="complete" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
               Complete
             </button>
-          </div>
+          </FloatingSaveBar>
         )}
       </form>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, Badge } from "@/components/ui";
+import { FloatingSaveBar } from "@/components/floating-save-bar";
 import { saveCna } from "@/app/actions/cna";
 import { toDateInputValue } from "@/lib/format";
 import { computeBmi, computePhq2Total, computePhq9Total, computeCageTotal, getSafetyConcernReasons } from "@/lib/cna-computed";
@@ -796,7 +797,7 @@ export function CnaTab({
       </fieldset>
 
       {!locked && (
-        <div className="flex gap-3 print:hidden">
+        <FloatingSaveBar>
           <button
             type="submit"
             name="intent"
@@ -813,7 +814,7 @@ export function CnaTab({
           >
             Complete Assessment
           </button>
-        </div>
+        </FloatingSaveBar>
       )}
       </form>
     </div>

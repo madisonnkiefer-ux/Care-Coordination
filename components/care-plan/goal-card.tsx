@@ -46,8 +46,11 @@ export function GoalCard({
         </button>
       </div>
 
-      {expanded && (
-        <div className="mt-5 space-y-6 border-t border-stone-100 pt-5">
+      {/* Hidden via CSS rather than unmounted when collapsed — the page's
+          single "Save Care Plan" button finds this form by id and submits it
+          with requestSubmit(), which would silently skip a collapsed goal
+          (and drop its edits) if the form weren't still in the DOM. */}
+      <div hidden={!expanded} className="mt-5 space-y-6 border-t border-stone-100 pt-5">
           {/* No submit button here — the page's single "Save Care Plan" button submits this
               (and every other goal's form, plus the coordinator-action fields below that
               point back at this id via `form=`) together via requestSubmit(). */}
@@ -169,8 +172,7 @@ export function GoalCard({
             action={addProgressNote.bind(null, memberId, carePlanId, goal.id)}
             track="COORDINATOR"
           />
-        </div>
-      )}
+      </div>
     </Card>
   );
 }

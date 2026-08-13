@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, Badge } from "@/components/ui";
+import { FloatingSaveBar } from "@/components/floating-save-bar";
 import { saveHra } from "@/app/actions/hra";
 import { toDateInputValue } from "@/lib/format";
 import { getCnaRequiredReasons } from "@/lib/hra-cna-required";
@@ -279,7 +280,7 @@ export function HraTab({
       </fieldset>
 
       {!locked && (
-        <div className="flex gap-3 print:hidden">
+        <FloatingSaveBar>
           <button
             type="submit"
             name="intent"
@@ -296,7 +297,7 @@ export function HraTab({
           >
             Complete Assessment
           </button>
-        </div>
+        </FloatingSaveBar>
       )}
       </form>
     </div>

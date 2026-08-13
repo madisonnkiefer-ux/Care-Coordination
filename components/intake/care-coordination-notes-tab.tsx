@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui";
+import { FloatingSaveBar } from "@/components/floating-save-bar";
 import { saveCareCoordinationNote } from "@/app/actions/care-coordination-notes";
 import type { CareCoordinationNote } from "@/app/generated/prisma/client";
 import { TextArea, SelectField, YesNoField, YesNoNaField, CheckboxGroup, TextField } from "@/components/intake/form-fields";
@@ -191,7 +192,7 @@ export function CareCoordinationNotesTab({
       </fieldset>
 
       {!locked && (
-        <div className="flex gap-3 print:hidden">
+        <FloatingSaveBar>
           <button
             type="submit"
             name="intent"
@@ -208,7 +209,7 @@ export function CareCoordinationNotesTab({
           >
             Complete
           </button>
-        </div>
+        </FloatingSaveBar>
       )}
       </form>
     </div>

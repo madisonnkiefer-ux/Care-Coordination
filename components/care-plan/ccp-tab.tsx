@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui";
+import { FloatingSaveBar } from "@/components/floating-save-bar";
 import { SimpleHistoryBar } from "@/components/intake/versioning";
 import { TextArea, TextField, DateField, Checkbox, CheckboxGroup } from "@/components/intake/form-fields";
 import { PREFERRED_CONTACT_METHOD_OPTIONS, DISASTER_REVIEW_ITEMS_OPTIONS } from "@/components/intake/options";
@@ -328,7 +329,9 @@ export function CcpTab({
             </div>
           </Card>
 
-          <SaveCarePlanButton goalIds={plan.goals.map((g) => g.id)} />
+          <FloatingSaveBar>
+            <SaveCarePlanButton goalIds={plan.goals.map((g) => g.id)} />
+          </FloatingSaveBar>
         </div>
       )}
     </div>
@@ -350,6 +353,11 @@ function SaveCarePlanButton({ goalIds }: { goalIds: string[] }) {
     <button
       type="button"
       onClick={() => {
+        // This button lives outside every form it submits (HTML forbids
+        // nesting them), so it never remounts on save the way a plain
+        // in-form save button does — scroll to top here explicitly instead
+        // of relying on FloatingSaveBar's mount effect.
+        window.scrollTo({ top: 0, behavior: "smooth" });
         (document.getElementById("ccp-form") as HTMLFormElement | null)?.requestSubmit();
         for (const goalId of goalIds) {
           (document.getElementById(`goal-form-${goalId}`) as HTMLFormElement | null)?.requestSubmit();

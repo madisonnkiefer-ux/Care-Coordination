@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui";
+import { FloatingSaveBar } from "@/components/floating-save-bar";
 import { HistoryBar, SignedBanner, SignButton, type HistoryItem } from "@/components/intake/versioning";
 import { TextField, TextArea, DateField, SelectField } from "@/components/intake/form-fields";
 import { NeedsSection } from "@/components/toc/needs-section";
@@ -171,7 +172,7 @@ export function TocForm({
             </fieldset>
 
             {!locked && (
-              <div className="flex gap-3 print:hidden">
+              <FloatingSaveBar>
                 <button
                   type="submit"
                   name="intent"
@@ -183,7 +184,7 @@ export function TocForm({
                 <button type="submit" name="intent" value="complete" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
                   Complete
                 </button>
-              </div>
+              </FloatingSaveBar>
             )}
           </form>
 

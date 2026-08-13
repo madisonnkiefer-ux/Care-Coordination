@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui";
+import { FloatingSaveBar } from "@/components/floating-save-bar";
 import { saveGeneralCommunication, createNewGeneralCommunication } from "@/app/actions/general-communication";
 import type { GeneralCommunication } from "@/app/generated/prisma/client";
 import { SimpleHistoryBar } from "@/components/intake/versioning";
@@ -152,9 +153,11 @@ export function GeneralCommunicationTab({
 
           <CustomQuestionsSection questions={customQuestions} />
 
-          <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden">
-            Save
-          </button>
+          <FloatingSaveBar>
+            <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
+              Save
+            </button>
+          </FloatingSaveBar>
         </form>
       )}
     </div>
