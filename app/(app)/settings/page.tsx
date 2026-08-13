@@ -3,6 +3,7 @@ import { getClinicUsers, getAllOffices, getDeletedMembers } from "@/lib/data/set
 import { getAuditLog } from "@/lib/data/audit";
 import { getFormFieldsForSettings } from "@/lib/data/form-fields";
 import { getCustomQuestionsForSettings } from "@/lib/data/custom-questions";
+import { getSecurityAlerts } from "@/lib/data/security-alerts";
 import { PageHeader } from "@/components/ui";
 import { Tabs } from "@/components/tabs";
 import { UsersTab } from "@/components/settings/users-tab";
@@ -11,6 +12,7 @@ import { OfficesTab } from "@/components/settings/offices-tab";
 import { DeletedChartsTab } from "@/components/settings/deleted-charts-tab";
 import { FormFieldsTab } from "@/components/settings/form-fields-tab";
 import { CustomQuestionsTab } from "@/components/settings/custom-questions-tab";
+import { SecurityAlertsTab } from "@/components/settings/security-alerts-tab";
 
 export default async function SettingsPage({
   searchParams,
@@ -20,7 +22,7 @@ export default async function SettingsPage({
   await requireRole("ADMIN");
   const { tab, user } = await searchParams;
 
-  const [users, auditLogs, currentUser, offices, deletedMembers, formFields, customQuestions] = await Promise.all([
+  const [users, auditLogs, currentUser, offices, deletedMembers, formFields, customQuestions, securityAlerts] = await Promise.all([
     getClinicUsers(),
     getAuditLog(user),
     getCurrentUser(),
@@ -28,6 +30,7 @@ export default async function SettingsPage({
     getDeletedMembers(),
     getFormFieldsForSettings(),
     getCustomQuestionsForSettings(),
+    getSecurityAlerts(),
   ]);
 
   return (
@@ -66,6 +69,11 @@ export default async function SettingsPage({
             id: "audit",
             label: "Audit Log",
             content: <AuditLogTab users={users} logs={auditLogs} selectedUserId={user} />,
+          },
+          {
+            id: "security-alerts",
+            label: "Security Alerts",
+            content: <SecurityAlertsTab {...securityAlerts} />,
           },
         ]}
       />
