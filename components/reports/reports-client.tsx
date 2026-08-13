@@ -57,6 +57,9 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
   const [status, setStatus] = useState("");
   const [dateFrom, setDateFrom] = useState(() => toInputDate(currentQuarterStart()));
   const [dateTo, setDateTo] = useState(() => toInputDate(new Date()));
+  // Empty = no filter, shows every member's current status (the original
+  // behavior). Format matches <input type="month">'s value: "YYYY-MM".
+  const [cnaMonth, setCnaMonth] = useState("");
 
   const filtered = useMemo(() => {
     return members.filter((m) => {
@@ -131,13 +134,31 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
             </FilterField>
           </>
         )}
+
+        {active === "cna" && (
+          <FilterField label="Completed In">
+            <div className="flex items-center gap-2">
+              <input
+                type="month"
+                value={cnaMonth}
+                onChange={(e) => setCnaMonth(e.target.value)}
+                className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+              />
+              {cnaMonth && (
+                <button type="button" onClick={() => setCnaMonth("")} className="text-xs font-medium text-stone-500 hover:text-charcoal hover:underline">
+                  Clear
+                </button>
+              )}
+            </div>
+          </FilterField>
+        )}
       </div>
       )}
 
       {active === "roster" && <ActiveRosterReport members={filtered} />}
       {active === "caseload" && <CaseloadDistributionReport members={filtered} />}
       {active === "outreach" && <OutreachCompletionReport members={filtered} dateFrom={dateFrom} dateTo={dateTo} />}
-      {active === "cna" && <AnnualCnaStatusReport members={filtered} />}
+      {active === "cna" && <AnnualCnaStatusReport members={filtered} month={cnaMonth} />}
       {active === "monthly-activity" && <MonthlyActivityReport />}
     </div>
   );
@@ -422,42 +443,49 @@ function OutreachCompletionReport({ members, dateFrom, dateTo }: { members: Repo
   );
 }
 
-function AnnualCnaStatusReport({ members }: { members: ReportMember[] }) {
+function AnnualCnaStatusReport({ members, month }: { members: ReportMember[]; month: string }) {
   const rows = useMemo(() => {
     const now = new Date();
     const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    return members.map((m) => {
-      const dueDate = m.lastCnaDate
-        ? new Date(m.lastCnaDate.getFullYear() + 1, m.lastCnaDate.getMonth(), m.lastCnaDate.getDate())
-        : null;
-      let category: "Never Completed" | "Overdue" | "Due Soon" | "Current";
-      if (!dueDate) category = "Never Completed";
-      else if (dueDate < now) category = "Overdue";
-      else if (dueDate <= in30Days) category = "Due Soon";
-      else category = "Current";
+    return members
+      .filter((m) => {
+        if (!month) return true;
+        if (!m.lastCnaDate) return false;
+        const key = `${m.lastCnaDate.getFullYear()}-${String(m.lastCnaDate.getMonth() + 1).padStart(2, "0")}`;
+        return key === month;
+      })
+      .map((m) => {
+        const dueDate = m.lastCnaDate
+          ? new Date(m.lastCnaDate.getFullYear() + 1, m.lastCnaDate.getMonth(), m.lastCnaDate.getDate())
+          : null;
+        let category: "Never Completed" | "Overdue" | "Due Soon" | "Current";
+        if (!dueDate) category = "Never Completed";
+        else if (dueDate < now) category = "Overdue";
+        else if (dueDate <= in30Days) category = "Due Soon";
+        else category = "Current";
 
-      return {
-        id: m.id,
-        name: `${m.firstName} ${m.lastName}`,
-        coordinator: coordinatorOrUnassigned(m),
-        lastCnaDate: m.lastCnaDate,
-        lastCnaType: m.lastCnaType,
-        dueDate,
-        category,
-      };
-    });
-  }, [members]);
+        return {
+          id: m.id,
+          name: `${m.firstName} ${m.lastName}`,
+          coordinator: coordinatorOrUnassigned(m),
+          lastCnaDate: m.lastCnaDate,
+          lastCnaType: m.lastCnaType,
+          dueDate,
+          category,
+        };
+      });
+  }, [members, month]);
 
   const badgeColor = (c: string) => (c === "Overdue" || c === "Never Completed" ? "red" : c === "Due Soon" ? "yellow" : "green");
 
   return (
     <ReportShell
-      title="Annual CNA Status"
+      title={month ? `Annual CNA Status — Completed ${month}` : "Annual CNA Status"}
       count={rows.length}
       onExport={() =>
         downloadCsv(
-          "annual-cna-status.csv",
+          month ? `annual-cna-status-${month}.csv` : "annual-cna-status.csv",
           ["Name", "Coordinator", "Last CNA Date", "Type", "Due Date", "Status"],
           rows.map((r) => [
             r.name,
