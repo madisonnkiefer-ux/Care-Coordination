@@ -179,7 +179,7 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
       )}
 
       {active === "roster" && <ActiveRosterReport members={filtered} />}
-      {active === "caseload" && <CaseloadDistributionReport members={filtered} />}
+      {active === "caseload" && <CaseloadDistributionReport members={filtered} allMembers={members} coordinatorId={coordinatorId} />}
       {active === "outreach" && <OutreachCompletionReport members={filtered} dateFrom={dateFrom} dateTo={dateTo} />}
       {active === "cna" && <AnnualCnaStatusReport members={filtered} month={cnaMonth} />}
       {active === "monthly-dashboard" && <MonthlyDashboardReport members={filtered} coordinators={coordinators} month={dashboardMonth} />}
@@ -295,7 +295,15 @@ function ActiveRosterReport({ members }: { members: ReportMember[] }) {
   );
 }
 
-function CaseloadDistributionReport({ members }: { members: ReportMember[] }) {
+function CaseloadDistributionReport({
+  members,
+  allMembers,
+  coordinatorId,
+}: {
+  members: ReportMember[];
+  allMembers: ReportMember[];
+  coordinatorId: string;
+}) {
   const rows = useMemo(() => {
     const byCoordinator = new Map<string, { name: string; total: number; active: number; programs: Map<string, number> }>();
     for (const m of members) {
@@ -310,44 +318,125 @@ function CaseloadDistributionReport({ members }: { members: ReportMember[] }) {
     return Array.from(byCoordinator.values()).sort((a, b) => b.total - a.total);
   }, [members]);
 
+  // Unassigned isn't tied to the Coordinator filter above (there's no
+  // "Unassigned" option in that dropdown) — always reflects the true,
+  // clinic-wide list regardless of which filters are active, same as the
+  // Supervisor Dashboard's "Needs Assignment" panel.
+  const unassigned = useMemo(
+    () => allMembers.filter((m) => !m.coordinatorId).sort((a, b) => a.lastName.localeCompare(b.lastName)),
+    [allMembers]
+  );
+
+  const selectedCoordinatorName = coordinatorId ? members[0]?.coordinatorName ?? null : null;
+
+  return (
+    <div className="space-y-6">
+      <ReportShell
+        title="Caseload Distribution"
+        count={rows.length}
+        unit="coordinator"
+        emptyMessage="No coordinators match these filters."
+        onExport={() =>
+          downloadCsv(
+            "caseload-distribution.csv",
+            ["Coordinator", "Total", "Active", "Program Breakdown"],
+            rows.map((r) => [
+              r.name,
+              r.total,
+              r.active,
+              Array.from(r.programs.entries()).map(([p, n]) => `${p}: ${n}`).join("; "),
+            ])
+          )
+        }
+      >
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs text-stone-400">
+              <th className="pb-2 font-medium">Coordinator</th>
+              <th className="pb-2 font-medium">Total</th>
+              <th className="pb-2 font-medium">Active</th>
+              <th className="pb-2 font-medium">Program Breakdown</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-stone-100">
+            {rows.map((r) => (
+              <tr key={r.name}>
+                <td className="py-2 font-medium text-stone-800">{r.name}</td>
+                <td className="py-2 text-stone-600">{r.total}</td>
+                <td className="py-2 text-stone-600">{r.active}</td>
+                <td className="py-2 text-stone-600">
+                  {Array.from(r.programs.entries())
+                    .map(([p, n]) => `${p}: ${n}`)
+                    .join(", ") || "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </ReportShell>
+
+      {coordinatorId ? (
+        <MemberListCard
+          title={`${selectedCoordinatorName ?? "Coordinator"}'s Caseload`}
+          members={members}
+          filename={`caseload-${(selectedCoordinatorName ?? "coordinator").toLowerCase().replace(/\s+/g, "-")}.csv`}
+          emptyMessage="This coordinator has no patients."
+        />
+      ) : (
+        <p className="text-xs text-stone-400">Pick a coordinator above to see their individual patient list here.</p>
+      )}
+
+      <MemberListCard
+        title="Unassigned Members"
+        members={unassigned}
+        filename="unassigned-members.csv"
+        emptyMessage="No unassigned members — everyone has a coordinator."
+      />
+    </div>
+  );
+}
+
+function MemberListCard({
+  title,
+  members,
+  filename,
+  emptyMessage,
+}: {
+  title: string;
+  members: ReportMember[];
+  filename: string;
+  emptyMessage: string;
+}) {
   return (
     <ReportShell
-      title="Caseload Distribution"
-      count={rows.length}
-      unit="coordinator"
-      emptyMessage="No coordinators match these filters."
+      title={title}
+      count={members.length}
+      emptyMessage={emptyMessage}
       onExport={() =>
         downloadCsv(
-          "caseload-distribution.csv",
-          ["Coordinator", "Total", "Active", "Program Breakdown"],
-          rows.map((r) => [
-            r.name,
-            r.total,
-            r.active,
-            Array.from(r.programs.entries()).map(([p, n]) => `${p}: ${n}`).join("; "),
-          ])
+          filename,
+          ["Name", "Chart ID", "Program", "Status"],
+          members.map((m) => [`${m.firstName} ${m.lastName}`, m.chartId ?? "", m.program ?? "", titleCase(m.status)])
         )
       }
     >
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-xs text-stone-400">
-            <th className="pb-2 font-medium">Coordinator</th>
-            <th className="pb-2 font-medium">Total</th>
-            <th className="pb-2 font-medium">Active</th>
-            <th className="pb-2 font-medium">Program Breakdown</th>
+            <th className="pb-2 font-medium">Name</th>
+            <th className="pb-2 font-medium">Chart ID</th>
+            <th className="pb-2 font-medium">Program</th>
+            <th className="pb-2 font-medium">Status</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-stone-100">
-          {rows.map((r) => (
-            <tr key={r.name}>
-              <td className="py-2 font-medium text-stone-800">{r.name}</td>
-              <td className="py-2 text-stone-600">{r.total}</td>
-              <td className="py-2 text-stone-600">{r.active}</td>
-              <td className="py-2 text-stone-600">
-                {Array.from(r.programs.entries())
-                  .map(([p, n]) => `${p}: ${n}`)
-                  .join(", ") || "—"}
+          {members.map((m) => (
+            <tr key={m.id}>
+              <td className="py-2 font-medium text-stone-800">{m.firstName} {m.lastName}</td>
+              <td className="py-2 text-stone-600">{m.chartId ?? "—"}</td>
+              <td className="py-2 text-stone-600">{m.program ?? "—"}</td>
+              <td className="py-2">
+                <Badge color={statusBadgeColor(m.status)}>{titleCase(m.status)}</Badge>
               </td>
             </tr>
           ))}
