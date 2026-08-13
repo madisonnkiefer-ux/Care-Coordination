@@ -423,6 +423,12 @@ export const PROTECTED_OPTIONS: Record<string, string[]> = {
   "hra.livingSituation": LIVING_SITUATION_CNA_REQUIRED,
 };
 
+// The Demographics tab's fields, in their current default order — reused by
+// lib/form-fields/ordering.ts as the base sequence for that tab's
+// admin-configurable order (see FormFieldOrder in schema.prisma). Kept in
+// sync with DEMOGRAPHICS above by construction, not by hand-transcription.
+export const DEMOGRAPHICS_FIELD_KEYS: string[] = DEMOGRAPHICS.map(([key]) => key);
+
 export const FORM_FIELD_REGISTRY: FormFieldDef[] = [
   ...expand(DEMOGRAPHICS, "enrollment"),
   ...expand(HRA, "enrollment"),

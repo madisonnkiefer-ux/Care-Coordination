@@ -33,6 +33,7 @@ export function IntakeShell({
   defaultSubTab,
   defaultVersionId,
   fields,
+  demographicsFieldOrder,
   customQuestions,
   customAnswersByRecord,
 }: {
@@ -42,6 +43,7 @@ export function IntakeShell({
   defaultSubTab?: string;
   defaultVersionId?: string;
   fields: ResolvedFormFields;
+  demographicsFieldOrder: string[];
   customQuestions: { demographics: CustomQuestionDef[]; hra: CustomQuestionDef[]; cna: CustomQuestionDef[]; ccn: CustomQuestionDef[] };
   customAnswersByRecord: Record<string, Record<string, unknown>>;
 }) {
@@ -87,6 +89,7 @@ export function IntakeShell({
                   record={version.demographics}
                   locked={locked}
                   fields={fields}
+                  fieldOrder={demographicsFieldOrder}
                   customQuestions={mergeCustomQuestions(customQuestions.demographics, customAnswersByRecord[version.demographics.id])}
                 />
               ) : (

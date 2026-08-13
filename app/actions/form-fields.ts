@@ -4,7 +4,15 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
-import { getFieldDef, PROTECTED_OPTIONS } from "@/lib/form-fields/registry";
+import { getFieldDef, DEMOGRAPHICS_FIELD_KEYS, PROTECTED_OPTIONS } from "@/lib/form-fields/registry";
+import { resolveFormOrder, serializeItemRef } from "@/lib/form-fields/ordering";
+
+// Forms with an admin-configurable field order today. Extend this (and give
+// each new entry its own *_FIELD_KEYS export from registry.ts) as ordering
+// rolls out to the other intake forms.
+const ORDERABLE_FORMS: Record<string, string[]> = {
+  demographics: DEMOGRAPHICS_FIELD_KEYS,
+};
 
 function parseOptions(formData: FormData): string[] {
   const raw = formData.get("options");
@@ -59,6 +67,52 @@ export async function updateFormFieldOverride(fieldKey: string, formData: FormDa
     action: "UPDATE",
     resource: "FormFieldOverride",
     resourceId: fieldKey,
+  });
+
+  revalidatePath("/settings");
+}
+
+export async function moveFormField(form: string, fieldKey: string, direction: "up" | "down") {
+  const session = await requireRole("ADMIN");
+  const def = getFieldDef(fieldKey);
+  const registryFieldKeysInOrder = ORDERABLE_FORMS[form];
+  if (!def || !registryFieldKeysInOrder || !registryFieldKeysInOrder.includes(fieldKey)) {
+    throw new Error("Reordering isn't available for this field yet.");
+  }
+
+  const existingRow = await db.formFieldOrder.findUnique({ where: { clinicId_form: { clinicId: session.clinicId, form } } });
+  const storedOrder = Array.isArray(existingRow?.itemOrder) ? (existingRow.itemOrder as string[]) : null;
+  const resolved = resolveFormOrder({ storedOrder, registryFieldKeysInOrder, activeCustomQuestionIds: [] });
+
+  // Only ever swap within the same section (Card) — moving a field across
+  // sections would leave it rendering inside a Card its own registry entry
+  // doesn't belong to.
+  const sectionPositions = resolved
+    .map((ref, i) => ({ ref, i }))
+    .filter(({ ref }) => ref.type === "field" && getFieldDef(ref.key)?.section === def.section)
+    .map(({ i }) => i);
+
+  const currentPos = resolved.findIndex((ref) => ref.type === "field" && ref.key === fieldKey);
+  const posInSection = sectionPositions.indexOf(currentPos);
+  const swapSectionPos = direction === "up" ? posInSection - 1 : posInSection + 1;
+  if (posInSection === -1 || swapSectionPos < 0 || swapSectionPos >= sectionPositions.length) return;
+
+  const swapWithPos = sectionPositions[swapSectionPos];
+  [resolved[currentPos], resolved[swapWithPos]] = [resolved[swapWithPos], resolved[currentPos]];
+
+  const itemOrder = resolved.map(serializeItemRef);
+  await db.formFieldOrder.upsert({
+    where: { clinicId_form: { clinicId: session.clinicId, form } },
+    create: { clinicId: session.clinicId, form, itemOrder, updatedById: session.userId },
+    update: { itemOrder, updatedById: session.userId },
+  });
+
+  await writeAuditLog({
+    userId: session.userId,
+    action: "UPDATE",
+    resource: "FormFieldOrder",
+    resourceId: `${form}:${fieldKey}`,
+    metadata: { moved: direction },
   });
 
   revalidatePath("/settings");

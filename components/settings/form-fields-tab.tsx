@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui";
-import { updateFormFieldOverride, resetFormFieldOverride } from "@/app/actions/form-fields";
+import { updateFormFieldOverride, resetFormFieldOverride, moveFormField } from "@/app/actions/form-fields";
 import { SaveButton } from "@/components/save-button";
 import type { SettingsFormFieldRow } from "@/lib/data/form-fields";
 
@@ -36,6 +36,9 @@ export function FormFieldsTab({ rows }: { rows: SettingsFormFieldRow[] }) {
         const formRows = byForm.get(formKey) ?? [];
         if (formRows.length === 0) return null;
         const bySection = groupBy(formRows, (r) => r.section);
+        for (const sectionRows of bySection.values()) {
+          sectionRows.sort((a, b) => a.orderIndexInSection - b.orderIndexInSection);
+        }
 
         return (
           <Card key={formKey} title={FORM_LABELS[formKey] ?? formKey}>
@@ -69,7 +72,35 @@ function FieldEditor({ row }: { row: SettingsFormFieldRow }) {
   return (
     <div className="rounded-lg border border-stone-200 p-4">
       <div className="mb-3 flex items-start justify-between gap-4">
-        <p className="text-sm font-medium text-charcoal">{row.name}</p>
+        <div className="flex items-start gap-2">
+          {row.orderableForm && (
+            <div className="flex flex-col">
+              <form action={moveFormField.bind(null, row.orderableForm, row.key, "up")}>
+                <button
+                  type="submit"
+                  disabled={row.isFirstInSection}
+                  aria-label="Move up"
+                  title="Move up"
+                  className="text-stone-400 hover:text-charcoal disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  ▲
+                </button>
+              </form>
+              <form action={moveFormField.bind(null, row.orderableForm, row.key, "down")}>
+                <button
+                  type="submit"
+                  disabled={row.isLastInSection}
+                  aria-label="Move down"
+                  title="Move down"
+                  className="text-stone-400 hover:text-charcoal disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  ▼
+                </button>
+              </form>
+            </div>
+          )}
+          <p className="text-sm font-medium text-charcoal">{row.name}</p>
+        </div>
         {row.isCustomized && (
           <form action={resetFormFieldOverride.bind(null, row.key)}>
             <button type="submit" className="shrink-0 text-xs font-medium text-stone-500 hover:text-charcoal hover:underline">

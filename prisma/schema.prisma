@@ -37,6 +37,7 @@ model Clinic {
   billingExports     BillingExport[]
   formFieldOverrides FormFieldOverride[]
   customQuestions    CustomQuestion[]
+  formFieldOrders    FormFieldOrder[]
 }
 
 model User {
@@ -99,6 +100,7 @@ model User {
 
   formFieldOverridesUpdated FormFieldOverride[] @relation("FormFieldOverrideUpdatedBy")
   customQuestionsCreated    CustomQuestion[]
+  formFieldOrdersUpdated    FormFieldOrder[]    @relation("FormFieldOrderUpdatedBy")
 
   @@index([clinicId])
 }
@@ -1244,6 +1246,28 @@ model FormFieldOverride {
   updatedBy   User?    @relation("FormFieldOverrideUpdatedBy", fields: [updatedById], references: [id])
 
   @@unique([clinicId, fieldKey])
+}
+
+// Per-clinic display order for one form (e.g. "demographics"), spanning both
+// built-in fields and Additional Questions in a single sequence so either
+// kind can be repositioned relative to the other — inserting a custom
+// question "under" a specific built-in field means placing it right after
+// that field's entry here. itemOrder holds string refs of the form
+// "field:<registryKey>" or "custom:<customQuestionId>"; anything not
+// mentioned (a field newly added to the registry, or a question created
+// after this was last saved) renders after everything listed, in its
+// default order — see lib/form-fields/ordering.ts.
+model FormFieldOrder {
+  id          String   @id @default(cuid())
+  clinicId    String
+  clinic      Clinic   @relation(fields: [clinicId], references: [id])
+  form        String
+  itemOrder   Json
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  updatedBy   User?    @relation("FormFieldOrderUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([clinicId, form])
 }
 
 enum CustomQuestionType {
