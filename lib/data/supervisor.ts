@@ -2,7 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
 import { TERMINAL_STATUSES } from "@/lib/member-status";
-import { getComplianceCadence, getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
+import { firstEnrollmentDate, getComplianceCadence, getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
 import { addBusinessDays, businessDaysBetween } from "@/lib/business-days";
 
 // A member's CCP is due 14 business days after their enrollment starts
@@ -17,10 +17,11 @@ export async function getSupervisorData() {
   const dayOfWeek = now.getDay();
   const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMonday);
-  // Widest window either cadence (monthly or quarterly) ever needs — quarters
-  // always fully contain their months, so fetching from quarter-start covers
-  // both without a per-member query.
-  const currentQuarterStart = getWindowStart("quarter", now);
+  // Widest window either cadence ever needs, regardless of a member's own
+  // enrollment anchor: a monthly cadence never looks back further than the
+  // start of this month, and an anchored quarter is always fully contained
+  // within the last 3 calendar months.
+  const contactFetchFloor = new Date(now.getFullYear(), now.getMonth() - 3, 1);
 
   const [
     totalMembers,
@@ -98,9 +99,11 @@ export async function getSupervisorData() {
         id: true,
         firstName: true,
         lastName: true,
+        createdAt: true,
         program: true,
         assignedCoordinator: { select: { name: true } },
-        generalCommunications: { where: { createdAt: { gte: currentQuarterStart } }, select: { createdAt: true, successful: true } },
+        generalCommunications: { where: { createdAt: { gte: contactFetchFloor } }, select: { createdAt: true, successful: true } },
+        intakeVersions: { where: { signedAt: { not: null } }, orderBy: { signedAt: "asc" }, take: 1, select: { signedAt: true } },
       },
     }),
   ]);
@@ -168,12 +171,14 @@ export async function getSupervisorData() {
   // Touchpoint compliance is program-based: Prenatal/Postpartum members need
   // 1 successful contact (or 3 attempts) every month; GYN members need 1
   // successful contact (or 1 attempt) every month; everyone else needs 1
-  // successful contact (or 3 attempts) every quarter. See
+  // successful contact (or 3 attempts) every quarter, on a rolling 3-month
+  // cycle counted from their own enrollment date. See
   // lib/touchpoint-compliance.ts.
   const touchpointGaps = membersForContactCadence
     .map((m) => {
       const cadence = getComplianceCadence(m.program);
-      const windowStart = getWindowStart(cadence.unit, now);
+      const enrollmentDate = firstEnrollmentDate(m);
+      const windowStart = getWindowStart(cadence.unit, now, enrollmentDate);
       const inWindow = m.generalCommunications.filter((c) => c.createdAt >= windowStart);
       const successfulInWindow = inWindow.filter((c) => c.successful).length;
       const lastAnyContact = m.generalCommunications.reduce<Date | null>(
@@ -190,7 +195,7 @@ export async function getSupervisorData() {
         attemptsInWindow: inWindow.length,
         successfulInWindow,
         lastAnyContact,
-        compliant: isTouchpointCompliant(m.generalCommunications, m.program, now),
+        compliant: isTouchpointCompliant(m.generalCommunications, m.program, enrollmentDate, now),
       };
     })
     .filter((m) => !m.compliant)

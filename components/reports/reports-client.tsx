@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Card, Badge, StatTile } from "@/components/ui";
 import { formatDate, titleCase } from "@/lib/format";
 import { statusBadgeColor, ALL_STATUSES } from "@/lib/member-status";
+import { getWindowStart } from "@/lib/touchpoint-compliance";
 import type { getReportsData } from "@/lib/data/reports";
 
 type ReportsData = Awaited<ReturnType<typeof getReportsData>>;
@@ -339,13 +340,17 @@ function OutreachCompletionReport({ members, dateFrom, dateTo }: { members: Repo
   const contactedCount = rows.filter((r) => r.contactedInRange).length;
 
   const quarterStats = useMemo(() => {
-    const quarterStart = currentQuarterStart();
+    const now = new Date();
     const monthStart = currentMonthStart();
     let completedThisQuarter = 0;
     let completedThisMonth = 0;
     let notContactedThisQuarter = 0;
 
     for (const m of members) {
+      // Each member's "quarter" is a rolling 3-month cycle counted from
+      // their own enrollment date, not the calendar year — see
+      // lib/touchpoint-compliance.ts.
+      const quarterStart = getWindowStart("quarter", now, m.enrollmentDate);
       let hasSuccessfulThisQuarter = false;
       for (const c of m.contacts) {
         if (!c.successful) continue;

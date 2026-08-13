@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { firstEnrollmentDate } from "@/lib/touchpoint-compliance";
 
 export async function getReportsData() {
   const session = await requireRole("SUPERVISOR", "ADMIN");
@@ -21,6 +22,7 @@ export async function getReportsData() {
         memberIdExternal: true,
         assignedCoordinatorId: true,
         assignedCoordinator: { select: { id: true, name: true } },
+        createdAt: true,
         cnaAssessments: {
           where: { status: "COMPLETED" },
           orderBy: { assessmentDate: "desc" },
@@ -29,6 +31,7 @@ export async function getReportsData() {
         generalCommunications: {
           select: { createdAt: true, successful: true },
         },
+        intakeVersions: { where: { signedAt: { not: null } }, orderBy: { signedAt: "asc" }, take: 1, select: { signedAt: true } },
       },
     }),
     db.user.findMany({
@@ -55,6 +58,7 @@ export async function getReportsData() {
       lastCnaDate: mostRecentCna?.assessmentDate ?? null,
       lastCnaType: mostRecentCna?.assessmentType[0] ?? null,
       contacts: m.generalCommunications,
+      enrollmentDate: firstEnrollmentDate(m),
     };
   });
 

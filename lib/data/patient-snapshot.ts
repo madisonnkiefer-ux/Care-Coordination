@@ -20,10 +20,13 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
 
   const now = new Date();
   const cadence = getComplianceCadence(member.program);
-  const windowStart = getWindowStart(cadence.unit, now);
-  const windowEnd = getWindowEnd(cadence.unit, now);
+  // Widest window either cadence ever needs, regardless of this member's own
+  // enrollment anchor: a monthly cadence never looks back further than the
+  // start of this month, and an anchored quarter is always fully contained
+  // within the last 3 calendar months.
+  const contactFetchFloor = new Date(now.getFullYear(), now.getMonth() - 3, 1);
 
-  const [latestCarePlan, lastAnyContact, contactsInWindow, openTasksCount, hedis, latestCna, pendingStatusChange] =
+  const [latestCarePlan, lastAnyContact, contactsSinceFloor, firstSignedIntake, openTasksCount, hedis, latestCna, pendingStatusChange] =
     await Promise.all([
       db.carePlan.findFirst({
         where: { memberId },
@@ -32,8 +35,13 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
       }),
       db.generalCommunication.findFirst({ where: { memberId }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
       db.generalCommunication.findMany({
-        where: { memberId, createdAt: { gte: windowStart } },
+        where: { memberId, createdAt: { gte: contactFetchFloor } },
         select: { createdAt: true, successful: true },
+      }),
+      db.intakeVersion.findFirst({
+        where: { memberId, signedAt: { not: null } },
+        orderBy: { signedAt: "asc" },
+        select: { signedAt: true },
       }),
       db.task.count({ where: { memberId, status: "OPEN" } }),
       db.hedisMeasures.findUnique({ where: { memberId }, select: { deliveryDate: true } }),
@@ -48,7 +56,12 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
       }),
     ]);
 
-  const touchpointCompliant = isTouchpointCompliant(contactsInWindow, member.program, now);
+  const enrollmentDate = firstSignedIntake?.signedAt ?? member.createdAt;
+  const windowStart = getWindowStart(cadence.unit, now, enrollmentDate);
+  const windowEnd = getWindowEnd(cadence.unit, now, enrollmentDate);
+  const contactsInWindow = contactsSinceFloor.filter((c) => c.createdAt >= windowStart);
+
+  const touchpointCompliant = isTouchpointCompliant(contactsSinceFloor, member.program, enrollmentDate, now);
   const successfulInWindow = contactsInWindow.filter((c) => c.successful).length;
 
   // Pregnancy/postpartum status — reuses Member.edd and the HEDIS tab's

@@ -8,7 +8,7 @@ import { SimpleHistoryBar } from "@/components/intake/versioning";
 import { SelectField, DateField } from "@/components/intake/form-fields";
 import { CONTACT_METHOD_OPTIONS, PERSON_CONTACTED_OPTIONS, UNSUCCESSFUL_REASON_OPTIONS } from "@/components/care-plan/outreach-options";
 import { formatDateTime, toDateInputValue } from "@/lib/format";
-import { getComplianceCadence, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
+import { getComplianceCadence, getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
 import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 import { FormFieldsProvider } from "@/lib/form-fields/context";
 import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
@@ -20,6 +20,7 @@ export function GeneralCommunicationTab({
   memberId,
   records,
   program,
+  enrollmentDate,
   fields,
   customQuestionDefs,
   customAnswersByRecord,
@@ -27,6 +28,7 @@ export function GeneralCommunicationTab({
   memberId: string;
   records: CommRecord[];
   program: string | null;
+  enrollmentDate: Date;
   fields: ResolvedFormFields;
   customQuestionDefs: CustomQuestionDef[];
   customAnswersByRecord: Record<string, Record<string, unknown>>;
@@ -44,10 +46,7 @@ export function GeneralCommunicationTab({
     const days = lastSuccessful ? Math.floor((now.getTime() - lastSuccessful.getTime()) / (1000 * 60 * 60 * 24)) : null;
 
     const windowCadence = getComplianceCadence(program);
-    const windowStart =
-      windowCadence.unit === "month"
-        ? new Date(now.getFullYear(), now.getMonth(), 1)
-        : new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+    const windowStart = getWindowStart(windowCadence.unit, now, enrollmentDate);
     const inWindow = records.filter((r) => r.createdAt >= windowStart);
 
     return {
@@ -55,9 +54,9 @@ export function GeneralCommunicationTab({
       cadence: windowCadence,
       attemptsInWindow: inWindow.length,
       successfulInWindow: inWindow.filter((r) => r.successful).length,
-      compliant: isTouchpointCompliant(records, program, now),
+      compliant: isTouchpointCompliant(records, program, enrollmentDate, now),
     };
-  }, [records, program]);
+  }, [records, program, enrollmentDate]);
 
   return (
     <FormFieldsProvider form="generalComm" fields={fields}>

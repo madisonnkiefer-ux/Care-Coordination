@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
-import { getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
+import { firstEnrollmentDate, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
 
 // Counts only — this runs on every page via the persistent layout, so it
 // deliberately avoids the full dashboard query (goal totals, appointments,
@@ -14,6 +14,11 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
 
   const now = new Date();
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  // Widest window either cadence ever needs, regardless of a member's own
+  // enrollment anchor: a monthly cadence never looks back further than the
+  // start of this month, and an anchored quarter is always fully contained
+  // within the last 3 calendar months.
+  const contactFetchFloor = new Date(now.getFullYear(), now.getMonth() - 3, 1);
 
   const [tasksDueCount, membersForAnnualCna, membersForContactCheck] = await Promise.all([
     db.task.count({ where: { assigneeId: session.userId, status: "OPEN" } }),
@@ -33,11 +38,13 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
       where: memberScope,
       select: {
         id: true,
+        createdAt: true,
         program: true,
         generalCommunications: {
-          where: { createdAt: { gte: getWindowStart("quarter", now) } },
+          where: { createdAt: { gte: contactFetchFloor } },
           select: { createdAt: true, successful: true },
         },
+        intakeVersions: { where: { signedAt: { not: null } }, orderBy: { signedAt: "asc" }, take: 1, select: { signedAt: true } },
       },
     }),
   ]);
@@ -52,7 +59,7 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
 
   // Touchpoint compliance is program-based — see lib/touchpoint-compliance.ts.
   const touchpointGapCount = membersForContactCheck.filter(
-    (m) => !isTouchpointCompliant(m.generalCommunications, m.program, now)
+    (m) => !isTouchpointCompliant(m.generalCommunications, m.program, firstEnrollmentDate(m), now)
   ).length;
 
   return { tasksDueCount, annualCnaDueCount, touchpointGapCount };
