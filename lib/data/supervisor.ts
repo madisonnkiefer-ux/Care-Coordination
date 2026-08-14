@@ -2,7 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
 import { TERMINAL_STATUSES } from "@/lib/member-status";
-import { firstEnrollmentDate, getComplianceCadence, getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
+import { firstEnrollmentDate, getComplianceCadence, getWindowStart, isTouchpointCompliant, progressNotesToContacts } from "@/lib/touchpoint-compliance";
 import { addBusinessDays, businessDaysBetween } from "@/lib/business-days";
 
 // A member's CCP is due 14 business days after their enrollment starts
@@ -103,6 +103,18 @@ export async function getSupervisorData() {
         program: true,
         assignedCoordinator: { select: { name: true } },
         generalCommunications: { where: { createdAt: { gte: contactFetchFloor } }, select: { createdAt: true, successful: true } },
+        carePlans: {
+          select: {
+            goals: {
+              select: {
+                progressNotes: {
+                  where: { track: "MEMBER", OR: [{ date: { gte: contactFetchFloor } }, { date: null, createdAt: { gte: contactFetchFloor } }] },
+                  select: { date: true, createdAt: true },
+                },
+              },
+            },
+          },
+        },
         intakeVersions: { where: { signedAt: { not: null } }, orderBy: { signedAt: "asc" }, take: 1, select: { signedAt: true } },
       },
     }),
@@ -176,12 +188,16 @@ export async function getSupervisorData() {
   // lib/touchpoint-compliance.ts.
   const touchpointGaps = membersForContactCadence
     .map((m) => {
+      const contacts = [
+        ...m.generalCommunications,
+        ...progressNotesToContacts(m.carePlans.flatMap((cp) => cp.goals.flatMap((g) => g.progressNotes))),
+      ];
       const cadence = getComplianceCadence(m.program);
       const enrollmentDate = firstEnrollmentDate(m);
       const windowStart = getWindowStart(cadence.unit, now, enrollmentDate);
-      const inWindow = m.generalCommunications.filter((c) => c.createdAt >= windowStart);
+      const inWindow = contacts.filter((c) => c.createdAt >= windowStart);
       const successfulInWindow = inWindow.filter((c) => c.successful).length;
-      const lastAnyContact = m.generalCommunications.reduce<Date | null>(
+      const lastAnyContact = contacts.reduce<Date | null>(
         (latest, c) => (!latest || c.createdAt > latest ? c.createdAt : latest),
         null
       );
@@ -195,7 +211,7 @@ export async function getSupervisorData() {
         attemptsInWindow: inWindow.length,
         successfulInWindow,
         lastAnyContact,
-        compliant: isTouchpointCompliant(m.generalCommunications, m.program, enrollmentDate, now),
+        compliant: isTouchpointCompliant(contacts, m.program, enrollmentDate, now),
       };
     })
     .filter((m) => !m.compliant)

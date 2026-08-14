@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
-import { firstEnrollmentDate } from "@/lib/touchpoint-compliance";
+import { firstEnrollmentDate, progressNotesToContacts } from "@/lib/touchpoint-compliance";
 
 export async function getReportsData() {
   const session = await requireRole("SUPERVISOR", "ADMIN");
@@ -31,6 +31,18 @@ export async function getReportsData() {
         generalCommunications: {
           select: { createdAt: true, successful: true },
         },
+        carePlans: {
+          select: {
+            goals: {
+              select: {
+                progressNotes: {
+                  where: { track: "MEMBER" },
+                  select: { date: true, createdAt: true },
+                },
+              },
+            },
+          },
+        },
         intakeVersions: { where: { signedAt: { not: null } }, orderBy: { signedAt: "asc" }, take: 1, select: { signedAt: true } },
       },
     }),
@@ -58,7 +70,10 @@ export async function getReportsData() {
       lastCnaDate: mostRecentCna?.assessmentDate ?? null,
       lastCnaType: mostRecentCna?.assessmentType[0] ?? null,
       cnaCompletions: m.cnaAssessments.map((c) => c.assessmentDate),
-      contacts: m.generalCommunications,
+      contacts: [
+        ...m.generalCommunications,
+        ...progressNotesToContacts(m.carePlans.flatMap((cp) => cp.goals.flatMap((g) => g.progressNotes))),
+      ],
       enrollmentDate: firstEnrollmentDate(m),
     };
   });

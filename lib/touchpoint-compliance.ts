@@ -83,6 +83,15 @@ export function getWindowEnd(unit: ComplianceUnit, now: Date, enrollmentDate: Da
 
 export type ContactRecord = { createdAt: Date; successful: boolean | null };
 
+// A member's own ("Member Progress Updates", not "Care Coordinator") care
+// plan goal notes count as a successful touchpoint alongside logged General
+// Communication outreach — every note here is treated as successful=true.
+export type ProgressNoteContactRecord = { date: Date | null; createdAt: Date };
+
+export function progressNotesToContacts(notes: ProgressNoteContactRecord[]): ContactRecord[] {
+  return notes.map((n) => ({ createdAt: n.date ?? n.createdAt, successful: true }));
+}
+
 // Contacts already scoped to a member — filters down to just the ones
 // inside their program's current cadence window.
 export function contactsInCurrentWindow<T extends ContactRecord>(

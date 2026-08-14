@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
-import { getComplianceCadence, getWindowEnd, getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
+import { getComplianceCadence, getWindowEnd, getWindowStart, isTouchpointCompliant, progressNotesToContacts } from "@/lib/touchpoint-compliance";
 import { graduationReviewStatus, daysUntilGraduationReview } from "@/lib/graduation";
 
 // Everything here is derived from data that already exists elsewhere in the
@@ -26,8 +26,17 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
   // within the last 3 calendar months.
   const contactFetchFloor = new Date(now.getFullYear(), now.getMonth() - 3, 1);
 
-  const [latestCarePlan, lastAnyContact, contactsSinceFloor, firstSignedIntake, openTasksCount, hedis, latestCna, pendingStatusChange] =
-    await Promise.all([
+  const [
+    latestCarePlan,
+    lastAnyContact,
+    generalCommContactsSinceFloor,
+    progressNoteContactsSinceFloor,
+    firstSignedIntake,
+    openTasksCount,
+    hedis,
+    latestCna,
+    pendingStatusChange,
+  ] = await Promise.all([
       db.carePlan.findFirst({
         where: { memberId },
         orderBy: { createdAt: "desc" },
@@ -37,6 +46,14 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
       db.generalCommunication.findMany({
         where: { memberId, createdAt: { gte: contactFetchFloor } },
         select: { createdAt: true, successful: true },
+      }),
+      db.carePlanProgressNote.findMany({
+        where: {
+          track: "MEMBER",
+          goal: { carePlan: { memberId } },
+          OR: [{ date: { gte: contactFetchFloor } }, { date: null, createdAt: { gte: contactFetchFloor } }],
+        },
+        select: { date: true, createdAt: true },
       }),
       db.intakeVersion.findFirst({
         where: { memberId, signedAt: { not: null } },
@@ -55,6 +72,8 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
         select: { toStatus: true },
       }),
     ]);
+
+  const contactsSinceFloor = [...generalCommContactsSinceFloor, ...progressNotesToContacts(progressNoteContactsSinceFloor)];
 
   const enrollmentDate = firstSignedIntake?.signedAt ?? member.createdAt;
   const windowStart = getWindowStart(cadence.unit, now, enrollmentDate);

@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
-import { firstEnrollmentDate, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
+import { firstEnrollmentDate, isTouchpointCompliant, progressNotesToContacts } from "@/lib/touchpoint-compliance";
 
 export async function getDashboardData() {
   const session = await verifySession();
@@ -92,6 +92,18 @@ export async function getDashboardData() {
           where: { createdAt: { gte: contactFetchFloor } },
           select: { createdAt: true, successful: true },
         },
+        carePlans: {
+          select: {
+            goals: {
+              select: {
+                progressNotes: {
+                  where: { track: "MEMBER", OR: [{ date: { gte: contactFetchFloor } }, { date: null, createdAt: { gte: contactFetchFloor } }] },
+                  select: { date: true, createdAt: true },
+                },
+              },
+            },
+          },
+        },
         intakeVersions: { where: { signedAt: { not: null } }, orderBy: { signedAt: "asc" }, take: 1, select: { signedAt: true } },
       },
     }),
@@ -131,14 +143,21 @@ export async function getDashboardData() {
   // quarter, on a rolling 3-month cycle counted from their own enrollment
   // date.
   const touchpointGaps = membersForContactCheck
-    .map((m) => ({
-      id: m.id,
-      firstName: m.firstName,
-      lastName: m.lastName,
-      lastSuccessfulContactDate:
-        m.generalCommunications.filter((c) => c.successful).reduce<Date | null>((latest, c) => (!latest || c.createdAt > latest ? c.createdAt : latest), null),
-      compliant: isTouchpointCompliant(m.generalCommunications, m.program, firstEnrollmentDate(m), now),
-    }))
+    .map((m) => {
+      const contacts = [
+        ...m.generalCommunications,
+        ...progressNotesToContacts(m.carePlans.flatMap((cp) => cp.goals.flatMap((g) => g.progressNotes))),
+      ];
+      return {
+        id: m.id,
+        firstName: m.firstName,
+        lastName: m.lastName,
+        lastSuccessfulContactDate: contacts
+          .filter((c) => c.successful)
+          .reduce<Date | null>((latest, c) => (!latest || c.createdAt > latest ? c.createdAt : latest), null),
+        compliant: isTouchpointCompliant(contacts, m.program, firstEnrollmentDate(m), now),
+      };
+    })
     .filter((m) => !m.compliant)
     .sort((a, b) => {
       if (!a.lastSuccessfulContactDate) return -1;

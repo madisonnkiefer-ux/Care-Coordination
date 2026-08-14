@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
-import { firstEnrollmentDate, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
+import { firstEnrollmentDate, isTouchpointCompliant, progressNotesToContacts } from "@/lib/touchpoint-compliance";
 
 // Counts only — this runs on every page via the persistent layout, so it
 // deliberately avoids the full dashboard query (goal totals, appointments,
@@ -44,6 +44,18 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
           where: { createdAt: { gte: contactFetchFloor } },
           select: { createdAt: true, successful: true },
         },
+        carePlans: {
+          select: {
+            goals: {
+              select: {
+                progressNotes: {
+                  where: { track: "MEMBER", OR: [{ date: { gte: contactFetchFloor } }, { date: null, createdAt: { gte: contactFetchFloor } }] },
+                  select: { date: true, createdAt: true },
+                },
+              },
+            },
+          },
+        },
         intakeVersions: { where: { signedAt: { not: null } }, orderBy: { signedAt: "asc" }, take: 1, select: { signedAt: true } },
       },
     }),
@@ -58,9 +70,13 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
   }).length;
 
   // Touchpoint compliance is program-based — see lib/touchpoint-compliance.ts.
-  const touchpointGapCount = membersForContactCheck.filter(
-    (m) => !isTouchpointCompliant(m.generalCommunications, m.program, firstEnrollmentDate(m), now)
-  ).length;
+  const touchpointGapCount = membersForContactCheck.filter((m) => {
+    const contacts = [
+      ...m.generalCommunications,
+      ...progressNotesToContacts(m.carePlans.flatMap((cp) => cp.goals.flatMap((g) => g.progressNotes))),
+    ];
+    return !isTouchpointCompliant(contacts, m.program, firstEnrollmentDate(m), now);
+  }).length;
 
   return { tasksDueCount, annualCnaDueCount, touchpointGapCount };
 }
