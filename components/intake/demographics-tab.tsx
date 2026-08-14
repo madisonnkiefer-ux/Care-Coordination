@@ -23,18 +23,28 @@ import type { ReactNode } from "react";
 // order (Settings → Form Content), falling back to each item's position in
 // the array as given (the registry's default order) when it isn't
 // mentioned in `order` at all.
-function orderedItems(order: string[], items: { key: string; el: ReactNode }[]) {
+function orderedItems<T extends { key: string }>(order: string[], items: T[]) {
   const known = new Set(items.map((i) => i.key));
   const indexOf = new Map(order.filter((k) => known.has(k)).map((k, i) => [k, i]));
   return [...items].sort((a, b) => (indexOf.get(a.key) ?? 0) - (indexOf.get(b.key) ?? 0));
 }
 
-function OrderedGrid({ order, items, cols = 2 }: { order: string[]; items: { key: string; el: ReactNode }[]; cols?: 1 | 2 | 3 }) {
+function OrderedGrid({
+  order,
+  items,
+  cols = 2,
+}: {
+  order: string[];
+  items: { key: string; el: ReactNode; span?: 2 }[];
+  cols?: 1 | 2 | 3;
+}) {
   const colsClass = cols === 3 ? "sm:grid-cols-3" : cols === 2 ? "sm:grid-cols-2" : "";
   return (
     <div className={`grid grid-cols-1 gap-4 ${colsClass}`}>
       {orderedItems(order, items).map((item) => (
-        <div key={item.key}>{item.el}</div>
+        <div key={item.key} className={item.span === 2 ? "sm:col-span-2" : undefined}>
+          {item.el}
+        </div>
       ))}
     </div>
   );
@@ -64,24 +74,15 @@ export function DemographicsTab({
         className="max-w-3xl space-y-6"
       >
         <fieldset disabled={locked} className="contents">
-          <Card title="Identity">
+          <Card>
             <OrderedGrid
               order={fieldOrder}
-              cols={3}
               items={[
                 { key: "demographics.firstName", el: <TextField name="firstName" label="First Name" defaultValue={selected.firstName} /> },
                 { key: "demographics.middleName", el: <TextField name="middleName" label="Middle Name" defaultValue={selected.middleName} /> },
                 { key: "demographics.lastName", el: <TextField name="lastName" label="Last Name" defaultValue={selected.lastName} /> },
                 { key: "demographics.dateOfBirth", el: <DateField name="dateOfBirth" label="DOB" defaultValue={toDateInputValue(selected.dateOfBirth)} /> },
                 { key: "demographics.medicaidId", el: <TextField name="medicaidId" label="Medicaid ID" defaultValue={selected.medicaidId} /> },
-              ]}
-            />
-          </Card>
-
-          <Card title="Race &amp; Ethnicity">
-            <OrderedGrid
-              order={fieldOrder}
-              items={[
                 {
                   key: "demographics.ethnicity",
                   el: (
@@ -108,14 +109,6 @@ export function DemographicsTab({
                   key: "demographics.tribalAffiliation",
                   el: <TextField name="tribalAffiliation" label="Tribal Affiliation (if applicable)" defaultValue={selected.tribalAffiliation} />,
                 },
-              ]}
-            />
-          </Card>
-
-          <Card title="Sex, Gender &amp; Sexual Identity">
-            <OrderedGrid
-              order={fieldOrder}
-              items={[
                 {
                   key: "shared.sexAssignedAtBirth",
                   el: (
@@ -157,14 +150,6 @@ export function DemographicsTab({
                   key: "demographics.sexualIdentityOther",
                   el: <TextField name="sexualIdentityOther" label="If other, please describe" defaultValue={selected.sexualIdentityOther} />,
                 },
-              ]}
-            />
-          </Card>
-
-          <Card title="Form Completion">
-            <OrderedGrid
-              order={fieldOrder}
-              items={[
                 {
                   key: "demographics.permissionForOtherToComplete",
                   el: (
@@ -189,17 +174,10 @@ export function DemographicsTab({
                   key: "demographics.formCompletedByRelationship",
                   el: <TextField name="formCompletedByRelationship" label="Their relationship to Member" defaultValue={selected.formCompletedByRelationship} />,
                 },
-              ]}
-            />
-          </Card>
-
-          <Card title="Contact Information">
-            <OrderedGrid
-              order={fieldOrder}
-              items={[
                 {
                   key: "demographics.address",
-                  el: <TextArea name="address" label="Member's Address" defaultValue={selected.address} className="sm:col-span-2" />,
+                  el: <TextArea name="address" label="Member's Address" defaultValue={selected.address} />,
+                  span: 2,
                 },
                 { key: "demographics.phoneCell", el: <TextField name="phoneCell" label="Cell Phone" defaultValue={selected.phoneCell} /> },
                 { key: "demographics.phoneHome", el: <TextField name="phoneHome" label="Home Phone" defaultValue={selected.phoneHome} /> },
@@ -215,30 +193,14 @@ export function DemographicsTab({
                       <Checkbox name="preferredContactEmail" label="Email" defaultChecked={selected.preferredContactEmail ?? false} />
                     </div>
                   ),
+                  span: 2,
                 },
-              ]}
-            />
-          </Card>
-
-          <Card title="Emergency Contact">
-            <OrderedGrid
-              order={fieldOrder}
-              cols={3}
-              items={[
-                { key: "demographics.emergencyContactName", el: <TextField name="emergencyContactName" label="Name" defaultValue={selected.emergencyContactName} /> },
+                { key: "demographics.emergencyContactName", el: <TextField name="emergencyContactName" label="Emergency Contact Name" defaultValue={selected.emergencyContactName} /> },
                 {
                   key: "demographics.emergencyContactRel",
-                  el: <TextField name="emergencyContactRel" label="Relation to Member" defaultValue={selected.emergencyContactRel} />,
+                  el: <TextField name="emergencyContactRel" label="Emergency Contact's Relation to Member" defaultValue={selected.emergencyContactRel} />,
                 },
-                { key: "demographics.emergencyContactPhone", el: <TextField name="emergencyContactPhone" label="Phone" defaultValue={selected.emergencyContactPhone} /> },
-              ]}
-            />
-          </Card>
-
-          <Card title="MCO &amp; Medicaid Eligibility">
-            <OrderedGrid
-              order={fieldOrder}
-              items={[
+                { key: "demographics.emergencyContactPhone", el: <TextField name="emergencyContactPhone" label="Emergency Contact Phone" defaultValue={selected.emergencyContactPhone} /> },
                 {
                   key: "demographics.mcoEnrollmentDate",
                   el: <DateField name="mcoEnrollmentDate" label="MCO Enrollment Date" defaultValue={toDateInputValue(selected.mcoEnrollmentDate)} />,
@@ -267,15 +229,6 @@ export function DemographicsTab({
                     />
                   ),
                 },
-              ]}
-            />
-          </Card>
-
-          <Card title="Screening Questions">
-            <OrderedGrid
-              order={fieldOrder}
-              cols={1}
-              items={[
                 {
                   key: "demographics.justiceInvolved",
                   el: (
@@ -287,6 +240,7 @@ export function DemographicsTab({
                       detailDefault={selected.justiceInvolvedDetails}
                     />
                   ),
+                  span: 2,
                 },
                 {
                   key: "demographics.caraIndividual",
@@ -297,6 +251,7 @@ export function DemographicsTab({
                       defaultValue={selected.caraIndividual}
                     />
                   ),
+                  span: 2,
                 },
                 {
                   key: "demographics.cyfdInvolved",
@@ -309,6 +264,7 @@ export function DemographicsTab({
                       detailDefault={selected.cyfdInvolvedDetails}
                     />
                   ),
+                  span: 2,
                 },
                 {
                   key: "demographics.hasOtherInsurance",
@@ -321,6 +277,7 @@ export function DemographicsTab({
                       detailDefault={selected.otherInsuranceDetails}
                     />
                   ),
+                  span: 2,
                 },
                 {
                   key: "demographics.onWaiver",
@@ -334,16 +291,8 @@ export function DemographicsTab({
                       detailLabel="If yes, clarify type of waiver"
                     />
                   ),
+                  span: 2,
                 },
-              ]}
-            />
-          </Card>
-
-          <Card title="Authorized Representative">
-            <OrderedGrid
-              order={fieldOrder}
-              cols={2}
-              items={[
                 {
                   key: "demographics.cnaCompletedByNameRelation",
                   el: (
