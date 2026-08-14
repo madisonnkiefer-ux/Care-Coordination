@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { Card } from "@/components/ui";
 import { formatDate } from "@/lib/format";
-import { saveGoal, addProgressNote } from "@/app/actions/care-plan";
+import { saveGoal, addProgressNote, type AddProgressNoteState } from "@/app/actions/care-plan";
 import { GoalStatusSelect } from "@/components/goal-status-select";
 import { TextField, TextArea, DateField, SelectField, Checkbox } from "@/components/intake/form-fields";
 import { GOAL_PRIORITY_OPTIONS } from "@/components/intake/options";
@@ -187,9 +187,11 @@ function ProgressNoteColumn({
   idPrefix: string;
   label: string;
   notes: CarePlanProgressNote[];
-  action: (formData: FormData) => Promise<void>;
+  action: (state: AddProgressNoteState, formData: FormData) => Promise<AddProgressNoteState>;
   track: "MEMBER" | "COORDINATOR";
 }) {
+  const [state, formAction, pending] = useActionState(action, undefined);
+
   return (
     <div>
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-600">{label}</p>
@@ -202,12 +204,21 @@ function ProgressNoteColumn({
           </li>
         ))}
       </ul>
-      <form id={`${idPrefix}-progress-form`} action={action} className="space-y-2 print:hidden">
+      <form id={`${idPrefix}-progress-form`} action={formAction} className="space-y-2 print:hidden">
         <input type="hidden" name="track" value={track} />
-        <TextArea id={`${idPrefix}-note`} name="note" label="Progress Update" rows={2} />
+        <TextArea id={`${idPrefix}-note`} name="note" label="Progress Update" rows={2} required />
         <DateField id={`${idPrefix}-date`} name="date" label="Date" />
-        <button type="submit" className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50">
-          + Add Update
+        {state?.error && (
+          <p className="text-xs text-red-600" role="alert">
+            {state.error}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+        >
+          {pending ? "Adding..." : "+ Add Update"}
         </button>
       </form>
     </div>

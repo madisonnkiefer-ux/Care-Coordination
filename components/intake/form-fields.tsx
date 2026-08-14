@@ -51,6 +51,7 @@ export function TextArea({
   rows = 2,
   form,
   id,
+  required,
 }: {
   name: string;
   label: string;
@@ -59,6 +60,7 @@ export function TextArea({
   rows?: number;
   form?: string;
   id?: string;
+  required?: boolean;
 }) {
   const override = useFieldOverride(name);
   if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
@@ -75,6 +77,7 @@ export function TextArea({
         name={name}
         form={form}
         rows={rows}
+        required={required}
         defaultValue={defaultValue ?? ""}
         className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
       />

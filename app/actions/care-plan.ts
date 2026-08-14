@@ -240,12 +240,20 @@ export async function updateGoalStatus(memberId: string, goalId: string, status:
   revalidatePath(`/members/${memberId}`);
 }
 
-export async function addProgressNote(memberId: string, carePlanId: string, goalId: string, formData: FormData) {
+export type AddProgressNoteState = { error?: string } | undefined;
+
+export async function addProgressNote(
+  memberId: string,
+  carePlanId: string,
+  goalId: string,
+  _state: AddProgressNoteState,
+  formData: FormData
+): Promise<AddProgressNoteState> {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
 
   const note = str(formData, "note");
-  if (!note) return;
+  if (!note) return { error: "Enter an update before adding it." };
 
   const track = formData.get("track") === "COORDINATOR" ? "COORDINATOR" : "MEMBER";
 
