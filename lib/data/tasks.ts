@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
+import { listActiveCoordinators } from "@/lib/data/members";
 
 export async function getTasksPageData() {
   const session = await verifySession();
@@ -10,7 +11,7 @@ export async function getTasksPageData() {
       ? { clinicId: session.clinicId, assignedCoordinatorId: session.userId }
       : { clinicId: session.clinicId };
 
-  const [openTasks, completedTasks, notes, members] = await Promise.all([
+  const [openTasks, completedTasks, notes, members, coordinators] = await Promise.all([
     db.task.findMany({
       where: { assigneeId: session.userId, status: "OPEN" },
       orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
@@ -36,7 +37,8 @@ export async function getTasksPageData() {
       orderBy: { lastName: "asc" },
       select: { id: true, firstName: true, lastName: true },
     }),
+    session.role === "SUPERVISOR" || session.role === "ADMIN" ? listActiveCoordinators() : Promise.resolve([]),
   ]);
 
-  return { session, openTasks, completedTasks, notes, members };
+  return { session, openTasks, completedTasks, notes, members, coordinators };
 }

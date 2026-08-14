@@ -8,7 +8,8 @@ import { formatDate, formatDateTime, titleCase } from "@/lib/format";
 
 export default async function TasksPage({ searchParams }: { searchParams: Promise<{ note?: string }> }) {
   const { note } = await searchParams;
-  const { openTasks, completedTasks, notes, members } = await getTasksPageData();
+  const { session, openTasks, completedTasks, notes, members, coordinators } = await getTasksPageData();
+  const canAssign = session.role === "SUPERVISOR" || session.role === "ADMIN";
   const returnPath = "/tasks";
 
   return (
@@ -117,6 +118,19 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                   ))}
                 </select>
               </div>
+              {canAssign && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Assign To</label>
+                  <select name="assigneeId" defaultValue={session.userId} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    <option value={session.userId}>Myself</option>
+                    {coordinators.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Due Date</label>
