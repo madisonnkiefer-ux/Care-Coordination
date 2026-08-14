@@ -164,3 +164,15 @@ export async function logout() {
   }
   redirect("/login");
 }
+
+// Keeps the idle-timeout window sliding forward while the user is genuinely
+// active but hasn't navigated. Next.js's client Router Cache serves repeat
+// visits to already-loaded pages straight from the client without a network
+// request, so clicking around normally can go long stretches without ever
+// reaching proxy.ts (the actual place the session cookie gets refreshed).
+// Server Actions are POSTs that always hit the server — never served from
+// that cache — so this is a reliable way to keep the session alive.
+// Does nothing itself; the refresh happens in proxy.ts on this request.
+export async function heartbeat() {
+  await getSession();
+}
