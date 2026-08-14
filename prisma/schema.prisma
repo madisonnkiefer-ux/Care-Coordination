@@ -872,7 +872,7 @@ model CarePlanGoal {
   carePlan    CarePlan   @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
   title       String
   description String?
-  status      GoalStatus @default(NOT_STARTED)
+  status      GoalStatus @default(IN_PROGRESS)
   targetDate  DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt

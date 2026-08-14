@@ -6,6 +6,7 @@ import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { zipRows } from "@/lib/form-rows";
 import { saveCustomAnswers } from "@/lib/custom-questions-save";
+import { isGoalReadyForCompletion, GOAL_COMPLETION_REQUIREMENTS_MESSAGE } from "@/lib/care-plan-goal";
 import type { GoalStatus } from "@/app/generated/prisma/client";
 
 function str(formData: FormData, key: string) {
@@ -221,9 +222,18 @@ export async function saveGoal(memberId: string, carePlanId: string, goalId: str
   revalidatePath(`/members/${memberId}`);
 }
 
-export async function updateGoalStatus(memberId: string, goalId: string, status: GoalStatus) {
+export type UpdateGoalStatusState = { error?: string } | undefined;
+
+export async function updateGoalStatus(memberId: string, goalId: string, status: GoalStatus): Promise<UpdateGoalStatusState> {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
+
+  if (status === "COMPLETE") {
+    const goal = await db.carePlanGoal.findUnique({ where: { id: goalId } });
+    if (!goal || !isGoalReadyForCompletion(goal)) {
+      return { error: GOAL_COMPLETION_REQUIREMENTS_MESSAGE };
+    }
+  }
 
   await db.carePlanGoal.update({ where: { id: goalId }, data: { status } });
 
