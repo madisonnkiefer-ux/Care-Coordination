@@ -93,6 +93,7 @@ export async function reassignMember(memberId: string, formData: FormData) {
   }
 
   revalidatePath("/supervisor");
+  revalidatePath("/reports");
   revalidatePath("/members");
   revalidatePath(`/members/${memberId}`);
 }

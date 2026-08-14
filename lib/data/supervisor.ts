@@ -224,23 +224,3 @@ export async function getSupervisorData() {
     touchpointGaps,
   };
 }
-
-export async function getCaseloadForReassignment() {
-  const session = await requireRole("SUPERVISOR", "ADMIN");
-  const clinicId = session.clinicId;
-
-  const [members, coordinators] = await Promise.all([
-    db.member.findMany({
-      where: { clinicId },
-      orderBy: { lastName: "asc" },
-      select: { id: true, firstName: true, lastName: true, assignedCoordinatorId: true },
-    }),
-    db.user.findMany({
-      where: { clinicId, role: "CARE_COORDINATOR", active: true },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
-  ]);
-
-  return { members, coordinators };
-}

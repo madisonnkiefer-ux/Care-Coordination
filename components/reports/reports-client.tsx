@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Card, Badge, StatTile } from "@/components/ui";
 import { formatDate, titleCase } from "@/lib/format";
 import { statusBadgeColor, ALL_STATUSES } from "@/lib/member-status";
 import { getWindowStart } from "@/lib/touchpoint-compliance";
+import { reassignMember } from "@/app/actions/member-assignment";
 import type { getReportsData } from "@/lib/data/reports";
 
 type ReportsData = Awaited<ReturnType<typeof getReportsData>>;
@@ -179,7 +181,9 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
       )}
 
       {active === "roster" && <ActiveRosterReport members={filtered} />}
-      {active === "caseload" && <CaseloadDistributionReport members={filtered} allMembers={members} coordinatorId={coordinatorId} />}
+      {active === "caseload" && (
+        <CaseloadDistributionReport members={filtered} allMembers={members} coordinators={coordinators} coordinatorId={coordinatorId} />
+      )}
       {active === "outreach" && <OutreachCompletionReport members={filtered} dateFrom={dateFrom} dateTo={dateTo} />}
       {active === "cna" && <AnnualCnaStatusReport members={filtered} month={cnaMonth} />}
       {active === "monthly-dashboard" && <MonthlyDashboardReport members={filtered} coordinators={coordinators} month={dashboardMonth} />}
@@ -298,10 +302,12 @@ function ActiveRosterReport({ members }: { members: ReportMember[] }) {
 function CaseloadDistributionReport({
   members,
   allMembers,
+  coordinators,
   coordinatorId,
 }: {
   members: ReportMember[];
   allMembers: ReportMember[];
+  coordinators: { id: string; name: string }[];
   coordinatorId: string;
 }) {
   const rows = useMemo(() => {
@@ -327,6 +333,21 @@ function CaseloadDistributionReport({
     [allMembers]
   );
 
+  // Assignment counts always reflect the true clinic-wide caseload, same
+  // reasoning as `unassigned` above — not affected by the filters.
+  const assignmentCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const m of allMembers) {
+      if (m.coordinatorId) counts.set(m.coordinatorId, (counts.get(m.coordinatorId) ?? 0) + 1);
+    }
+    return counts;
+  }, [allMembers]);
+
+  const allMembersSorted = useMemo(
+    () => [...allMembers].sort((a, b) => a.lastName.localeCompare(b.lastName)),
+    [allMembers]
+  );
+
   const selectedCoordinatorName = coordinatorId ? members[0]?.coordinatorName ?? null : null;
 
   return (
@@ -337,6 +358,54 @@ function CaseloadDistributionReport({
         filename="unassigned-members.csv"
         emptyMessage="No unassigned members — everyone has a coordinator."
       />
+
+      <Card title="Assign Coordinators">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs text-stone-400">
+              <th className="pb-2 font-medium">Member</th>
+              <th className="pb-2 font-medium">Assigned Coordinator</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-stone-100">
+            {allMembersSorted.map((m) => (
+              <tr key={m.id}>
+                <td className="py-2">
+                  <Link href={`/members/${m.id}`} className="font-medium text-stone-800 hover:underline">
+                    {m.firstName} {m.lastName}
+                  </Link>
+                </td>
+                <td className="py-2">
+                  <form
+                    key={m.coordinatorId ?? "unassigned"}
+                    action={reassignMember.bind(null, m.id)}
+                    className="flex items-center gap-2"
+                  >
+                    <select
+                      name="coordinatorId"
+                      defaultValue={m.coordinatorId ?? ""}
+                      className="rounded-md border border-stone-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                    >
+                      <option value="">Unassigned</option>
+                      {coordinators.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} ({assignmentCounts.get(c.id) ?? 0})
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="submit"
+                      className="rounded-md border border-stone-300 bg-white px-3 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+                    >
+                      Save
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
 
       <ReportShell
         title="Caseload Distribution"

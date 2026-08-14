@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { getSupervisorData, getCaseloadForReassignment } from "@/lib/data/supervisor";
+import { getSupervisorData } from "@/lib/data/supervisor";
 import { getPendingStatusChanges } from "@/lib/data/member-status";
 import { getUpcomingGraduations } from "@/lib/data/graduation";
+import { listActiveCoordinators } from "@/lib/data/members";
 import { approveStatusChange, rejectStatusChange } from "@/app/actions/member-status";
-import { reassignMember } from "@/app/actions/member-assignment";
 import { PageHeader, Card, StatTile, Badge } from "@/components/ui";
 import { GraduationsCard } from "@/components/supervisor/graduations-card";
 import { formatDate, titleCase } from "@/lib/format";
@@ -29,24 +29,14 @@ export default async function SupervisorDashboardPage() {
       touchpointGaps,
     },
     pendingStatusChanges,
-    { members: caseloadMembers, coordinators: caseloadCoordinators },
+    caseloadCoordinators,
     upcomingGraduations,
   ] = await Promise.all([
     getSupervisorData(),
     getPendingStatusChanges(),
-    getCaseloadForReassignment(),
+    listActiveCoordinators(),
     getUpcomingGraduations(),
   ]);
-
-  const caseloadCounts = new Map<string, number>();
-  let unassignedCount = 0;
-  for (const m of caseloadMembers) {
-    if (m.assignedCoordinatorId) {
-      caseloadCounts.set(m.assignedCoordinatorId, (caseloadCounts.get(m.assignedCoordinatorId) ?? 0) + 1);
-    } else {
-      unassignedCount++;
-    }
-  }
 
   return (
     <div>
@@ -69,7 +59,7 @@ export default async function SupervisorDashboardPage() {
         </div>
 
         <p className="text-sm text-stone-500">
-          For caseload distribution, outreach compliance, and annual CNA status breakdowns, see{" "}
+          For caseload distribution, coordinator assignment, outreach compliance, and annual CNA status breakdowns, see{" "}
           <Link href="/reports" className="font-medium text-charcoal hover:underline">
             Reports →
           </Link>
@@ -296,64 +286,6 @@ export default async function SupervisorDashboardPage() {
           )}
         </Card>
 
-        <Card title="Caseload Management">
-          <div className="mb-4 flex flex-wrap gap-2">
-            {caseloadCoordinators.map((c) => (
-              <span
-                key={c.id}
-                className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700"
-              >
-                {c.name}: {caseloadCounts.get(c.id) ?? 0}
-              </span>
-            ))}
-            {unassignedCount > 0 && (
-              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
-                Unassigned: {unassignedCount}
-              </span>
-            )}
-          </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-stone-400">
-                <th className="pb-2 font-medium">Member</th>
-                <th className="pb-2 font-medium">Assigned Coordinator</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100">
-              {caseloadMembers.map((m) => (
-                <tr key={m.id}>
-                  <td className="py-2">
-                    <Link href={`/members/${m.id}`} className="font-medium text-stone-800 hover:underline">
-                      {m.firstName} {m.lastName}
-                    </Link>
-                  </td>
-                  <td className="py-2">
-                    <form key={m.assignedCoordinatorId ?? "unassigned"} action={reassignMember.bind(null, m.id)} className="flex items-center gap-2">
-                      <select
-                        name="coordinatorId"
-                        defaultValue={m.assignedCoordinatorId ?? ""}
-                        className="rounded-md border border-stone-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                      >
-                        <option value="">Unassigned</option>
-                        {caseloadCoordinators.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name} ({caseloadCounts.get(c.id) ?? 0})
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="submit"
-                        className="rounded-md border border-stone-300 bg-white px-3 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
-                      >
-                        Save
-                      </button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
       </div>
     </div>
   );
