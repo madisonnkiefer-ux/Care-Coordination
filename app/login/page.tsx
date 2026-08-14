@@ -38,9 +38,12 @@ export default function LoginPage() {
             </div>
 
             {mfaState?.error && (
-              <p className="text-sm text-red-600" role="alert">
-                {mfaState.error}
-              </p>
+              <>
+                <p className="text-sm text-red-600" role="alert">
+                  {mfaState.error}
+                </p>
+                <p className="text-xs text-taupe">Too many attempts? Wait 15 minutes and try again.</p>
+              </>
             )}
 
             <button
@@ -97,9 +100,12 @@ export default function LoginPage() {
             </div>
 
             {state?.error && (
-              <p className="text-sm text-red-600" role="alert">
-                {state.error}
-              </p>
+              <>
+                <p className="text-sm text-red-600" role="alert">
+                  {state.error}
+                </p>
+                <p className="text-xs text-taupe">Too many attempts? Wait 15 minutes and try again.</p>
+              </>
             )}
 
             <button
