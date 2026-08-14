@@ -4,6 +4,8 @@ import { getAuditLog } from "@/lib/data/audit";
 import { getFormFieldsForSettings } from "@/lib/data/form-fields";
 import { getCustomQuestionsForSettings } from "@/lib/data/custom-questions";
 import { getSecurityAlerts } from "@/lib/data/security-alerts";
+import { getVendors } from "@/lib/data/vendors";
+import { getAllAmendmentRequests, getRecordExportLog } from "@/lib/data/amendment-requests";
 import { PageHeader } from "@/components/ui";
 import { Tabs } from "@/components/tabs";
 import { UsersTab } from "@/components/settings/users-tab";
@@ -13,6 +15,8 @@ import { DeletedChartsTab } from "@/components/settings/deleted-charts-tab";
 import { FormFieldsTab } from "@/components/settings/form-fields-tab";
 import { CustomQuestionsTab } from "@/components/settings/custom-questions-tab";
 import { SecurityAlertsTab } from "@/components/settings/security-alerts-tab";
+import { VendorsTab } from "@/components/settings/vendors-tab";
+import { PatientRightsTab } from "@/components/settings/patient-rights-tab";
 
 export default async function SettingsPage({
   searchParams,
@@ -22,7 +26,19 @@ export default async function SettingsPage({
   await requireRole("ADMIN");
   const { tab, user } = await searchParams;
 
-  const [users, auditLogs, currentUser, offices, deletedMembers, formFields, customQuestions, securityAlerts] = await Promise.all([
+  const [
+    users,
+    auditLogs,
+    currentUser,
+    offices,
+    deletedMembers,
+    formFields,
+    customQuestions,
+    securityAlerts,
+    vendors,
+    amendmentRequests,
+    recordExportLog,
+  ] = await Promise.all([
     getClinicUsers(),
     getAuditLog(user),
     getCurrentUser(),
@@ -31,6 +47,9 @@ export default async function SettingsPage({
     getFormFieldsForSettings(),
     getCustomQuestionsForSettings(),
     getSecurityAlerts(),
+    getVendors(),
+    getAllAmendmentRequests(),
+    getRecordExportLog(),
   ]);
 
   return (
@@ -74,6 +93,16 @@ export default async function SettingsPage({
             id: "security-alerts",
             label: "Security Alerts",
             content: <SecurityAlertsTab {...securityAlerts} />,
+          },
+          {
+            id: "vendors",
+            label: "Vendors & BAAs",
+            content: <VendorsTab vendors={vendors} />,
+          },
+          {
+            id: "patient-rights",
+            label: "Patient Rights",
+            content: <PatientRightsTab requests={amendmentRequests} exportLog={recordExportLog} />,
           },
         ]}
       />

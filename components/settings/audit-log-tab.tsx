@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui";
 import { formatDateTime } from "@/lib/format";
 
-const ACTION_COLORS: Record<string, "green" | "blue" | "yellow" | "red" | "slate"> = {
+const ACTION_COLORS: Record<string, "green" | "blue" | "yellow" | "red" | "slate" | "fuchsia"> = {
   VIEW: "slate",
   CREATE: "green",
   UPDATE: "blue",
@@ -9,6 +9,7 @@ const ACTION_COLORS: Record<string, "green" | "blue" | "yellow" | "red" | "slate
   LOGIN: "green",
   LOGIN_FAILED: "red",
   LOGOUT: "slate",
+  EXPORT: "fuchsia",
 };
 
 type AuditUser = { id: string; name: string; email: string };

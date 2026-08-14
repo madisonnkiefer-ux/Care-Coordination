@@ -24,6 +24,8 @@ import { GraduationAlertCard } from "@/components/graduation-alert-card";
 import { PrintButton } from "@/components/print-button";
 import { DeleteMemberButton } from "@/components/delete-member-button";
 import { SaveButton } from "@/components/save-button";
+import { getAmendmentRequestsForMember } from "@/lib/data/amendment-requests";
+import { AmendmentRequestsCard } from "@/components/amendment-requests-card";
 
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,6 +37,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
     carePlanHistory,
     tocHistory,
     graduationInfo,
+    amendmentRequests,
   ] = await Promise.all([
     getMemberChart(id),
     getStatusHistory(id),
@@ -43,6 +46,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
     getCarePlanHistorySummary(id),
     getTocHistorySummary(id),
     getMemberGraduationInfo(id),
+    getAmendmentRequestsForMember(id),
   ]);
 
   const returnPath = `/members/${id}`;
@@ -104,6 +108,15 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
         action={
           <div className="flex items-center gap-3">
             <PrintButton label="Print Full Chart" />
+            {session.role !== "CARE_COORDINATOR" && (
+              <a
+                href={`/api/members/${id}/export`}
+                className="flex items-center gap-2 rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50 print:hidden"
+                title="Full designated record set export, for a right-to-access request"
+              >
+                Export Full Record
+              </a>
+            )}
             <Badge color={statusBadgeColor(member.status)}>{titleCase(member.status)}</Badge>
             {session.role === "ADMIN" && (
               <DeleteMemberButton memberId={id} memberName={`${member.firstName} ${member.lastName}`} />
@@ -511,6 +524,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               </ul>
             )}
           </Card>
+
+          <AmendmentRequestsCard memberId={id} requests={amendmentRequests} />
         </div>
       </div>
     </div>

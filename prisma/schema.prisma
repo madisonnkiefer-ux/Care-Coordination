@@ -38,6 +38,7 @@ model Clinic {
   formFieldOverrides FormFieldOverride[]
   customQuestions    CustomQuestion[]
   formFieldOrders    FormFieldOrder[]
+  vendors            Vendor[]
 }
 
 model User {
@@ -101,6 +102,10 @@ model User {
   formFieldOverridesUpdated FormFieldOverride[] @relation("FormFieldOverrideUpdatedBy")
   customQuestionsCreated    CustomQuestion[]
   formFieldOrdersUpdated    FormFieldOrder[]    @relation("FormFieldOrderUpdatedBy")
+  vendorsCreated            Vendor[]
+
+  amendmentRequestsLogged   AmendmentRequest[] @relation("AmendmentRequestLoggedBy")
+  amendmentRequestsResolved AmendmentRequest[] @relation("AmendmentRequestResolvedBy")
 
   @@index([clinicId])
 }
@@ -198,6 +203,7 @@ model Member {
   auditLogs             AuditLog[]
   notifications         Notification[]
   statusChanges         MemberStatusChange[]
+  amendmentRequests     AmendmentRequest[]
 
   @@index([clinicId])
   @@index([assignedCoordinatorId])
@@ -1169,6 +1175,10 @@ enum AuditAction {
   LOGIN
   LOGIN_FAILED
   LOGOUT
+  // A full designated-record-set release (right-to-access fulfillment).
+  // Doubles as the HIPAA accounting-of-disclosures trail: who released a
+  // member's full record, when, and to whom (see metadata).
+  EXPORT
 }
 
 model AuditLog {
@@ -1349,6 +1359,69 @@ model ResourceEntry {
   updatedAt    DateTime @updatedAt
 
   @@index([clinicId])
+}
+
+// ---------- Vendors / Business Associates (HIPAA BAA tracking) ----------
+
+// Any third party that creates, receives, maintains, or transmits PHI on
+// the clinic's behalf (hosting, backups, fax/e-fax, billing clearinghouse,
+// etc.) needs a signed Business Associate Agreement before that
+// relationship is HIPAA-compliant. This is a compliance log, not a technical
+// control — it makes "do we have a BAA with X, and is it still current"
+// answerable without relying on someone's memory or inbox.
+model Vendor {
+  id            String    @id @default(cuid())
+  clinicId      String
+  clinic        Clinic    @relation(fields: [clinicId], references: [id])
+  name          String
+  purpose       String? // what the vendor does / what PHI it touches
+  hasBaa        Boolean   @default(false)
+  baaSignedDate DateTime?
+  baaExpiresAt  DateTime?
+  contactName   String?
+  contactEmail  String?
+  notes         String?
+  // Retired vendors (relationship ended) stay on record rather than being
+  // deleted — same non-destructive pattern as FormFieldOverride.hidden.
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdById   String?
+  createdBy     User?     @relation(fields: [createdById], references: [id])
+
+  @@index([clinicId])
+}
+
+// ---------- Patient rights: amendment requests (HIPAA right to amend) ----------
+
+enum AmendmentRequestStatus {
+  OPEN
+  ACCEPTED
+  DENIED
+}
+
+// A patient (or their representative) asking the clinic to correct
+// something in their record. The underlying clinical entry is never
+// silently edited — see each form's versioning — so this tracks the
+// *request* itself against the regulatory 60-day response clock
+// (createdAt + 60 days), independent of whatever correction eventually
+// happens in the chart.
+model AmendmentRequest {
+  id            String                 @id @default(cuid())
+  memberId      String
+  member        Member                 @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  description   String // what the patient/representative wants corrected, and where
+  requestedById String // staff member logging the request on the patient's behalf
+  requestedBy   User                   @relation("AmendmentRequestLoggedBy", fields: [requestedById], references: [id])
+  status        AmendmentRequestStatus @default(OPEN)
+  resolution    String?
+  resolvedAt    DateTime?
+  resolvedById  String?
+  resolvedBy    User?                  @relation("AmendmentRequestResolvedBy", fields: [resolvedById], references: [id])
+  createdAt     DateTime               @default(now())
+
+  @@index([memberId])
+  @@index([status])
 }
 
 // ---------- Billing ----------
