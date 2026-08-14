@@ -78,7 +78,9 @@ export async function changeMemberStatus(memberId: string, formData: FormData) {
         actorId: session.userId,
         priority: "HIGH",
         title: `Status change to ${toStatus.replaceAll("_", " ")} pending approval for ${member.firstName} ${member.lastName}`,
-        memberId,
+        // Not the member's chart — approving/rejecting happens on the
+        // Supervisor Dashboard, so that's where this should route.
+        linkPath: "/supervisor",
       });
     }
   }
