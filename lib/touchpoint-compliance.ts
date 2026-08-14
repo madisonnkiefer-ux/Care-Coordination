@@ -3,12 +3,12 @@
 //
 // Prenatal and Postpartum (OB) members are checked monthly: 1 successful
 // contact this month, or 3 attempts (successful or not) this month — either
-// one satisfies the cadence. GYN members are also checked monthly, but only
-// need 1 attempt (successful or not) when there's no successful contact.
-// Every other program (none set, etc.) is checked on a rolling 3-month
-// cycle anchored to the member's own enrollment date (their earliest signed
-// intake, or chart creation date if none has been signed yet) rather than
-// calendar-year quarters.
+// one satisfies the cadence. GYN members and everyone else (no program set,
+// etc.) are checked on a rolling 3-month cycle anchored to the member's own
+// enrollment date (their earliest signed intake, or chart creation date if
+// none has been signed yet) rather than calendar-year quarters — GYN only
+// needs 1 attempt (successful or not) per cycle, where the default bucket
+// needs 3.
 export type ComplianceUnit = "month" | "quarter";
 
 export type ComplianceCadence = {
@@ -22,7 +22,7 @@ export function getComplianceCadence(program: string | null | undefined): Compli
     return { unit: "month", requiredSuccessful: 1, requiredAttempts: 3 };
   }
   if (program === "GYN") {
-    return { unit: "month", requiredSuccessful: 1, requiredAttempts: 1 };
+    return { unit: "quarter", requiredSuccessful: 1, requiredAttempts: 1 };
   }
   return { unit: "quarter", requiredSuccessful: 1, requiredAttempts: 3 };
 }

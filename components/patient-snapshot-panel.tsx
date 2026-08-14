@@ -63,8 +63,9 @@ export function PatientSnapshotPanel({ snapshot }: { snapshot: Snapshot }) {
         )}
         <SnapshotRow
           label={`Touchpoint Due (${touchpointCadenceUnit === "month" ? "Monthly" : "Quarterly"})`}
-          value={formatDate(touchpointDueDate)}
+          value={touchpointCompliant ? "Contacted" : formatDate(touchpointDueDate)}
           warn={!touchpointCompliant}
+          good={touchpointCompliant}
         />
         <SnapshotRow
           label="CCP Due"
@@ -109,11 +110,11 @@ export function PatientSnapshotPanel({ snapshot }: { snapshot: Snapshot }) {
   );
 }
 
-function SnapshotRow({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
+function SnapshotRow({ label, value, warn, good }: { label: string; value: string; warn?: boolean; good?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-2">
       <dt className="text-stone-500">{label}</dt>
-      <dd className={`text-right font-medium ${warn ? "text-red-600" : "text-charcoal"}`}>{value}</dd>
+      <dd className={`text-right font-medium ${warn ? "text-red-600" : good ? "text-emerald-600" : "text-charcoal"}`}>{value}</dd>
     </div>
   );
 }
