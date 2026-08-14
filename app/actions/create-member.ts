@@ -12,7 +12,9 @@ import { PATIENT_TYPE_OPTIONS } from "@/lib/patient-type";
 
 const PATIENT_TYPES = PATIENT_TYPE_OPTIONS.map((o) => o.value);
 
-export async function createMember(formData: FormData) {
+export type CreateMemberState = { error?: string } | undefined;
+
+export async function createMember(_state: CreateMemberState, formData: FormData): Promise<CreateMemberState> {
   const session = await verifySession();
 
   const str = (key: string) => {
@@ -24,12 +26,16 @@ export async function createMember(formData: FormData) {
   const lastName = str("lastName");
   const dateOfBirthRaw = str("dateOfBirth");
   if (!firstName || !lastName || !dateOfBirthRaw) {
-    throw new Error("First name, last name, and date of birth are required.");
+    return { error: "First name, last name, and date of birth are required." };
   }
 
   const requestedStatus = (str("status") as MemberStatus | null) ?? "PENDING_ENROLLMENT";
   const cclLevel = str("cclLevel") as CclLevel | null;
-  const assignedCoordinatorId = str("assignedCoordinatorId");
+  // A care coordinator creating a patient can't assign themselves (or anyone
+  // else) — new patients stay unassigned until a supervisor/admin assigns
+  // one via Caseload Management. The form already hides this field for
+  // coordinators; this is the server-side backstop.
+  const assignedCoordinatorId = session.role === "CARE_COORDINATOR" ? null : str("assignedCoordinatorId");
   const eddRaw = str("edd");
   const programRaw = str("program");
   const program = programRaw && PATIENT_TYPES.includes(programRaw) ? programRaw : null;
