@@ -331,6 +331,13 @@ function CaseloadDistributionReport({
 
   return (
     <div className="space-y-6">
+      <MemberListCard
+        title="Unassigned Members"
+        members={unassigned}
+        filename="unassigned-members.csv"
+        emptyMessage="No unassigned members — everyone has a coordinator."
+      />
+
       <ReportShell
         title="Caseload Distribution"
         count={rows.length}
@@ -385,13 +392,6 @@ function CaseloadDistributionReport({
       ) : (
         <p className="text-xs text-stone-400">Pick a coordinator above to see their individual patient list here.</p>
       )}
-
-      <MemberListCard
-        title="Unassigned Members"
-        members={unassigned}
-        filename="unassigned-members.csv"
-        emptyMessage="No unassigned members — everyone has a coordinator."
-      />
     </div>
   );
 }
