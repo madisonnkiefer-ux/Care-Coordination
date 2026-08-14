@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { saveCustomAnswers } from "@/lib/custom-questions-save";
 import type { AssessmentStatus } from "@/app/generated/prisma/client";
 
 export async function saveCareCoordinationNote(memberId: string, noteId: string, formData: FormData) {
@@ -76,6 +77,8 @@ export async function saveCareCoordinationNote(memberId: string, noteId: string,
   };
 
   await db.careCoordinationNote.update({ where: { id: noteId }, data });
+
+  await saveCustomAnswers(member.clinicId, "ccn", noteId, formData);
 
   await writeAuditLog({
     userId: session.userId,

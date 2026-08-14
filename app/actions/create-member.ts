@@ -5,7 +5,12 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
+import { isTerminalStatus } from "@/lib/member-status";
 import type { CclLevel, MemberStatus } from "@/app/generated/prisma/client";
+import { PATIENT_TYPE_OPTIONS } from "@/lib/patient-type";
+
+const PATIENT_TYPES = PATIENT_TYPE_OPTIONS.map((o) => o.value);
 
 export async function createMember(formData: FormData) {
   const session = await verifySession();
@@ -22,10 +27,19 @@ export async function createMember(formData: FormData) {
     throw new Error("First name, last name, and date of birth are required.");
   }
 
-  const status = (str("status") as MemberStatus | null) ?? "PENDING_ENROLLMENT";
+  const requestedStatus = (str("status") as MemberStatus | null) ?? "PENDING_ENROLLMENT";
   const cclLevel = str("cclLevel") as CclLevel | null;
   const assignedCoordinatorId = str("assignedCoordinatorId");
   const eddRaw = str("edd");
+  const programRaw = str("program");
+  const program = programRaw && PATIENT_TYPES.includes(programRaw) ? programRaw : null;
+
+  // A member assigned a coordinator right at creation starts their billing
+  // clock immediately, same as assigning one later via Caseload Management —
+  // see reassignMember in app/actions/member-assignment.ts. Never overrides
+  // a deliberately-chosen terminal status.
+  const autoActivate = Boolean(assignedCoordinatorId) && requestedStatus !== "ACTIVE" && !isTerminalStatus(requestedStatus);
+  const status = autoActivate ? "ACTIVE" : requestedStatus;
 
   const member = await db.member.create({
     data: {
@@ -36,7 +50,8 @@ export async function createMember(formData: FormData) {
       phone: str("phone"),
       medicaidId: str("medicaidId"),
       memberIdExternal: str("memberIdExternal"),
-      program: str("program"),
+      subscriberId: str("subscriberId"),
+      program,
       status,
       cclLevel,
       edd: eddRaw ? new Date(eddRaw) : null,
@@ -51,6 +66,46 @@ export async function createMember(formData: FormData) {
     resource: "Member",
     resourceId: member.id,
   });
+
+  if (autoActivate) {
+    const change = await db.memberStatusChange.create({
+      data: {
+        memberId: member.id,
+        fromStatus: requestedStatus,
+        toStatus: "ACTIVE",
+        effectiveDate: new Date(),
+        reason: "Automatically marked Active upon care coordinator assignment",
+        changedById: session.userId,
+        requiresApproval: false,
+        approvedById: session.userId,
+        approvedAt: new Date(),
+      },
+    });
+
+    await writeAuditLog({
+      userId: session.userId,
+      memberId: member.id,
+      action: "UPDATE",
+      resource: "MemberStatusChange",
+      resourceId: change.id,
+      metadata: { fromStatus: requestedStatus, toStatus: "ACTIVE", automatic: true },
+    });
+
+    const supervisorsAndAdmins = await db.user.findMany({
+      where: { clinicId: session.clinicId, role: { in: ["SUPERVISOR", "ADMIN"] }, active: true },
+      select: { id: true },
+    });
+    for (const s of supervisorsAndAdmins) {
+      await createNotification({
+        clinicId: session.clinicId,
+        userId: s.id,
+        actorId: session.userId,
+        priority: "STANDARD",
+        title: `${member.firstName} ${member.lastName} automatically marked Active (assigned to a coordinator)`,
+        memberId: member.id,
+      });
+    }
+  }
 
   revalidatePath("/members");
   redirect(`/members/${member.id}`);

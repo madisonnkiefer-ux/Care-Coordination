@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui";
+import { FloatingSaveBar } from "@/components/floating-save-bar";
 import { saveCareCoordinationNote } from "@/app/actions/care-coordination-notes";
 import type { CareCoordinationNote } from "@/app/generated/prisma/client";
 import { TextArea, SelectField, YesNoField, YesNoNaField, CheckboxGroup, TextField } from "@/components/intake/form-fields";
@@ -12,17 +13,26 @@ import {
   ABP_CLASSIFICATION_OPTIONS,
   COMPLEX_CASE_OPTIONS,
 } from "@/components/intake/options";
+import type { ResolvedFormFields } from "@/lib/form-fields/registry";
+import { FormFieldsProvider } from "@/lib/form-fields/context";
+import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
+import type { CustomQuestionForRecord } from "@/lib/custom-questions-shared";
 
 export function CareCoordinationNotesTab({
   memberId,
   record: draft,
   locked,
+  fields,
+  customQuestions,
 }: {
   memberId: string;
   record: CareCoordinationNote;
   locked: boolean;
+  fields: ResolvedFormFields;
+  customQuestions: CustomQuestionForRecord[];
 }) {
   return (
+    <FormFieldsProvider form="ccn" fields={fields}>
     <div className="p-8">
       <form
         key={`${draft.id}-${draft.updatedAt.getTime()}`}
@@ -75,7 +85,7 @@ export function CareCoordinationNotesTab({
         <div className="space-y-6">
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">CCL1</p>
-            <CheckboxGroup name="ccl1Criteria" options={CCL1_CRITERIA_OPTIONS} defaultValues={draft?.ccl1Criteria} />
+            <CheckboxGroup name="ccl1Criteria" options={fields["ccn.ccl1Criteria"]?.options ?? CCL1_CRITERIA_OPTIONS} defaultValues={draft?.ccl1Criteria} />
             <div className="mt-3 max-w-md">
               <TextField name="ccl1OtherSpecify" label="Other, specify" defaultValue={draft?.ccl1OtherSpecify} />
             </div>
@@ -83,7 +93,7 @@ export function CareCoordinationNotesTab({
 
           <div className="border-t border-stone-100 pt-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">CCL2</p>
-            <CheckboxGroup name="ccl2Criteria" options={CCL2_CRITERIA_OPTIONS} defaultValues={draft?.ccl2Criteria} />
+            <CheckboxGroup name="ccl2Criteria" options={fields["ccn.ccl2Criteria"]?.options ?? CCL2_CRITERIA_OPTIONS} defaultValues={draft?.ccl2Criteria} />
             <div className="mt-3 max-w-md">
               <TextField name="ccl2OtherSpecify" label="Other, specify" defaultValue={draft?.ccl2OtherSpecify} />
             </div>
@@ -91,7 +101,11 @@ export function CareCoordinationNotesTab({
 
           <div className="border-t border-stone-100 pt-4">
             <p className="mb-2 text-xs font-semibold text-stone-700">*Members with the below indicators may not be leveled down.</p>
-            <CheckboxGroup name="cannotBeLeveledDownIndicators" options={CANNOT_BE_LEVELED_DOWN_OPTIONS} defaultValues={draft?.cannotBeLeveledDownIndicators} />
+            <CheckboxGroup
+              name="cannotBeLeveledDownIndicators"
+              options={fields["ccn.cannotBeLeveledDownIndicators"]?.options ?? CANNOT_BE_LEVELED_DOWN_OPTIONS}
+              defaultValues={draft?.cannotBeLeveledDownIndicators}
+            />
           </div>
         </div>
       </Card>
@@ -101,7 +115,7 @@ export function CareCoordinationNotesTab({
           <SelectField
             name="careCoordinationLevel"
             label="7. What is the Member's identified Care Coordination Level?"
-            options={CARE_COORDINATION_LEVEL_OPTIONS}
+            options={fields["ccn.careCoordinationLevel"]?.options ?? CARE_COORDINATION_LEVEL_OPTIONS}
             defaultValue={draft?.careCoordinationLevel}
           />
           <TextArea
@@ -125,7 +139,7 @@ export function CareCoordinationNotesTab({
               defaultValue={draft?.wantsAbpExemptEvaluation}
             />
             <div className="mt-2 flex gap-6">
-              {ABP_CLASSIFICATION_OPTIONS.map((opt) => (
+              {(fields["ccn.abpClassification"]?.options ?? ABP_CLASSIFICATION_OPTIONS).map((opt) => (
                 <label key={opt} className="flex items-center gap-2 text-sm text-stone-600">
                   <input type="radio" name="abpClassification" value={opt} defaultChecked={draft?.abpClassification === opt} className="h-4 w-4" />
                   {opt}
@@ -168,15 +182,17 @@ export function CareCoordinationNotesTab({
           <SelectField
             name="complexCaseManagementOrNfloc"
             label="15. Is the Member being assessed for Complex Case Management or considered for initial NFLOC?"
-            options={COMPLEX_CASE_OPTIONS}
+            options={fields["ccn.complexCaseManagementOrNfloc"]?.options ?? COMPLEX_CASE_OPTIONS}
             defaultValue={draft?.complexCaseManagementOrNfloc}
           />
         </div>
       </Card>
+
+      <CustomQuestionsSection questions={customQuestions} />
       </fieldset>
 
       {!locked && (
-        <div className="flex gap-3 print:hidden">
+        <FloatingSaveBar>
           <button
             type="submit"
             name="intent"
@@ -193,9 +209,10 @@ export function CareCoordinationNotesTab({
           >
             Complete
           </button>
-        </div>
+        </FloatingSaveBar>
       )}
       </form>
     </div>
+    </FormFieldsProvider>
   );
 }

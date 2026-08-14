@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
+import { saveCustomAnswers } from "@/lib/custom-questions-save";
 
 function str(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -57,6 +58,8 @@ export async function saveGeneralCommunication(memberId: string, commId: string,
       nextAttemptDate: date(formData, "nextAttemptDate"),
     },
   });
+
+  await saveCustomAnswers(member.clinicId, "generalComm", commId, formData);
 
   await writeAuditLog({
     userId: session.userId,

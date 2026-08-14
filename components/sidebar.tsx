@@ -8,12 +8,13 @@ import {
   Users,
   ListChecks,
   ShieldCheck,
-  ClipboardList,
   LogOut,
   BookOpen,
   BarChart3,
   Bell,
   Receipt,
+  Settings,
+  UserCog,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { Avatar } from "@/components/ui";
@@ -53,10 +54,10 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["SUPERVISOR", "ADMIN"],
   },
   {
-    href: "/audit",
-    label: "Audit Log",
-    icon: ClipboardList,
-    roles: ["SUPERVISOR", "ADMIN"],
+    href: "/settings",
+    label: "Settings",
+    icon: Settings,
+    roles: ["ADMIN"],
   },
 ];
 
@@ -114,6 +115,17 @@ export function Sidebar({
             <p className="truncate text-xs text-stone-500">{roleLabel(user.role)}</p>
           </div>
         </div>
+        <Link
+          href="/account"
+          className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+            pathname.startsWith("/account")
+              ? "bg-charcoal text-white"
+              : "text-stone-500 hover:bg-stone-100 hover:text-charcoal"
+          }`}
+        >
+          <UserCog className="h-4 w-4" />
+          Account &amp; Security
+        </Link>
         <form action={logout}>
           <button
             type="submit"

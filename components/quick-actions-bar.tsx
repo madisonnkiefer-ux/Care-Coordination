@@ -1,24 +1,20 @@
 import Link from "next/link";
 import {
-  StickyNote,
   PhoneCall,
   ListTree,
   ClipboardCheck,
   Activity,
   Upload,
-  ListPlus,
   HeartHandshake,
 } from "lucide-react";
 
 export function QuickActionsBar({ memberId }: { memberId: string }) {
   const actions: { label: string; href: string; icon: React.ComponentType<{ className?: string }>; disabled?: boolean }[] = [
-    { label: "Add Note", href: `/members/${memberId}#quick-notes`, icon: StickyNote },
     { label: "Log Touchpoint", href: `/members/${memberId}/care-plan?tab=general-communication`, icon: PhoneCall },
     { label: "Update CCP", href: `/members/${memberId}/care-plan?tab=ccp`, icon: ListTree },
     { label: "Complete CNA", href: `/members/${memberId}/intake?tab=cna`, icon: ClipboardCheck },
     { label: "Change in Condition", href: `/members/${memberId}/intake?tab=notes`, icon: Activity },
     { label: "Upload Document", href: `/members/${memberId}#documents`, icon: Upload },
-    { label: "Add Task", href: `/members/${memberId}#tasks`, icon: ListPlus },
     { label: "Refer to Resource", href: "/resources", icon: HeartHandshake },
   ];
 

@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
-import { getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
+import { firstEnrollmentDate, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
 
 export async function getDashboardData() {
   const session = await verifySession();
@@ -10,6 +10,13 @@ export async function getDashboardData() {
     session.role === "CARE_COORDINATOR"
       ? { clinicId: session.clinicId, assignedCoordinatorId: session.userId }
       : { clinicId: session.clinicId };
+
+  const now = new Date();
+  // Widest window either cadence ever needs, regardless of a member's own
+  // enrollment anchor: a monthly cadence never looks back further than the
+  // start of this month, and an anchored quarter is always fully contained
+  // within the last 3 calendar months.
+  const contactFetchFloor = new Date(now.getFullYear(), now.getMonth() - 3, 1);
 
   const [
     myMemberCount,
@@ -79,11 +86,13 @@ export async function getDashboardData() {
         id: true,
         firstName: true,
         lastName: true,
+        createdAt: true,
         program: true,
         generalCommunications: {
-          where: { createdAt: { gte: getWindowStart("quarter", new Date()) } },
+          where: { createdAt: { gte: contactFetchFloor } },
           select: { createdAt: true, successful: true },
         },
+        intakeVersions: { where: { signedAt: { not: null } }, orderBy: { signedAt: "asc" }, take: 1, select: { signedAt: true } },
       },
     }),
   ]);
@@ -99,7 +108,6 @@ export async function getDashboardData() {
   // Annual CNA is due 12 months after the last completed one. "Due this
   // month" includes anything already overdue, plus members who have never
   // had a completed CNA (most urgent — sorted first).
-  const now = new Date();
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
   const annualCnaDue = membersForAnnualCna
     .map((m) => {
@@ -118,7 +126,10 @@ export async function getDashboardData() {
 
   // Touchpoint compliance is program-based (see lib/touchpoint-compliance.ts):
   // Prenatal/Postpartum members need 1 successful contact (or 3 attempts)
-  // every month; everyone else needs the same every quarter.
+  // every month; GYN members need 1 successful contact (or 1 attempt) every
+  // month; everyone else needs 1 successful contact (or 3 attempts) every
+  // quarter, on a rolling 3-month cycle counted from their own enrollment
+  // date.
   const touchpointGaps = membersForContactCheck
     .map((m) => ({
       id: m.id,
@@ -126,7 +137,7 @@ export async function getDashboardData() {
       lastName: m.lastName,
       lastSuccessfulContactDate:
         m.generalCommunications.filter((c) => c.successful).reduce<Date | null>((latest, c) => (!latest || c.createdAt > latest ? c.createdAt : latest), null),
-      compliant: isTouchpointCompliant(m.generalCommunications, m.program, now),
+      compliant: isTouchpointCompliant(m.generalCommunications, m.program, firstEnrollmentDate(m), now),
     }))
     .filter((m) => !m.compliant)
     .sort((a, b) => {

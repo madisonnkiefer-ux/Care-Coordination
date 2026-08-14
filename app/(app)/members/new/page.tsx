@@ -4,6 +4,7 @@ import { PageHeader, Card } from "@/components/ui";
 import { createMember } from "@/app/actions/create-member";
 import { titleCase } from "@/lib/format";
 import { ALL_STATUSES } from "@/lib/member-status";
+import { PATIENT_TYPE_OPTIONS } from "@/lib/patient-type";
 
 export default async function NewMemberPage() {
   const [coordinators, currentUser] = await Promise.all([listActiveCoordinators(), getCurrentUser()]);
@@ -73,10 +74,28 @@ export default async function NewMemberPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Program</label>
-                <input
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Type of Patient
+                </label>
+                <select
                   name="program"
-                  placeholder="e.g. Prenatal"
+                  defaultValue=""
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                >
+                  <option value="">—</option>
+                  {PATIENT_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Subscriber ID
+                </label>
+                <input
+                  name="subscriberId"
                   className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 />
               </div>

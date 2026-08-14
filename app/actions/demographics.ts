@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { saveCustomAnswers } from "@/lib/custom-questions-save";
 
 export async function saveDemographics(memberId: string, demographicsId: string, formData: FormData) {
   const { session, member } = await authorizeMemberAccess(memberId);
@@ -64,6 +65,8 @@ export async function saveDemographics(memberId: string, demographicsId: string,
     phoneHome: str("phoneHome"),
     preferredContactVoice: checkbox("preferredContactVoice"),
     preferredContactText: checkbox("preferredContactText"),
+    preferredContactMail: checkbox("preferredContactMail"),
+    preferredContactEmail: checkbox("preferredContactEmail"),
     emergencyContactName: str("emergencyContactName"),
     emergencyContactPhone: str("emergencyContactPhone"),
     emergencyContactRel: str("emergencyContactRel"),
@@ -109,6 +112,8 @@ export async function saveDemographics(memberId: string, demographicsId: string,
     }),
     db.demographics.update({ where: { id: demographicsId }, data }),
   ]);
+
+  await saveCustomAnswers(member.clinicId, "demographics", demographicsId, formData);
 
   await writeAuditLog({
     userId: session.userId,

@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { seedDemoData } from "@/prisma/seed-data";
 import { seedResources } from "@/prisma/resource-seed-data";
+import type { PrismaClient } from "@/app/generated/prisma/client";
+
+// seedDemoData/seedResources are typed against the plain generated
+// PrismaClient (they're also invoked from prisma/seed.ts with a raw
+// client). lib/db.ts's `db` is that same client wrapped in a soft-delete
+// query extension — structurally compatible for every call these seed
+// functions make, just a different TS type after $extends().
+const seedDb = db as unknown as PrismaClient;
 
 // One-time deploy-setup endpoint for a freshly-created database: loads the
 // same fictional demo clinic/members used in local dev. Safe to hit more
@@ -17,7 +25,7 @@ export async function GET(request: NextRequest) {
   const existing = await db.clinic.findUnique({ where: { id: "demo-clinic" } });
   if (existing) {
     const admin = await db.user.findFirst({ where: { clinicId: existing.id, role: "ADMIN" } });
-    const resourceResult = admin ? await seedResources(db, existing.id, admin.id) : { created: 0, updated: 0, total: 0, skipped: true };
+    const resourceResult = admin ? await seedResources(seedDb, existing.id, admin.id) : { created: 0, updated: 0, total: 0, skipped: true };
     const [notificationCount, statusChangeCount] = await Promise.all([
       db.notification.count(),
       db.memberStatusChange.count(),
@@ -29,6 +37,6 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const result = await seedDemoData(db);
+  const result = await seedDemoData(seedDb);
   return NextResponse.json({ message: "Seeded successfully.", ...result });
 }

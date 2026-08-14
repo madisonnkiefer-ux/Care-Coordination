@@ -3,10 +3,12 @@ import { CheckSquare, Square } from "lucide-react";
 import { getTasksPageData } from "@/lib/data/tasks";
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { createTask, toggleTask } from "@/app/actions/tasks";
-import { formatDate, titleCase } from "@/lib/format";
+import { saveQuickNote } from "@/app/actions/notes";
+import { formatDate, formatDateTime, titleCase } from "@/lib/format";
 
-export default async function TasksPage() {
-  const { openTasks, completedTasks, members } = await getTasksPageData();
+export default async function TasksPage({ searchParams }: { searchParams: Promise<{ note?: string }> }) {
+  const { note } = await searchParams;
+  const { openTasks, completedTasks, notes, members } = await getTasksPageData();
   const returnPath = "/tasks";
 
   return (
@@ -68,48 +70,104 @@ export default async function TasksPage() {
               </ul>
             )}
           </Card>
+
+          <Card id="notes" title="My Notes">
+            <p className="mb-3 text-xs text-slate-400">
+              Your notes across every patient, gathered here as a reminder feed. Never part of any clinical form —
+              also visible on each patient&apos;s chart under Quick Notes.
+            </p>
+            {notes.length === 0 ? (
+              <p className="py-4 text-center text-sm text-slate-400">No notes yet.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {notes.map((n) => (
+                  <li key={n.id} className="py-2.5 text-sm">
+                    <div className="mb-1 flex items-center justify-between gap-3">
+                      {n.member && (
+                        <Link href={`/members/${n.member.id}`} className="text-xs font-medium text-fuchsia-600 hover:underline">
+                          {n.member.firstName} {n.member.lastName}
+                        </Link>
+                      )}
+                      <span className="shrink-0 text-xs text-slate-400">{formatDateTime(n.createdAt)}</span>
+                    </div>
+                    <p className="whitespace-pre-wrap text-slate-700">{n.body}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
         </div>
 
-        <Card title="Add Task">
-          <form action={createTask} className="space-y-3">
-            <input type="hidden" name="returnPath" value={returnPath} />
-            <div>
-              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Title</label>
-              <input name="title" required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Member</label>
-              <select name="memberId" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
-                <option value="">— None —</option>
-                {members.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.firstName} {m.lastName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-6">
+          <Card title="Add Task">
+            <form action={createTask} className="space-y-3">
+              <input type="hidden" name="returnPath" value={returnPath} />
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Due Date</label>
-                <input type="date" name="dueDate" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Title</label>
+                <input name="title" required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Priority</label>
-                <select name="priority" defaultValue="MEDIUM" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High</option>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Member</label>
+                <select name="memberId" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                  <option value="">— None —</option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.firstName} {m.lastName}
+                    </option>
+                  ))}
                 </select>
               </div>
-            </div>
-            <button
-              type="submit"
-              className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-            >
-              Add Task
-            </button>
-          </form>
-        </Card>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Due Date</label>
+                  <input type="date" name="dueDate" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Priority</label>
+                  <select name="priority" defaultValue="MEDIUM" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                  </select>
+                </div>
+              </div>
+              <button
+                type="submit"
+                className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                Add Task
+              </button>
+            </form>
+          </Card>
+
+          <Card title="Add Note">
+            <form action={saveQuickNote} className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Member</label>
+                <select name="memberId" required defaultValue={note ?? ""} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                  <option value="" disabled>
+                    Select a patient...
+                  </option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.firstName} {m.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Note</label>
+                <textarea name="body" required rows={3} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              </div>
+              <button
+                type="submit"
+                className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                Save Note
+              </button>
+            </form>
+          </Card>
+        </div>
       </div>
     </div>
   );

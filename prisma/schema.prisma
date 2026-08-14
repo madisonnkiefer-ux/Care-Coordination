@@ -30,11 +30,15 @@ model Clinic {
   code      String   @unique
   createdAt DateTime @default(now())
 
-  users          User[]
-  members        Member[]
-  resources      ResourceEntry[]
-  notifications  Notification[]
-  billingExports BillingExport[]
+  users              User[]
+  members            Member[]
+  resources          ResourceEntry[]
+  notifications      Notification[]
+  billingExports     BillingExport[]
+  formFieldOverrides FormFieldOverride[]
+  customQuestions    CustomQuestion[]
+  formFieldOrders    FormFieldOrder[]
+  vendors            Vendor[]
 }
 
 model User {
@@ -48,6 +52,25 @@ model User {
   active       Boolean   @default(true)
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
+
+  // Brute-force lockout: failedLoginAttempts resets to 0 on any successful
+  // login. Hitting LOCKOUT_THRESHOLD (see app/actions/auth.ts) sets
+  // lockedUntil instead of blocking permanently — self-healing, no admin
+  // unlock action needed. A login attempt during an active lockout is
+  // rejected with the same generic error as a wrong password, so it can't
+  // be used to enumerate which emails have an account.
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  // TOTP-based MFA (person/entity authentication, HIPAA §164.312(d)).
+  // mfaSecret is set as soon as enrollment starts but mfaEnabled stays false
+  // until the user confirms a code — login only challenges for MFA once
+  // enabled. Backup codes are single-use: each hash is removed from the
+  // array on redemption. An admin "reset" (app/actions/mfa.ts) clears all
+  // three, for a lost device, without needing the old secret.
+  mfaEnabled          Boolean   @default(false)
+  mfaSecret           String?
+  mfaBackupCodeHashes String[]  @default([])
 
   assignedMembers        Member[]               @relation("AssignedCoordinator")
   tasks                  Task[]                 @relation("TaskAssignee")
@@ -70,6 +93,19 @@ model User {
 
   intakeVersionsSigned IntakeVersion[] @relation("IntakeVersionSignedBy")
   tocRecordsSigned     TocRecord[]     @relation("TocRecordSignedBy")
+
+  membersDeleted        Member[]        @relation("MemberDeletedBy")
+  intakeVersionsDeleted IntakeVersion[] @relation("IntakeVersionDeletedBy")
+  carePlansDeleted      CarePlan[]      @relation("CarePlanDeletedBy")
+  tocRecordsDeleted     TocRecord[]     @relation("TocRecordDeletedBy")
+
+  formFieldOverridesUpdated FormFieldOverride[] @relation("FormFieldOverrideUpdatedBy")
+  customQuestionsCreated    CustomQuestion[]
+  formFieldOrdersUpdated    FormFieldOrder[]    @relation("FormFieldOrderUpdatedBy")
+  vendorsCreated            Vendor[]
+
+  amendmentRequestsLogged   AmendmentRequest[] @relation("AmendmentRequestLoggedBy")
+  amendmentRequestsResolved AmendmentRequest[] @relation("AmendmentRequestResolvedBy")
 
   @@index([clinicId])
 }
@@ -105,6 +141,14 @@ model Member {
   clinic    Clinic   @relation(fields: [clinicId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Soft delete — admin-only, recoverable. Never hard-deleted: Medicaid/
+  // HIPAA record retention requirements outlive a patient's relationship
+  // with the clinic. Excluded from all normal reads by the Prisma Client
+  // extension in lib/db.ts, not by callers remembering a filter.
+  deletedAt   DateTime?
+  deletedById String?
+  deletedBy   User?     @relation("MemberDeletedBy", fields: [deletedById], references: [id])
 
   // Demographics
   firstName   String
@@ -159,6 +203,7 @@ model Member {
   auditLogs             AuditLog[]
   notifications         Notification[]
   statusChanges         MemberStatusChange[]
+  amendmentRequests     AmendmentRequest[]
 
   @@index([clinicId])
   @@index([assignedCoordinatorId])
@@ -221,6 +266,10 @@ model IntakeVersion {
   signedById String?
   signedBy   User?     @relation("IntakeVersionSignedBy", fields: [signedById], references: [id])
 
+  deletedAt   DateTime?
+  deletedById String?
+  deletedBy   User?     @relation("IntakeVersionDeletedBy", fields: [deletedById], references: [id])
+
   demographics Demographics?
   hra          HraAssessment?
   cna          CnaAssessment?
@@ -275,6 +324,8 @@ model Demographics {
   phoneHome             String?
   preferredContactVoice Boolean?
   preferredContactText  Boolean?
+  preferredContactMail  Boolean?
+  preferredContactEmail Boolean?
 
   emergencyContactName  String?
   emergencyContactPhone String?
@@ -705,6 +756,10 @@ model CarePlan {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
+  deletedAt   DateTime?
+  deletedById String?
+  deletedBy   User?            @relation("CarePlanDeletedBy", fields: [deletedById], references: [id])
+
   // Demographic Information (CCP-specific — Medicaid eligibility renewal date
   // already lives on Demographics, so it isn't repeated here)
   ccpStartDate                DateTime?
@@ -938,6 +993,10 @@ model TocRecord {
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
 
+  deletedAt   DateTime?
+  deletedById String?
+  deletedBy   User?            @relation("TocRecordDeletedBy", fields: [deletedById], references: [id])
+
   // Section 1: Demographic Information (TOC-specific only — member identity,
   // contact info, and emergency contact already live on Demographics)
   mcoNotificationDate   DateTime?
@@ -1079,6 +1138,7 @@ model QuickNote {
   createdAt DateTime @default(now())
 
   @@index([memberId])
+  @@index([authorId])
 }
 
 enum DocumentCategory {
@@ -1115,6 +1175,10 @@ enum AuditAction {
   LOGIN
   LOGIN_FAILED
   LOGOUT
+  // A full designated-record-set release (right-to-access fulfillment).
+  // Doubles as the HIPAA accounting-of-disclosures trail: who released a
+  // member's full record, when, and to whom (see metadata).
+  EXPORT
 }
 
 model AuditLog {
@@ -1167,6 +1231,114 @@ model Notification {
   @@index([clinicId])
 }
 
+// ---------- Form content overrides (admin-editable labels/option lists) ----------
+
+// Lets an office admin re-word a field's label or its dropdown/checkbox
+// option list when the state revises a standardized form (HRA, CNA, CCP,
+// TOC), without a code change. `fieldKey` matches a key in
+// lib/form-fields/registry.ts; options here fully replace that field's
+// default option list (no partial merge) — see lib/data/form-fields.ts for
+// how this is resolved against the registry defaults.
+model FormFieldOverride {
+  id          String   @id @default(cuid())
+  clinicId    String
+  clinic      Clinic   @relation(fields: [clinicId], references: [id])
+  fieldKey    String
+  label       String?
+  options     Json?
+  // Retires a non-protected built-in question from new forms going forward.
+  // Never touches already-saved answers or already-signed records — those
+  // keep rendering/printing exactly as before, since the underlying Prisma
+  // column and its stored value are untouched.
+  hidden      Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  updatedBy   User?    @relation("FormFieldOverrideUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([clinicId, fieldKey])
+}
+
+// Per-clinic display order for one form (e.g. "demographics"), spanning both
+// built-in fields and Additional Questions in a single sequence so either
+// kind can be repositioned relative to the other — inserting a custom
+// question "under" a specific built-in field means placing it right after
+// that field's entry here. itemOrder holds string refs of the form
+// "field:<registryKey>" or "custom:<customQuestionId>"; anything not
+// mentioned (a field newly added to the registry, or a question created
+// after this was last saved) renders after everything listed, in its
+// default order — see lib/form-fields/ordering.ts.
+model FormFieldOrder {
+  id          String   @id @default(cuid())
+  clinicId    String
+  clinic      Clinic   @relation(fields: [clinicId], references: [id])
+  form        String
+  itemOrder   Json
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  updatedBy   User?    @relation("FormFieldOrderUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([clinicId, form])
+}
+
+enum CustomQuestionType {
+  TEXT
+  TEXTAREA
+  SELECT
+  CHECKBOX_GROUP
+  YES_NO
+  DATE
+}
+
+// Admin-defined questions layered onto a standardized form, alongside its
+// built-in fields — the "add a new question" half of Settings → Form
+// Content. Kept fully separate from the built-in Prisma columns on
+// Demographics/HraAssessment/etc. on purpose: those stay typed and tied to
+// the compliance/scoring logic that reads them by name (see
+// lib/form-fields/registry.ts's PROTECTED_FIELDS), while custom questions
+// are free-form and admin-owned.
+model CustomQuestion {
+  id          String             @id @default(cuid())
+  clinicId    String
+  clinic      Clinic             @relation(fields: [clinicId], references: [id])
+  form        String // matches FormFieldDef["form"] in lib/form-fields/registry.ts
+  section     String?
+  type        CustomQuestionType
+  label       String
+  options     Json? // string[] — only for SELECT / CHECKBOX_GROUP
+  order       Int                @default(0)
+  // Retiring a custom question stops it from appearing on new forms without
+  // deleting previously-collected answers (same non-destructive pattern as
+  // `FormFieldOverride.hidden` above).
+  active      Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  createdById String?
+  createdBy   User?              @relation(fields: [createdById], references: [id])
+
+  answers CustomAnswer[]
+
+  @@index([clinicId, form])
+}
+
+// One answer to one CustomQuestion on one specific form record. `recordId`
+// deliberately isn't a typed foreign key — a custom question can attach to
+// any of 7 different record types (Demographics, HraAssessment,
+// CnaAssessment, CareCoordinationNote, CarePlan, GeneralCommunication,
+// TocRecord), and Prisma has no polymorphic relation; `question.form` says
+// which table `recordId` refers to. This is supplementary, admin-added
+// data — the primary PHI fields on those 7 models keep their normal typed
+// FKs and are unaffected by this design choice.
+model CustomAnswer {
+  id         String         @id @default(cuid())
+  questionId String
+  question   CustomQuestion @relation(fields: [questionId], references: [id])
+  recordId   String
+  value      Json?
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([questionId, recordId])
+}
+
 // ---------- Resource directory (referral resources, programs, and key contacts) ----------
 
 model ResourceEntry {
@@ -1187,6 +1359,69 @@ model ResourceEntry {
   updatedAt    DateTime @updatedAt
 
   @@index([clinicId])
+}
+
+// ---------- Vendors / Business Associates (HIPAA BAA tracking) ----------
+
+// Any third party that creates, receives, maintains, or transmits PHI on
+// the clinic's behalf (hosting, backups, fax/e-fax, billing clearinghouse,
+// etc.) needs a signed Business Associate Agreement before that
+// relationship is HIPAA-compliant. This is a compliance log, not a technical
+// control — it makes "do we have a BAA with X, and is it still current"
+// answerable without relying on someone's memory or inbox.
+model Vendor {
+  id            String    @id @default(cuid())
+  clinicId      String
+  clinic        Clinic    @relation(fields: [clinicId], references: [id])
+  name          String
+  purpose       String? // what the vendor does / what PHI it touches
+  hasBaa        Boolean   @default(false)
+  baaSignedDate DateTime?
+  baaExpiresAt  DateTime?
+  contactName   String?
+  contactEmail  String?
+  notes         String?
+  // Retired vendors (relationship ended) stay on record rather than being
+  // deleted — same non-destructive pattern as FormFieldOverride.hidden.
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdById   String?
+  createdBy     User?     @relation(fields: [createdById], references: [id])
+
+  @@index([clinicId])
+}
+
+// ---------- Patient rights: amendment requests (HIPAA right to amend) ----------
+
+enum AmendmentRequestStatus {
+  OPEN
+  ACCEPTED
+  DENIED
+}
+
+// A patient (or their representative) asking the clinic to correct
+// something in their record. The underlying clinical entry is never
+// silently edited — see each form's versioning — so this tracks the
+// *request* itself against the regulatory 60-day response clock
+// (createdAt + 60 days), independent of whatever correction eventually
+// happens in the chart.
+model AmendmentRequest {
+  id            String                 @id @default(cuid())
+  memberId      String
+  member        Member                 @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  description   String // what the patient/representative wants corrected, and where
+  requestedById String // staff member logging the request on the patient's behalf
+  requestedBy   User                   @relation("AmendmentRequestLoggedBy", fields: [requestedById], references: [id])
+  status        AmendmentRequestStatus @default(OPEN)
+  resolution    String?
+  resolvedAt    DateTime?
+  resolvedById  String?
+  resolvedBy    User?                  @relation("AmendmentRequestResolvedBy", fields: [resolvedById], references: [id])
+  createdAt     DateTime               @default(now())
+
+  @@index([memberId])
+  @@index([status])
 }
 
 // ---------- Billing ----------

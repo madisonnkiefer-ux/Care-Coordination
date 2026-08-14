@@ -121,7 +121,12 @@ export async function getMemberChart(memberId: string) {
         take: 3,
       }),
       db.document.findMany({ where: { memberId }, orderBy: { createdAt: "desc" }, take: 5 }),
-      db.quickNote.findFirst({ where: { memberId }, orderBy: { updatedAt: "desc" } }),
+      db.quickNote.findMany({
+        where: { memberId },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: { author: { select: { name: true } } },
+      }),
       db.carePlanGoal.groupBy({
         by: ["status"],
         where: { carePlan: { memberId } },

@@ -1,3 +1,15 @@
+export const ETHNICITY_OPTIONS = ["Hispanic or Latino", "Not Hispanic or Latino", "Unknown/Declined"];
+export const RACE_OPTIONS = [
+  "White or Caucasian",
+  "Black or African American",
+  "Asian",
+  "American Indian or Alaska Native",
+  "Native Hawaiian or Other Pacific Islander",
+  "Two or More Races",
+  "A race/ethnicity not listed",
+  "Unknown/Declined",
+];
+
 // Canonical option lists from the standardized HCA Health Risk Assessment —
 // shared by Demographics and HRA since both ask these same three questions.
 export const SEX_ASSIGNED_AT_BIRTH_OPTIONS = ["Male", "Female", "X or intersex", "Decline/prefer not to answer"];
@@ -101,6 +113,10 @@ export const CNA_SPECIAL_PREFERENCES_OPTIONS = ["Cultural preference", "Literacy
 
 export const ER_VISITS_OPTIONS = ["0", "1", "2", "3", "4 or more", "unknown"];
 export const HOSPITAL_STAYS_OPTIONS = ["0", "1", "2", "3 or more"];
+
+// lib/hra-cna-required.ts parses this with parseInt, so "6 or more" still
+// correctly trips the >= 6 CNA-required rule.
+export const MEDICATIONS_COUNT_OPTIONS = ["0", "1", "2", "3", "4", "5", "6 or more"];
 
 export const OVERALL_HEALTH_OPTIONS = ["Excellent", "Good", "Fair", "Poor"];
 

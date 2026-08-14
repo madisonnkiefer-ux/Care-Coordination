@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { zipRows } from "@/lib/form-rows";
+import { saveCustomAnswers } from "@/lib/custom-questions-save";
 import type { GoalStatus } from "@/app/generated/prisma/client";
 
 function str(formData: FormData, key: string) {
@@ -135,6 +136,8 @@ export async function saveCarePlan(memberId: string, carePlanId: string, formDat
       });
     }
   });
+
+  await saveCustomAnswers(member.clinicId, "ccp", carePlanId, formData);
 
   await writeAuditLog({
     userId: session.userId,

@@ -1,6 +1,7 @@
 import { verifySession } from "@/lib/dal";
 import { Sidebar } from "@/components/sidebar";
 import { getNotificationBellData } from "@/lib/data/notifications";
+import { SessionTimeoutWarning } from "@/components/session-timeout-warning";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // Defense in depth: proxy.ts already redirects unauthenticated requests,
@@ -11,6 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen bg-stone-50">
+      <SessionTimeoutWarning />
       <Sidebar user={{ name: session.name, email: session.email, role: session.role }} notificationData={notificationData} />
       <div className="flex flex-1 min-w-0 flex-col">
         <main className="min-w-0">{children}</main>

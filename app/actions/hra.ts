@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { saveCustomAnswers } from "@/lib/custom-questions-save";
 import type { AssessmentStatus } from "@/app/generated/prisma/client";
 
 export async function saveHra(memberId: string, hraId: string, formData: FormData) {
@@ -103,6 +104,8 @@ export async function saveHra(memberId: string, hraId: string, formData: FormDat
   };
 
   await db.hraAssessment.update({ where: { id: hraId }, data });
+
+  await saveCustomAnswers(member.clinicId, "hra", hraId, formData);
 
   await writeAuditLog({
     userId: session.userId,

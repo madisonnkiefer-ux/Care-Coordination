@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui";
+import { FloatingSaveBar } from "@/components/floating-save-bar";
 import { SimpleHistoryBar } from "@/components/intake/versioning";
 import { TextArea, TextField, DateField, Checkbox, CheckboxGroup } from "@/components/intake/form-fields";
 import { PREFERRED_CONTACT_METHOD_OPTIONS, DISASTER_REVIEW_ITEMS_OPTIONS } from "@/components/intake/options";
 import { RepeatableRows } from "@/components/care-plan/repeatable-rows";
 import { GoalCard } from "@/components/care-plan/goal-card";
 import { createNewCarePlan, saveCarePlan, addGoal } from "@/app/actions/care-plan";
+import { deleteCarePlan } from "@/app/actions/delete";
 import type {
   CarePlan,
   CarePlanTeamMember,
@@ -17,6 +19,10 @@ import type {
   CarePlanGoal,
   CarePlanProgressNote,
 } from "@/app/generated/prisma/client";
+import type { ResolvedFormFields } from "@/lib/form-fields/registry";
+import { FormFieldsProvider } from "@/lib/form-fields/context";
+import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
+import { mergeCustomQuestions, type CustomQuestionDef } from "@/lib/custom-questions-shared";
 
 type CarePlanRecord = CarePlan & {
   teamMembers: CarePlanTeamMember[];
@@ -35,17 +41,27 @@ export function CcpTab({
   memberId,
   records,
   defaultVersionId,
+  currentUserIsAdmin,
+  fields,
+  customQuestionDefs,
+  customAnswersByRecord,
 }: {
   memberId: string;
   records: CarePlanRecord[];
   defaultVersionId?: string;
+  currentUserIsAdmin?: boolean;
+  fields: ResolvedFormFields;
+  customQuestionDefs: CustomQuestionDef[];
+  customAnswersByRecord: Record<string, Record<string, unknown>>;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(defaultVersionId ?? records[0]?.id ?? null);
   const plan = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
+  const customQuestions = plan ? mergeCustomQuestions(customQuestionDefs, customAnswersByRecord[plan.id]) : [];
 
   const historyItems = records.map((r) => ({ id: r.id, dateLabel: r.createdAt }));
 
   return (
+    <FormFieldsProvider form="ccp" fields={fields}>
     <div className="p-8">
       <SimpleHistoryBar
         items={historyItems}
@@ -53,14 +69,16 @@ export function CcpTab({
         onSelect={setSelectedId}
         newAction={createNewCarePlan.bind(null, memberId)}
         newLabel="+ New CCP"
+        onDelete={currentUserIsAdmin ? deleteCarePlan.bind(null, memberId) : undefined}
       />
 
       {!plan ? (
-        <p className="text-sm text-stone-500">No Comprehensive Care Plan yet — click &quot;+ New CCP&quot; to start one.</p>
+        <p className="text-sm text-stone-600">No Comprehensive Care Plan yet — click &quot;+ New CCP&quot; to start one.</p>
       ) : (
         <div className="max-w-4xl space-y-6">
           <form
             key={`${plan.id}-${plan.updatedAt.getTime()}`}
+            id="ccp-form"
             action={saveCarePlan.bind(null, memberId, plan.id)}
             className="space-y-6"
           >
@@ -70,9 +88,9 @@ export function CcpTab({
                 <DateField name="mostRecentCnaCompletionDate" label="Most Recent CNA Completion Date" defaultValue={toInputDate(plan.mostRecentCnaCompletionDate)} />
               </div>
               <div className="mt-4">
-                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">Preferred Method of Contact</p>
+                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-600">Preferred Method of Contact</p>
                 <div className="flex flex-wrap gap-6">
-                  {PREFERRED_CONTACT_METHOD_OPTIONS.map((opt) => (
+                  {(fields["ccp.preferredContactMethod"]?.options ?? PREFERRED_CONTACT_METHOD_OPTIONS).map((opt) => (
                     <label key={opt} className="flex items-center gap-2 text-sm text-stone-600">
                       <input type="radio" name="preferredContactMethod" value={opt} defaultChecked={plan.preferredContactMethod === opt} className="h-4 w-4" />
                       {opt}
@@ -83,7 +101,7 @@ export function CcpTab({
             </Card>
 
             <Card title="Interdisciplinary Care Team (ICT) Information" className="overflow-visible">
-              <p className="mb-3 text-xs text-stone-400">Power of Attorney, parent, spouse, partner, providers, natural supports, etc. — if applicable.</p>
+              <p className="mb-3 text-xs text-stone-600">Power of Attorney, parent, spouse, partner, providers, natural supports, etc. — if applicable.</p>
               <RepeatableRows
                 initialRows={plan.teamMembers}
                 minRows={1}
@@ -101,12 +119,12 @@ export function CcpTab({
             </Card>
 
             <Card title="Services that will be Authorized by the MCO">
-              <p className="mb-2 text-xs text-stone-400">Including amount, frequency, duration and scope (tasks and functions to be performed) of each service to be provided.</p>
+              <p className="mb-2 text-xs text-stone-600">Including amount, frequency, duration and scope (tasks and functions to be performed) of each service to be provided.</p>
               <TextArea name="servicesAuthorizedByMco" label="Services authorized by the MCO" defaultValue={plan.servicesAuthorizedByMco} rows={4} />
             </Card>
 
             <Card title="Physical Health (PH) and Behavioral Health (BH) Conditions/Diagnoses">
-              <p className="mb-2 text-xs text-stone-400">
+              <p className="mb-2 text-xs text-stone-600">
                 Conditions, needs and functional status; relevant information regarding the Member&apos;s PH and BH condition(s), including treatment needed by a
                 Provider, caregiver, or the care coordinator to ensure appropriate delivery of services or coordination of care.
               </p>
@@ -114,7 +132,7 @@ export function CcpTab({
             </Card>
 
             <Card title="Medications">
-              <p className="mb-3 text-xs text-stone-400">Including names, dosages, frequency, and discontinued medications.</p>
+              <p className="mb-3 text-xs text-stone-600">Including names, dosages, frequency, and discontinued medications.</p>
               <RepeatableRows
                 initialRows={plan.medications.map((m) => ({ ...m, startDate: toInputDate(m.startDate), endDate: toInputDate(m.endDate) }))}
                 minRows={1}
@@ -132,7 +150,7 @@ export function CcpTab({
             </Card>
 
             <Card title="Backup Plan">
-              <p className="mb-3 text-xs text-stone-400">
+              <p className="mb-3 text-xs text-stone-600">
                 I will talk with backup paid or unpaid caregivers about when they are available and my care needs before a situation comes up. I will call one
                 of the people listed below if my scheduled paid or unpaid caregiver does not show up at his/her scheduled time.
               </p>
@@ -160,7 +178,7 @@ export function CcpTab({
             </Card>
 
             <Card title="Disaster Preparedness Plan">
-              <p className="mb-3 text-xs text-stone-400">
+              <p className="mb-3 text-xs text-stone-600">
                 I will make and post a list of emergency contacts that my providers can easily find in the event of an unsafe or harmful situation.
               </p>
               <RepeatableRows
@@ -185,10 +203,14 @@ export function CcpTab({
               </div>
 
               <div className="mt-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-600">
                   Review needed items to take (check all that apply)
                 </p>
-                <CheckboxGroup name="disasterReviewItems" options={DISASTER_REVIEW_ITEMS_OPTIONS} defaultValues={plan.disasterReviewItems} />
+                <CheckboxGroup
+                  name="disasterReviewItems"
+                  options={fields["ccp.disasterReviewItems"]?.options ?? DISASTER_REVIEW_ITEMS_OPTIONS}
+                  defaultValues={plan.disasterReviewItems}
+                />
                 <div className="mt-2 max-w-md">
                   <TextField name="disasterReviewItemsOther" label="Other, specify" defaultValue={plan.disasterReviewItemsOther} />
                 </div>
@@ -213,7 +235,7 @@ export function CcpTab({
             </Card>
 
             <Card title="Other Services that will be Provided to the Member">
-              <p className="mb-2 text-xs text-stone-400">
+              <p className="mb-2 text-xs text-stone-600">
                 Any non-covered services including services provided by other community resources, including social support services, and assistance needed
                 in order to ensure the Member&apos;s health, safety and welfare.
               </p>
@@ -224,7 +246,7 @@ export function CcpTab({
             </Card>
 
             <Card title="Services Provided by Medicare Payers, Medicare Advantage Plans and Medicare Providers">
-              <p className="mb-2 text-xs text-stone-400">To coordinate services for Members who are also Dual Eligible, as reported by the Member.</p>
+              <p className="mb-2 text-xs text-stone-600">To coordinate services for Members who are also Dual Eligible, as reported by the Member.</p>
               <div className="flex gap-6">
                 <Checkbox name="dualEligibleNoNeedsIdentified" label="No needs identified" defaultChecked={plan.dualEligibleNoNeedsIdentified ?? false} />
                 <Checkbox name="dualEligibleNa" label="N/A" defaultChecked={plan.dualEligibleNa ?? false} />
@@ -290,26 +312,65 @@ export function CcpTab({
               </div>
             </Card>
 
-            <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden">
-              Save Care Plan
-            </button>
+            <CustomQuestionsSection questions={customQuestions} />
           </form>
 
           <Card title="Opportunities, Goals, Interventions and Desired Health, Functional and Quality of Life Outcomes for the Member">
             <div className="space-y-4">
-              {plan.goals.length === 0 && <p className="text-sm text-stone-400">No goals yet. Add the first one below.</p>}
+              {plan.goals.length === 0 && <p className="text-sm text-stone-600">No goals yet. Add the first one below.</p>}
               {plan.goals.map((goal) => (
-                <GoalCard key={goal.id} memberId={memberId} carePlanId={plan.id} goal={goal} />
+                <GoalCard key={goal.id} memberId={memberId} carePlanId={plan.id} goal={goal} fields={fields} />
               ))}
               <form action={addGoal.bind(null, memberId, plan.id)} className="print:hidden">
-                <button type="submit" className="rounded-md border border-dashed border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-charcoal">
+                <button type="submit" className="rounded-md border border-dashed border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-600 hover:border-stone-400 hover:text-charcoal">
                   + Add Opportunity/Goal
                 </button>
               </form>
             </div>
           </Card>
+
+          <FloatingSaveBar>
+            <SaveCarePlanButton goalIds={plan.goals.map((g) => g.id)} />
+          </FloatingSaveBar>
         </div>
       )}
     </div>
+    </FormFieldsProvider>
+  );
+}
+
+// One button, always at the very bottom, saves everything: the CCP form,
+// every goal's own form, and any progress-update note that's been typed but
+// not yet added (each goal keeps its own <form>s — HTML doesn't allow
+// nesting them inside the CCP form's). No per-goal submit button exists any
+// more; this is the only way any of it gets saved. Progress-note forms are
+// only submitted when they actually have a note typed in, both to avoid
+// spamming empty saves and because the server action no-ops on an empty
+// note anyway — the point here is to never silently lose a typed draft to
+// the page refresh the other submits trigger.
+function SaveCarePlanButton({ goalIds }: { goalIds: string[] }) {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        // This button lives outside every form it submits (HTML forbids
+        // nesting them), so it never remounts on save the way a plain
+        // in-form save button does — scroll to top here explicitly instead
+        // of relying on FloatingSaveBar's mount effect.
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        (document.getElementById("ccp-form") as HTMLFormElement | null)?.requestSubmit();
+        for (const goalId of goalIds) {
+          (document.getElementById(`goal-form-${goalId}`) as HTMLFormElement | null)?.requestSubmit();
+          for (const track of ["member", "coordinator"]) {
+            const form = document.getElementById(`${goalId}-${track}-progress-form`) as HTMLFormElement | null;
+            const note = form?.querySelector<HTMLTextAreaElement>('textarea[name="note"]');
+            if (note?.value.trim()) form?.requestSubmit();
+          }
+        }
+      }}
+      className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden"
+    >
+      Save Care Plan
+    </button>
   );
 }

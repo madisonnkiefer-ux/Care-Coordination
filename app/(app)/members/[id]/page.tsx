@@ -9,10 +9,12 @@ import { PageHeader, Card, Badge } from "@/components/ui";
 import { GoalDonut } from "@/components/goal-donut";
 import { DocumentUpload } from "@/components/document-upload";
 import { MemberStatusCard } from "@/components/member-status-card";
-import { formatDate, formatDateTime, titleCase } from "@/lib/format";
-import { saveQuickNote } from "@/app/actions/notes";
+import { formatDate, formatDateTime, titleCase, toDateInputValue } from "@/lib/format";
 import { toggleTask, createTask } from "@/app/actions/tasks";
-import { updateMemberDetails } from "@/app/actions/member-details";
+import { saveQuickNote } from "@/app/actions/notes";
+import { createAppointment } from "@/app/actions/appointments";
+import { updateMemberOverview } from "@/app/actions/member-details";
+import { PATIENT_TYPE_OPTIONS } from "@/lib/patient-type";
 import { statusBadgeColor } from "@/lib/member-status";
 import { QuickActionsBar } from "@/components/quick-actions-bar";
 import { AlertBanner } from "@/components/alert-banner";
@@ -20,6 +22,10 @@ import { getPatientSnapshot } from "@/lib/data/patient-snapshot";
 import { getMemberGraduationInfo } from "@/lib/data/graduation";
 import { GraduationAlertCard } from "@/components/graduation-alert-card";
 import { PrintButton } from "@/components/print-button";
+import { DeleteMemberButton } from "@/components/delete-member-button";
+import { SaveButton } from "@/components/save-button";
+import { getAmendmentRequestsForMember } from "@/lib/data/amendment-requests";
+import { AmendmentRequestsCard } from "@/components/amendment-requests-card";
 
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,6 +37,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
     carePlanHistory,
     tocHistory,
     graduationInfo,
+    amendmentRequests,
   ] = await Promise.all([
     getMemberChart(id),
     getStatusHistory(id),
@@ -39,6 +46,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
     getCarePlanHistorySummary(id),
     getTocHistorySummary(id),
     getMemberGraduationInfo(id),
+    getAmendmentRequestsForMember(id),
   ]);
 
   const returnPath = `/members/${id}`;
@@ -100,7 +108,19 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
         action={
           <div className="flex items-center gap-3">
             <PrintButton label="Print Full Chart" />
+            {session.role !== "CARE_COORDINATOR" && (
+              <a
+                href={`/api/members/${id}/export`}
+                className="flex items-center gap-2 rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50 print:hidden"
+                title="Full designated record set export, for a right-to-access request"
+              >
+                Export Full Record
+              </a>
+            )}
             <Badge color={statusBadgeColor(member.status)}>{titleCase(member.status)}</Badge>
+            {session.role === "ADMIN" && (
+              <DeleteMemberButton memberId={id} memberName={`${member.firstName} ${member.lastName}`} />
+            )}
           </div>
         }
       />
@@ -112,13 +132,141 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
       <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card title="Overview">
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
-              <Field label="Phone" value={member.phone} />
-              <Field label="Date of Birth" value={formatDate(member.dateOfBirth)} />
-              <Field label="EDD" value={member.edd ? formatDate(member.edd) : "—"} />
-              <Field label="CCL Level" value={member.cclLevel ? titleCase(member.cclLevel) : "—"} />
-              <Field label="Language" value={member.language ?? "—"} />
-            </dl>
+            <form
+              key={member.updatedAt.getTime()}
+              action={updateMemberOverview.bind(null, id)}
+              className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+            >
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  First Name
+                </label>
+                <input
+                  name="firstName"
+                  required
+                  defaultValue={member.firstName}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Last Name
+                </label>
+                <input
+                  name="lastName"
+                  required
+                  defaultValue={member.lastName}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Date of Birth
+                </label>
+                <input
+                  type="date"
+                  name="dateOfBirth"
+                  required
+                  defaultValue={toDateInputValue(member.dateOfBirth)}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Phone</label>
+                <input
+                  name="phone"
+                  defaultValue={member.phone ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Medicaid ID
+                </label>
+                <input
+                  name="medicaidId"
+                  defaultValue={member.medicaidId ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Chart ID
+                </label>
+                <input
+                  name="memberIdExternal"
+                  defaultValue={member.memberIdExternal ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Subscriber ID
+                </label>
+                <input
+                  name="subscriberId"
+                  defaultValue={member.subscriberId ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Type of Patient
+                </label>
+                <select
+                  name="program"
+                  defaultValue={member.program ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                >
+                  <option value="">—</option>
+                  {PATIENT_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Language
+                </label>
+                <input
+                  name="language"
+                  defaultValue={member.language ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  Due Date (if prenatal)
+                </label>
+                <input
+                  type="date"
+                  name="edd"
+                  defaultValue={toDateInputValue(member.edd)}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
+                  CCL Level
+                </label>
+                <select
+                  name="cclLevel"
+                  defaultValue={member.cclLevel ?? ""}
+                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                >
+                  <option value="">—</option>
+                  <option value="CCL1">CCL1</option>
+                  <option value="CCL2">CCL2</option>
+                  <option value="CCL3">CCL3</option>
+                  <option value="HIGH_RISK">High Risk</option>
+                </select>
+              </div>
+              <div className="flex items-end justify-end print:hidden">
+                <SaveButton />
+              </div>
+            </form>
           </Card>
 
           {graduationInfo && <GraduationAlertCard info={graduationInfo} />}
@@ -129,83 +277,6 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
             history={statusHistory}
             canEditDirectly={session.role !== "CARE_COORDINATOR"}
           />
-
-          <Card title="Insurance &amp; Provider">
-            <form
-              key={member.updatedAt.getTime()}
-              action={updateMemberDetails.bind(null, id)}
-              className="grid grid-cols-1 gap-4 sm:grid-cols-2"
-            >
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Chart ID</label>
-                <input
-                  name="memberIdExternal"
-                  defaultValue={member.memberIdExternal ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Program</label>
-                <input
-                  name="program"
-                  placeholder="e.g. Prenatal, Postpartum, GYN"
-                  defaultValue={member.program ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Subscriber ID</label>
-                <input
-                  name="subscriberId"
-                  defaultValue={member.subscriberId ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Availity ID</label>
-                <input
-                  name="availityId"
-                  defaultValue={member.availityId ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Insurance Plan</label>
-                <input
-                  name="insurancePlan"
-                  placeholder="e.g. Blue Cross, Molina"
-                  defaultValue={member.insurancePlan ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Provider</label>
-                <input
-                  name="provider"
-                  placeholder="Member's outside doctor"
-                  defaultValue={member.provider ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <label className="flex items-center gap-2 text-sm text-stone-700">
-                <input
-                  type="checkbox"
-                  name="medicaidEligibilityVerified"
-                  defaultChecked={member.medicaidEligibilityVerified ?? false}
-                  className="h-4 w-4 rounded border-stone-300"
-                />
-                Medicaid Eligibility Verified
-              </label>
-              <div className="flex items-end justify-end print:hidden">
-                <button
-                  type="submit"
-                  className="rounded-md bg-charcoal px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
-                >
-                  Save
-                </button>
-              </div>
-            </form>
-          </Card>
 
           <Card title="Quick Access" className="print:hidden">
             <div className="grid grid-cols-2 gap-3">
@@ -242,8 +313,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                         className="flex items-center justify-between gap-3 py-2 text-sm text-stone-700 hover:text-charcoal"
                       >
                         <span className="min-w-0 truncate">
-                          <span className="font-medium">{entry.name}</span>
-                          <span className="ml-2 text-stone-400">{formatDate(entry.date)}</span>
+                          <span className="text-stone-400">{formatDate(entry.date)}</span>
+                          <span className="ml-2 font-medium">{entry.name}</span>
                         </span>
                         <Badge color={entry.badge.color}>{entry.badge.label}</Badge>
                       </a>
@@ -255,8 +326,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                         className="flex items-center justify-between gap-3 py-2 text-sm text-stone-700 hover:text-charcoal"
                       >
                         <span className="min-w-0 truncate">
-                          <span className="font-medium">{entry.name}</span>
-                          <span className="ml-2 text-stone-400">{formatDate(entry.date)}</span>
+                          <span className="text-stone-400">{formatDate(entry.date)}</span>
+                          <span className="ml-2 font-medium">{entry.name}</span>
                         </span>
                         <Badge color={entry.badge.color}>{entry.badge.label}</Badge>
                       </Link>
@@ -352,7 +423,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
           </Card>
 
           <Card id="quick-notes" title="Quick Notes">
-            <form action={saveQuickNote.bind(null, id)} className="space-y-2 print:hidden">
+            <form action={saveQuickNote} className="space-y-2 print:hidden">
+              <input type="hidden" name="memberId" value={id} />
               <textarea
                 name="body"
                 rows={3}
@@ -366,10 +438,17 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 Save Note
               </button>
             </form>
-            {notes && (
-              <p className="mt-3 border-t border-stone-100 pt-3 text-xs text-stone-400">
-                Last updated: {formatDateTime(notes.updatedAt)}
-              </p>
+            {notes.length > 0 && (
+              <ul className="mt-3 space-y-2 border-t border-stone-100 pt-3">
+                {notes.map((n) => (
+                  <li key={n.id} className="text-sm">
+                    <p className="whitespace-pre-wrap text-stone-700">{n.body}</p>
+                    <p className="mt-0.5 text-xs text-stone-400">
+                      {n.author.name} · {formatDateTime(n.createdAt)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
             )}
           </Card>
 
@@ -377,17 +456,50 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
             {appointments.length === 0 ? (
               <EmptyState label="Nothing scheduled." />
             ) : (
-              <ul className="space-y-2 text-sm">
+              <ul className="mb-3 space-y-2 text-sm">
                 {appointments.map((appt) => (
                   <li key={appt.id}>
                     <p className="font-medium text-stone-800">{appt.title}</p>
                     <p className="text-xs text-stone-500">
                       {formatDateTime(appt.startsAt)} {appt.location ? `· ${appt.location}` : ""}
+                      {appt.isVirtual ? " · Virtual" : ""}
                     </p>
                   </li>
                 ))}
               </ul>
             )}
+            <form
+              action={createAppointment.bind(null, id)}
+              className="space-y-2 border-t border-stone-100 pt-3 print:hidden"
+            >
+              <input
+                name="title"
+                required
+                placeholder="Appointment title..."
+                className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+              />
+              <input
+                type="datetime-local"
+                name="startsAt"
+                required
+                className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+              />
+              <input
+                name="location"
+                placeholder="Location (optional)"
+                className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+              />
+              <label className="flex items-center gap-2 text-xs text-stone-600">
+                <input type="checkbox" name="isVirtual" className="rounded border-stone-300" />
+                Virtual visit
+              </label>
+              <button
+                type="submit"
+                className="w-full rounded-md bg-charcoal px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
+              >
+                Add Appointment
+              </button>
+            </form>
           </Card>
 
           <Card id="documents" title="Documents">
@@ -412,17 +524,10 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               </ul>
             )}
           </Card>
+
+          <AmendmentRequestsCard memberId={id} requests={amendmentRequests} />
         </div>
       </div>
-    </div>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string | null | undefined }) {
-  return (
-    <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-stone-400">{label}</dt>
-      <dd className="text-stone-800">{value || "—"}</dd>
     </div>
   );
 }

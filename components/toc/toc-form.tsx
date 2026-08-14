@@ -2,13 +2,19 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui";
+import { FloatingSaveBar } from "@/components/floating-save-bar";
 import { HistoryBar, SignedBanner, SignButton, type HistoryItem } from "@/components/intake/versioning";
 import { TextField, TextArea, DateField, SelectField } from "@/components/intake/form-fields";
 import { NeedsSection } from "@/components/toc/needs-section";
 import { TOC_NEEDS_SECTIONS, TRANSITION_TYPE_OPTIONS } from "@/components/toc/needs-config";
 import { createNewTocRecord, saveTocRecord, signTocRecord } from "@/app/actions/toc";
+import { deleteTocRecord } from "@/app/actions/delete";
 import { toDateInputValue } from "@/lib/format";
 import type { TocRecord, TocNeed } from "@/app/generated/prisma/client";
+import type { ResolvedFormFields } from "@/lib/form-fields/registry";
+import { FormFieldsProvider } from "@/lib/form-fields/context";
+import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
+import { mergeCustomQuestions, type CustomQuestionDef } from "@/lib/custom-questions-shared";
 
 type TocRecordWithRelations = TocRecord & { signedBy: { name: string } | null; needs: TocNeed[] };
 
@@ -17,15 +23,22 @@ export function TocForm({
   records,
   currentUserIsAdmin,
   defaultVersionId,
+  fields,
+  customQuestionDefs,
+  customAnswersByRecord,
 }: {
   memberId: string;
   records: TocRecordWithRelations[];
   currentUserIsAdmin: boolean;
   defaultVersionId?: string;
+  fields: ResolvedFormFields;
+  customQuestionDefs: CustomQuestionDef[];
+  customAnswersByRecord: Record<string, Record<string, unknown>>;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(defaultVersionId ?? records[0]?.id ?? null);
   const draft = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
   const locked = Boolean(draft?.signedAt);
+  const customQuestions = draft ? mergeCustomQuestions(customQuestionDefs, customAnswersByRecord[draft.id]) : [];
 
   const historyItems: HistoryItem[] = records.map((r) => ({
     id: r.id,
@@ -36,6 +49,7 @@ export function TocForm({
   }));
 
   return (
+    <FormFieldsProvider form="toc" fields={fields}>
     <div className="p-8">
       <HistoryBar
         items={historyItems}
@@ -43,6 +57,7 @@ export function TocForm({
         onSelect={setSelectedId}
         newAction={createNewTocRecord.bind(null, memberId)}
         newLabel="+ New TOC"
+        onDelete={currentUserIsAdmin ? deleteTocRecord.bind(null, memberId) : undefined}
       />
 
       {!draft ? (
@@ -84,7 +99,12 @@ export function TocForm({
                 </div>
 
                 <div className="mt-4">
-                  <SelectField name="transitionType" label="Transition Type" options={TRANSITION_TYPE_OPTIONS} defaultValue={draft.transitionType} />
+                  <SelectField
+                    name="transitionType"
+                    label={fields["toc.transitionType"]?.label ?? "Transition Type"}
+                    options={fields["toc.transitionType"]?.options ?? TRANSITION_TYPE_OPTIONS}
+                    defaultValue={draft.transitionType}
+                  />
                 </div>
               </Card>
 
@@ -147,10 +167,12 @@ export function TocForm({
                   ))}
                 </div>
               </Card>
+
+              <CustomQuestionsSection questions={customQuestions} />
             </fieldset>
 
             {!locked && (
-              <div className="flex gap-3 print:hidden">
+              <FloatingSaveBar>
                 <button
                   type="submit"
                   name="intent"
@@ -162,7 +184,7 @@ export function TocForm({
                 <button type="submit" name="intent" value="complete" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
                   Complete
                 </button>
-              </div>
+              </FloatingSaveBar>
             )}
           </form>
 
@@ -174,5 +196,6 @@ export function TocForm({
         </>
       )}
     </div>
+    </FormFieldsProvider>
   );
 }

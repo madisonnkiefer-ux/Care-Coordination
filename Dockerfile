@@ -24,6 +24,9 @@ RUN npx prisma generate
 # it's server-only code, never inlined into the client bundle — the ECS task
 # definition injects the real secret from Secrets Manager at container start.
 ENV SESSION_SECRET="build-time-placeholder-not-used-at-runtime"
+# Opts next.config.ts into `output: "standalone"` — only for this Docker
+# build, since Vercel's own builder is incompatible with standalone output.
+ENV DOCKER_BUILD="1"
 # `npm run build` would also trigger the "prebuild" script (scripts/prebuild-db-sync.mjs),
 # which connects directly to Postgres — not reachable from wherever this image
 # is built, and not how this image applies schema changes anyway (see the

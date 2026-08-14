@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { firstEnrollmentDate } from "@/lib/touchpoint-compliance";
 
 export async function getReportsData() {
   const session = await requireRole("SUPERVISOR", "ADMIN");
@@ -21,9 +22,7 @@ export async function getReportsData() {
         memberIdExternal: true,
         assignedCoordinatorId: true,
         assignedCoordinator: { select: { id: true, name: true } },
-        carePlans: {
-          select: { ccpStartDate: true, createdAt: true, updatedAt: true },
-        },
+        createdAt: true,
         cnaAssessments: {
           where: { status: "COMPLETED" },
           orderBy: { assessmentDate: "desc" },
@@ -32,6 +31,7 @@ export async function getReportsData() {
         generalCommunications: {
           select: { createdAt: true, successful: true },
         },
+        intakeVersions: { where: { signedAt: { not: null } }, orderBy: { signedAt: "asc" }, take: 1, select: { signedAt: true } },
       },
     }),
     db.user.findMany({
@@ -42,13 +42,6 @@ export async function getReportsData() {
   ]);
 
   const reportMembers = members.map((m) => {
-    const sortedCarePlans = [...m.carePlans].sort(
-      (a, b) => (a.ccpStartDate ?? a.createdAt).getTime() - (b.ccpStartDate ?? b.createdAt).getTime()
-    );
-    const ccpStartDate = sortedCarePlans[0]?.ccpStartDate ?? sortedCarePlans[0]?.createdAt ?? null;
-    const ccpLastUpdated = m.carePlans.length
-      ? new Date(Math.max(...m.carePlans.map((cp) => cp.updatedAt.getTime())))
-      : null;
     const mostRecentCna = m.cnaAssessments[0] ?? null;
 
     return {
@@ -62,12 +55,11 @@ export async function getReportsData() {
       chartId: m.memberIdExternal,
       coordinatorId: m.assignedCoordinatorId,
       coordinatorName: m.assignedCoordinator?.name ?? null,
-      hasCarePlan: m.carePlans.length > 0,
-      ccpStartDate,
-      ccpLastUpdated,
       lastCnaDate: mostRecentCna?.assessmentDate ?? null,
       lastCnaType: mostRecentCna?.assessmentType[0] ?? null,
+      cnaCompletions: m.cnaAssessments.map((c) => c.assessmentDate),
       contacts: m.generalCommunications,
+      enrollmentDate: firstEnrollmentDate(m),
     };
   });
 

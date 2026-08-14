@@ -2,13 +2,18 @@
 
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui";
+import { FloatingSaveBar } from "@/components/floating-save-bar";
 import { saveGeneralCommunication, createNewGeneralCommunication } from "@/app/actions/general-communication";
 import type { GeneralCommunication } from "@/app/generated/prisma/client";
 import { SimpleHistoryBar } from "@/components/intake/versioning";
 import { SelectField, DateField } from "@/components/intake/form-fields";
 import { CONTACT_METHOD_OPTIONS, PERSON_CONTACTED_OPTIONS, UNSUCCESSFUL_REASON_OPTIONS } from "@/components/care-plan/outreach-options";
 import { formatDateTime, toDateInputValue } from "@/lib/format";
-import { getComplianceCadence, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
+import { getComplianceCadence, getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
+import type { ResolvedFormFields } from "@/lib/form-fields/registry";
+import { FormFieldsProvider } from "@/lib/form-fields/context";
+import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
+import { mergeCustomQuestions, type CustomQuestionDef } from "@/lib/custom-questions-shared";
 
 type CommRecord = GeneralCommunication & { author: { name: string } | null };
 
@@ -16,13 +21,22 @@ export function GeneralCommunicationTab({
   memberId,
   records,
   program,
+  enrollmentDate,
+  fields,
+  customQuestionDefs,
+  customAnswersByRecord,
 }: {
   memberId: string;
   records: CommRecord[];
   program: string | null;
+  enrollmentDate: Date;
+  fields: ResolvedFormFields;
+  customQuestionDefs: CustomQuestionDef[];
+  customAnswersByRecord: Record<string, Record<string, unknown>>;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(records[0]?.id ?? null);
   const record = records.find((r) => r.id === selectedId) ?? records[0] ?? null;
+  const customQuestions = record ? mergeCustomQuestions(customQuestionDefs, customAnswersByRecord[record.id]) : [];
 
   const historyItems = records.map((r) => ({ id: r.id, dateLabel: r.createdAt }));
 
@@ -33,10 +47,7 @@ export function GeneralCommunicationTab({
     const days = lastSuccessful ? Math.floor((now.getTime() - lastSuccessful.getTime()) / (1000 * 60 * 60 * 24)) : null;
 
     const windowCadence = getComplianceCadence(program);
-    const windowStart =
-      windowCadence.unit === "month"
-        ? new Date(now.getFullYear(), now.getMonth(), 1)
-        : new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+    const windowStart = getWindowStart(windowCadence.unit, now, enrollmentDate);
     const inWindow = records.filter((r) => r.createdAt >= windowStart);
 
     return {
@@ -44,11 +55,12 @@ export function GeneralCommunicationTab({
       cadence: windowCadence,
       attemptsInWindow: inWindow.length,
       successfulInWindow: inWindow.filter((r) => r.successful).length,
-      compliant: isTouchpointCompliant(records, program, now),
+      compliant: isTouchpointCompliant(records, program, enrollmentDate, now),
     };
-  }, [records, program]);
+  }, [records, program, enrollmentDate]);
 
   return (
+    <FormFieldsProvider form="generalComm" fields={fields}>
     <div className="p-8">
       {records.length > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-stone-500">
@@ -91,8 +103,18 @@ export function GeneralCommunicationTab({
               {record.updatedAt > record.createdAt && ` · last updated ${formatDateTime(record.updatedAt)}`}
             </p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <SelectField name="contactMethod" label="Contact Method" options={CONTACT_METHOD_OPTIONS} defaultValue={record.contactMethod} />
-              <SelectField name="personContacted" label="Person Contacted" options={PERSON_CONTACTED_OPTIONS} defaultValue={record.personContacted} />
+              <SelectField
+                name="contactMethod"
+                label={fields["generalComm.contactMethod"]?.label ?? "Contact Method"}
+                options={fields["generalComm.contactMethod"]?.options ?? CONTACT_METHOD_OPTIONS}
+                defaultValue={record.contactMethod}
+              />
+              <SelectField
+                name="personContacted"
+                label={fields["generalComm.personContacted"]?.label ?? "Person Contacted"}
+                options={fields["generalComm.personContacted"]?.options ?? PERSON_CONTACTED_OPTIONS}
+                defaultValue={record.personContacted}
+              />
             </div>
 
             <div className="mt-4">
@@ -112,8 +134,8 @@ export function GeneralCommunicationTab({
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <SelectField
                 name="unsuccessfulReason"
-                label="If unsuccessful, reason"
-                options={UNSUCCESSFUL_REASON_OPTIONS}
+                label={fields["generalComm.unsuccessfulReason"]?.label ?? "If unsuccessful, reason"}
+                options={fields["generalComm.unsuccessfulReason"]?.options ?? UNSUCCESSFUL_REASON_OPTIONS}
                 defaultValue={record.unsuccessfulReason}
               />
               <DateField name="nextAttemptDate" label="Next Attempt Date" defaultValue={toDateInputValue(record.nextAttemptDate)} />
@@ -128,11 +150,17 @@ export function GeneralCommunicationTab({
               className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
             />
           </Card>
-          <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 print:hidden">
-            Save
-          </button>
+
+          <CustomQuestionsSection questions={customQuestions} />
+
+          <FloatingSaveBar>
+            <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
+              Save
+            </button>
+          </FloatingSaveBar>
         </form>
       )}
     </div>
+    </FormFieldsProvider>
   );
 }

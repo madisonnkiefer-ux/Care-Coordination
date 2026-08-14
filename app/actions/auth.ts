@@ -5,9 +5,17 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
-import { createSession, deleteSession } from "@/lib/session";
+import {
+  createSession,
+  deleteSession,
+  createMfaPendingCookie,
+  readMfaPendingUserId,
+  clearMfaPendingCookie,
+} from "@/lib/session";
 import { writeAuditLog } from "@/lib/audit";
 import { getSession } from "@/lib/dal";
+import { isLockedOut, recordLoginFailure, recordLoginSuccess, GENERIC_LOGIN_ERROR } from "@/lib/auth-lockout";
+import { verifyTotpCode, consumeBackupCode } from "@/lib/mfa";
 
 const LoginSchema = z.object({
   email: z.email({ error: "Enter a valid email." }),
@@ -15,7 +23,7 @@ const LoginSchema = z.object({
   officeCode: z.string().min(1, { error: "Office code is required." }),
 });
 
-export type LoginState = { error?: string } | undefined;
+export type LoginState = { error?: string; mfaRequired?: boolean } | undefined;
 
 export async function login(_state: LoginState, formData: FormData): Promise<LoginState> {
   const validated = LoginSchema.safeParse({
@@ -40,40 +48,104 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
       resource: "User",
       metadata: { email, ipAddress, reason: "no_such_user_or_inactive" },
     });
-    return { error: "Invalid email, password, or office code." };
+    return { error: GENERIC_LOGIN_ERROR };
   }
 
-  if (user.clinic.code.toUpperCase() !== officeCode.trim().toUpperCase()) {
+  if (isLockedOut(user)) {
     await writeAuditLog({
       userId: user.id,
       action: "LOGIN_FAILED",
       resource: "User",
       resourceId: user.id,
-      metadata: { email, ipAddress, reason: "office_code_mismatch" },
+      metadata: { email, ipAddress, reason: "locked_out" },
     });
-    return { error: "Invalid email, password, or office code." };
+    return { error: GENERIC_LOGIN_ERROR };
+  }
+
+  if (user.clinic.code.toUpperCase() !== officeCode.trim().toUpperCase()) {
+    await recordLoginFailure(user, "office_code_mismatch", { email, ipAddress });
+    return { error: GENERIC_LOGIN_ERROR };
   }
 
   const passwordValid = await bcrypt.compare(password, user.passwordHash);
   if (!passwordValid) {
+    await recordLoginFailure(user, "bad_password", { email, ipAddress });
+    return { error: GENERIC_LOGIN_ERROR };
+  }
+
+  if (user.mfaEnabled) {
+    await createMfaPendingCookie(user.id);
     await writeAuditLog({
       userId: user.id,
       action: "LOGIN_FAILED",
       resource: "User",
       resourceId: user.id,
-      metadata: { email, ipAddress },
+      metadata: { email, ipAddress, reason: "mfa_required" },
     });
-    return { error: "Invalid email, password, or office code." };
+    return { mfaRequired: true };
   }
 
   await createSession(user);
-  await db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+  await recordLoginSuccess(user.id);
   await writeAuditLog({
     userId: user.id,
     action: "LOGIN",
     resource: "User",
     resourceId: user.id,
     metadata: { ipAddress },
+  });
+
+  redirect("/");
+}
+
+export type MfaVerifyState = { error?: string } | undefined;
+
+export async function verifyMfaCode(_state: MfaVerifyState, formData: FormData): Promise<MfaVerifyState> {
+  const code = String(formData.get("code") ?? "").trim();
+  const ipAddress = (await headers()).get("x-forwarded-for") ?? undefined;
+
+  const userId = await readMfaPendingUserId();
+  if (!userId) {
+    return { error: "Your session expired. Please sign in again." };
+  }
+
+  const user = await db.user.findUnique({ where: { id: userId } });
+  if (!user || !user.active || !user.mfaEnabled || !user.mfaSecret) {
+    await clearMfaPendingCookie();
+    return { error: "Your session expired. Please sign in again." };
+  }
+
+  if (isLockedOut(user)) {
+    await clearMfaPendingCookie();
+    return { error: GENERIC_LOGIN_ERROR };
+  }
+
+  if (!code) {
+    return { error: "Enter the 6-digit code from your authenticator app, or a backup code." };
+  }
+
+  const totpValid = verifyTotpCode(user.mfaSecret, user.email, code);
+  let usedBackupCode = false;
+
+  if (!totpValid) {
+    const { matched, remainingHashes } = await consumeBackupCode(user.mfaBackupCodeHashes, code);
+    if (!matched) {
+      await recordLoginFailure(user, "mfa_invalid_code", { email: user.email, ipAddress });
+      return { error: "Invalid code. Please try again." };
+    }
+    usedBackupCode = true;
+    await db.user.update({ where: { id: user.id }, data: { mfaBackupCodeHashes: remainingHashes } });
+  }
+
+  await createSession(user);
+  await recordLoginSuccess(user.id);
+  await clearMfaPendingCookie();
+  await writeAuditLog({
+    userId: user.id,
+    action: "LOGIN",
+    resource: "User",
+    resourceId: user.id,
+    metadata: { ipAddress, mfa: true, usedBackupCode },
   });
 
   redirect("/");
