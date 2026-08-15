@@ -15,6 +15,7 @@ import {
   Receipt,
   Settings,
   UserCog,
+  MapPin,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { Avatar } from "@/components/ui";
@@ -33,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Home", icon: Home },
   { href: "/members", label: "Member Charts", icon: Users },
   { href: "/tasks", label: "Tasks & Reminders", icon: ListChecks },
+  { href: "/home-visits", label: "Home Visiting", icon: MapPin },
   { href: "/resources", label: "Resources", icon: BookOpen },
   { href: "/notifications", label: "Notifications", icon: Bell },
   {

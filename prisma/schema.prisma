@@ -107,6 +107,10 @@ model User {
   amendmentRequestsLogged   AmendmentRequest[] @relation("AmendmentRequestLoggedBy")
   amendmentRequestsResolved AmendmentRequest[] @relation("AmendmentRequestResolvedBy")
 
+  homeVisitsLogged           HomeVisit[]        @relation("HomeVisitCoordinator")
+  homeVisitRequestsAssigned  HomeVisitRequest[]  @relation("HomeVisitRequestAssignee")
+  homeVisitRequestsMade      HomeVisitRequest[]  @relation("HomeVisitRequestRequestedBy")
+
   @@index([clinicId])
 }
 
@@ -204,6 +208,8 @@ model Member {
   notifications         Notification[]
   statusChanges         MemberStatusChange[]
   amendmentRequests     AmendmentRequest[]
+  homeVisits            HomeVisit[]
+  homeVisitRequests     HomeVisitRequest[]
 
   @@index([clinicId])
   @@index([assignedCoordinatorId])
@@ -1082,6 +1088,58 @@ model Task {
 
   @@index([assigneeId])
   @@index([memberId])
+}
+
+// ---------- Home Visiting ----------
+
+enum HomeVisitRequestStatus {
+  OPEN
+  FULFILLED
+  CANCELLED
+}
+
+// A to-do queue, separate from the visit log itself — anyone can log a visit
+// at any time without one of these existing first. When a coordinator logs
+// a HomeVisit for a member, any of that member's own OPEN requests assigned
+// to that same coordinator are auto-resolved (see app/actions/home-visits.ts)
+// rather than requiring the coordinator to explicitly pick which request
+// they're fulfilling.
+model HomeVisitRequest {
+  id                    String                 @id @default(cuid())
+  memberId              String
+  member                Member                 @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assignedCoordinatorId String
+  assignedCoordinator   User                   @relation("HomeVisitRequestAssignee", fields: [assignedCoordinatorId], references: [id])
+  requestedById         String
+  requestedBy           User                   @relation("HomeVisitRequestRequestedBy", fields: [requestedById], references: [id])
+  reason                String?
+  status                HomeVisitRequestStatus @default(OPEN)
+  createdAt             DateTime               @default(now())
+  resolvedAt            DateTime?
+  fulfilledByVisitId    String?                @unique
+  fulfilledByVisit      HomeVisit?             @relation(fields: [fulfilledByVisitId], references: [id])
+
+  @@index([assignedCoordinatorId])
+  @@index([memberId])
+}
+
+// The actual visit log — "what houses she went to, whether she was able to
+// speak to the member, any additional notes."
+model HomeVisit {
+  id              String   @id @default(cuid())
+  memberId        String
+  member          Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  coordinatorId   String
+  coordinator     User     @relation("HomeVisitCoordinator", fields: [coordinatorId], references: [id])
+  visitedAt       DateTime @default(now())
+  spokeWithMember Boolean?
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  fulfilledRequest HomeVisitRequest?
+
+  @@index([memberId])
+  @@index([coordinatorId])
 }
 
 enum TouchpointType {
