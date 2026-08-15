@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Card } from "@/components/ui";
 import { formatDate } from "@/lib/format";
-import { saveGoal, addProgressNote, type AddProgressNoteState } from "@/app/actions/care-plan";
+import { saveGoal, addProgressNote } from "@/app/actions/care-plan";
 import { GoalStatusSelect } from "@/components/goal-status-select";
 import { TextField, TextArea, DateField, SelectField, Checkbox } from "@/components/intake/form-fields";
 import { GOAL_PRIORITY_OPTIONS } from "@/components/intake/options";
@@ -187,10 +187,16 @@ function ProgressNoteColumn({
   idPrefix: string;
   label: string;
   notes: CarePlanProgressNote[];
-  action: (state: AddProgressNoteState, formData: FormData) => Promise<AddProgressNoteState>;
+  action: (formData: FormData) => Promise<void>;
   track: "MEMBER" | "COORDINATOR";
 }) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  // "+ Add Update" adds another blank note/date row rather than submitting —
+  // the page's single "Save Care Plan" button submits this form (like every
+  // other goal-form and progress-form), same as the CCP's other repeatable
+  // sections (Team Members, Medications). Every row shares the same "note"/
+  // "date" field names; addProgressNote zips them by position and skips any
+  // left blank.
+  const [rowCount, setRowCount] = useState(1);
 
   return (
     <div>
@@ -204,21 +210,20 @@ function ProgressNoteColumn({
           </li>
         ))}
       </ul>
-      <form id={`${idPrefix}-progress-form`} action={formAction} className="space-y-2 print:hidden">
+      <form id={`${idPrefix}-progress-form`} action={action} className="space-y-3 print:hidden">
         <input type="hidden" name="track" value={track} />
-        <TextArea id={`${idPrefix}-note`} name="note" label="Progress Update" rows={2} required />
-        <DateField id={`${idPrefix}-date`} name="date" label="Date" />
-        {state?.error && (
-          <p className="text-xs text-red-600" role="alert">
-            {state.error}
-          </p>
-        )}
+        {Array.from({ length: rowCount }, (_, i) => (
+          <div key={i} className="space-y-2 rounded-lg border border-stone-100 bg-stone-50 p-3">
+            <TextArea id={`${idPrefix}-note-${i}`} name="note" label="Progress Update" rows={2} />
+            <DateField id={`${idPrefix}-date-${i}`} name="date" label="Date" />
+          </div>
+        ))}
         <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+          type="button"
+          onClick={() => setRowCount((c) => c + 1)}
+          className="rounded-md border border-dashed border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-500 hover:border-stone-400 hover:text-charcoal"
         >
-          {pending ? "Adding..." : "+ Add Update"}
+          + Add Update
         </button>
       </form>
     </div>

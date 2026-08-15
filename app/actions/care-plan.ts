@@ -250,39 +250,39 @@ export async function updateGoalStatus(memberId: string, goalId: string, status:
   revalidatePath(`/members/${memberId}`);
 }
 
-export type AddProgressNoteState = { error?: string } | undefined;
-
-export async function addProgressNote(
-  memberId: string,
-  carePlanId: string,
-  goalId: string,
-  _state: AddProgressNoteState,
-  formData: FormData
-): Promise<AddProgressNoteState> {
+// "+ Add Update" adds another blank note/date row to the form rather than
+// submitting immediately (see components/care-plan/goal-card.tsx) — so a
+// single submit can carry several new notes at once, each its own repeated
+// "note"/"date" field pair, zipped by position. Blank rows (left over from
+// clicking "+ Add Update" without filling every box) are silently skipped.
+export async function addProgressNote(memberId: string, carePlanId: string, goalId: string, formData: FormData) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
 
-  const note = str(formData, "note");
-  if (!note) return { error: "Enter an update before adding it." };
-
   const track = formData.get("track") === "COORDINATOR" ? "COORDINATOR" : "MEMBER";
+  const noteValues = formData.getAll("note");
+  const dateValues = formData.getAll("date");
 
-  const progressNote = await db.carePlanProgressNote.create({
-    data: {
-      goalId,
-      track,
-      note,
-      date: date(formData, "date") ?? new Date(),
-    },
-  });
+  for (let i = 0; i < noteValues.length; i++) {
+    const noteRaw = noteValues[i];
+    const note = typeof noteRaw === "string" ? noteRaw.trim() : "";
+    if (!note) continue;
 
-  await writeAuditLog({
-    userId: session.userId,
-    memberId,
-    action: "CREATE",
-    resource: "CarePlanProgressNote",
-    resourceId: progressNote.id,
-  });
+    const dateRaw = dateValues[i];
+    const noteDate = typeof dateRaw === "string" && dateRaw ? new Date(dateRaw) : new Date();
+
+    const progressNote = await db.carePlanProgressNote.create({
+      data: { goalId, track, note, date: noteDate },
+    });
+
+    await writeAuditLog({
+      userId: session.userId,
+      memberId,
+      action: "CREATE",
+      resource: "CarePlanProgressNote",
+      resourceId: progressNote.id,
+    });
+  }
 
   revalidatePath(`/members/${memberId}/care-plan`);
 }

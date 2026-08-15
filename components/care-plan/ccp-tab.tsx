@@ -363,8 +363,9 @@ function SaveCarePlanButton({ goalIds }: { goalIds: string[] }) {
           (document.getElementById(`goal-form-${goalId}`) as HTMLFormElement | null)?.requestSubmit();
           for (const track of ["member", "coordinator"]) {
             const form = document.getElementById(`${goalId}-${track}-progress-form`) as HTMLFormElement | null;
-            const note = form?.querySelector<HTMLTextAreaElement>('textarea[name="note"]');
-            if (note?.value.trim()) form?.requestSubmit();
+            const noteFields = form?.querySelectorAll<HTMLTextAreaElement>('textarea[name="note"]');
+            const hasContent = noteFields ? Array.from(noteFields).some((el) => el.value.trim()) : false;
+            if (hasContent) form?.requestSubmit();
           }
         }
       }}
