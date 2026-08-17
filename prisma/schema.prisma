@@ -68,9 +68,9 @@ model User {
   // enabled. Backup codes are single-use: each hash is removed from the
   // array on redemption. An admin "reset" (app/actions/mfa.ts) clears all
   // three, for a lost device, without needing the old secret.
-  mfaEnabled          Boolean   @default(false)
+  mfaEnabled          Boolean  @default(false)
   mfaSecret           String?
-  mfaBackupCodeHashes String[]  @default([])
+  mfaBackupCodeHashes String[] @default([])
 
   assignedMembers        Member[]               @relation("AssignedCoordinator")
   tasks                  Task[]                 @relation("TaskAssignee")
@@ -107,9 +107,9 @@ model User {
   amendmentRequestsLogged   AmendmentRequest[] @relation("AmendmentRequestLoggedBy")
   amendmentRequestsResolved AmendmentRequest[] @relation("AmendmentRequestResolvedBy")
 
-  homeVisitsLogged           HomeVisit[]        @relation("HomeVisitCoordinator")
-  homeVisitRequestsAssigned  HomeVisitRequest[]  @relation("HomeVisitRequestAssignee")
-  homeVisitRequestsMade      HomeVisitRequest[]  @relation("HomeVisitRequestRequestedBy")
+  homeVisitsLogged          HomeVisit[]        @relation("HomeVisitCoordinator")
+  homeVisitRequestsAssigned HomeVisitRequest[] @relation("HomeVisitRequestAssignee")
+  homeVisitRequestsMade     HomeVisitRequest[] @relation("HomeVisitRequestRequestedBy")
 
   @@index([clinicId])
 }
@@ -764,7 +764,7 @@ model CarePlan {
 
   deletedAt   DateTime?
   deletedById String?
-  deletedBy   User?            @relation("CarePlanDeletedBy", fields: [deletedById], references: [id])
+  deletedBy   User?     @relation("CarePlanDeletedBy", fields: [deletedById], references: [id])
 
   // Demographic Information (CCP-specific — Medicaid eligibility renewal date
   // already lives on Demographics, so it isn't repeated here)
@@ -1001,7 +1001,7 @@ model TocRecord {
 
   deletedAt   DateTime?
   deletedById String?
-  deletedBy   User?            @relation("TocRecordDeletedBy", fields: [deletedById], references: [id])
+  deletedBy   User?     @relation("TocRecordDeletedBy", fields: [deletedById], references: [id])
 
   // Section 1: Demographic Information (TOC-specific only — member identity,
   // contact info, and emergency contact already live on Demographics)
@@ -1123,8 +1123,9 @@ model HomeVisitRequest {
   @@index([memberId])
 }
 
-// The actual visit log — "what houses she went to, whether she was able to
-// speak to the member, any additional notes."
+// The actual visit log — "what houses she went to, whether it was a
+// successful visit, who they spoke to, whether they left a card/note, any
+// additional notes."
 model HomeVisit {
   id              String   @id @default(cuid())
   memberId        String
@@ -1132,7 +1133,9 @@ model HomeVisit {
   coordinatorId   String
   coordinator     User     @relation("HomeVisitCoordinator", fields: [coordinatorId], references: [id])
   visitedAt       DateTime @default(now())
-  spokeWithMember Boolean?
+  successful      Boolean?
+  personContacted String? // who they actually spoke with, if anyone — see PERSON_CONTACTED_OPTIONS plus a home-visit-specific "no one answered" option
+  leftCardOrNote  Boolean?
   notes           String?
   createdAt       DateTime @default(now())
 

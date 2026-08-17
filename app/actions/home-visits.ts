@@ -102,8 +102,11 @@ export async function logHomeVisit(formData: FormData) {
   if (!member || member.clinicId !== session.clinicId) throw new Error("Forbidden");
 
   const visitedAtRaw = str(formData, "visitedAt");
-  const spokeRaw = formData.get("spokeWithMember");
-  const spokeWithMember = spokeRaw === "yes" ? true : spokeRaw === "no" ? false : null;
+  const successfulRaw = formData.get("successful");
+  const successful = successfulRaw === "yes" ? true : successfulRaw === "no" ? false : null;
+  const personContacted = str(formData, "personContacted");
+  const leftCardOrNoteRaw = formData.get("leftCardOrNote");
+  const leftCardOrNote = leftCardOrNoteRaw === "yes" ? true : leftCardOrNoteRaw === "no" ? false : null;
   const notes = str(formData, "notes");
 
   const visit = await db.homeVisit.create({
@@ -111,7 +114,9 @@ export async function logHomeVisit(formData: FormData) {
       memberId,
       coordinatorId: session.userId,
       visitedAt: visitedAtRaw ? new Date(visitedAtRaw) : new Date(),
-      spokeWithMember,
+      successful,
+      personContacted,
+      leftCardOrNote,
       notes,
     },
   });
