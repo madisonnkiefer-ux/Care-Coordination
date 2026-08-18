@@ -2,8 +2,12 @@
 # defined in infra/ecs.tf. Build/push with:
 #   docker build -t <ecr_repository_url>:latest .
 #   docker push <ecr_repository_url>:latest
+#
+# Base image pulled from ECR Public's mirror rather than Docker Hub directly —
+# Docker Hub's anonymous pull rate limit is shared across everyone on a given
+# egress IP (real problem on CI runners, including CodeBuild's shared NAT).
 
-FROM node:22-alpine AS deps
+FROM public.ecr.aws/docker/library/node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 # postinstall runs `prisma generate`, which needs the schema present.
@@ -11,7 +15,7 @@ COPY prisma ./prisma
 COPY prisma.config.ts ./prisma.config.ts
 RUN npm ci
 
-FROM node:22-alpine AS builder
+FROM public.ecr.aws/docker/library/node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -33,7 +37,7 @@ ENV DOCKER_BUILD="1"
 # migration/seed override note below). Call next build directly to skip it.
 RUN npx next build
 
-FROM node:22-alpine AS runner
+FROM public.ecr.aws/docker/library/node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
