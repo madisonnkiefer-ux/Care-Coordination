@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { writeAuditLog } from "@/lib/audit";
 import { computeBillingEligibility } from "@/lib/billing";
 
 // Billing roster for the Supervisor Billing section. Enrollment/termination/
@@ -11,6 +12,13 @@ import { computeBillingEligibility } from "@/lib/billing";
 export async function getBillingRoster() {
   const session = await requireRole("SUPERVISOR", "ADMIN");
   const clinicId = session.clinicId;
+
+  await writeAuditLog({
+    userId: session.userId,
+    action: "VIEW",
+    resource: "BillingRoster",
+    metadata: { clinicId },
+  });
 
   const [members, coordinators] = await Promise.all([
     db.member.findMany({

@@ -47,6 +47,13 @@ export async function listMembers() {
     },
   });
 
+  await writeAuditLog({
+    userId: session.userId,
+    action: "VIEW",
+    resource: "MemberList",
+    metadata: { resultCount: members.length },
+  });
+
   return members.map((m) => {
     const mostRecentCna = m.cnaAssessments[0] ?? null;
     const initialCna = m.cnaAssessments[m.cnaAssessments.length - 1] ?? null;
