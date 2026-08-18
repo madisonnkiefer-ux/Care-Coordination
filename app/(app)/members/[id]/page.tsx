@@ -92,7 +92,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
       key: `document-${doc.id}`,
       type: "external" as const,
       date: doc.createdAt,
-      href: doc.storageKey ?? "#",
+      href: `/api/documents/${doc.id}`,
       name: doc.name,
       badge: { label: "Document", color: "slate" as const },
     })),
@@ -511,7 +511,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 {documents.map((doc) => (
                   <li key={doc.id} className="flex items-center justify-between gap-2">
                     <a
-                      href={doc.storageKey ?? "#"}
+                      href={`/api/documents/${doc.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="truncate text-stone-700 hover:text-charcoal hover:underline"

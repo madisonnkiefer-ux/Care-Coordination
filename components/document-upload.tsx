@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { upload } from "@vercel/blob/client";
 import { Upload } from "lucide-react";
 import { saveDocument } from "@/app/actions/documents";
 import type { DocumentCategory } from "@/app/generated/prisma/client";
@@ -31,13 +30,29 @@ export function DocumentUpload({ memberId }: { memberId: string }) {
     setError(null);
     setIsUploading(true);
     try {
-      const blob = await upload(file.name, file, {
-        access: "public",
-        handleUploadUrl: "/api/documents/upload",
-        clientPayload: JSON.stringify({ memberId }),
+      const presignRes = await fetch("/api/documents/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId, fileName: file.name }),
       });
+      if (!presignRes.ok) {
+        const body = await presignRes.json().catch(() => null);
+        throw new Error(body?.error ?? "Upload failed.");
+      }
+      const { url, fields, key } = (await presignRes.json()) as {
+        url: string;
+        fields: Record<string, string>;
+        key: string;
+      };
 
-      await saveDocument(memberId, { name: file.name, category, url: blob.url });
+      const formData = new FormData();
+      for (const [k, v] of Object.entries(fields)) formData.append(k, v);
+      formData.append("file", file);
+
+      const uploadRes = await fetch(url, { method: "POST", body: formData });
+      if (!uploadRes.ok) throw new Error("Upload to storage failed.");
+
+      await saveDocument(memberId, { name: file.name, category, key });
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");

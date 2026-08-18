@@ -33,6 +33,8 @@ resource "aws_ecs_task_definition" "app" {
       environment = [
         { name = "NODE_ENV", value = "production" },
         { name = "PORT", value = tostring(var.app_port) },
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "S3_DOCUMENTS_BUCKET", value = aws_s3_bucket.documents.id },
       ]
       secrets = [
         { name = "DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url.arn },

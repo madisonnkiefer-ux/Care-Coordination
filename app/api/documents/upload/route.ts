@@ -1,38 +1,44 @@
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
+import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
+import { s3, DOCUMENTS_BUCKET } from "@/lib/s3";
 import { authorizeMemberAccess } from "@/lib/dal";
 
-// Client-side direct-to-Blob upload (bypasses the serverless function body
-// size limit, which matters for scanned multi-page PDFs). The browser gets
-// a short-lived signed token from here, uploads straight to Blob storage,
-// then calls saveDocument (app/actions/documents.ts) with the resulting URL
-// to create the Document record — onUploadCompleted below is best-effort
-// only, since Vercel can't reach this route's webhook from local dev.
+// Issues a presigned S3 POST policy so the browser can upload straight to
+// the private documents bucket (bypasses the serverless function body size
+// limit, which matters for scanned multi-page PDFs) without the file ever
+// passing through this server. The bucket itself has all public access
+// blocked (infra/s3.tf) — the presigned POST is the only way in, and it's
+// scoped to one key, one content type, and a size ceiling, expiring in 5
+// minutes. Viewing documents afterward goes through /api/documents/[id],
+// never a direct bucket URL.
+const ALLOWED_CONTENT_TYPE = "application/pdf";
+const MAX_SIZE_BYTES = 25 * 1024 * 1024;
+
 export async function POST(request: Request) {
-  const body = (await request.json()) as HandleUploadBody;
+  const { memberId, fileName } = (await request.json()) as { memberId?: string; fileName?: string };
+
+  if (!memberId || !fileName) {
+    return NextResponse.json({ error: "Missing memberId or fileName" }, { status: 400 });
+  }
+
+  const { member } = await authorizeMemberAccess(memberId);
+  if (!member) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const key = `${memberId}/${randomUUID()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
 
   try {
-    const jsonResponse = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async (_pathname, clientPayload) => {
-        const memberId = clientPayload ? (JSON.parse(clientPayload).memberId as string) : null;
-        if (!memberId) throw new Error("Missing memberId");
-
-        const { member } = await authorizeMemberAccess(memberId);
-        if (!member) throw new Error("Forbidden");
-
-        return {
-          allowedContentTypes: ["application/pdf"],
-          maximumSizeInBytes: 25 * 1024 * 1024,
-          addRandomSuffix: true,
-          tokenPayload: JSON.stringify({ memberId }),
-        };
-      },
-      onUploadCompleted: async () => {},
+    const { url, fields } = await createPresignedPost(s3, {
+      Bucket: DOCUMENTS_BUCKET,
+      Key: key,
+      Conditions: [["content-length-range", 1, MAX_SIZE_BYTES], ["eq", "$Content-Type", ALLOWED_CONTENT_TYPE]],
+      Fields: { "Content-Type": ALLOWED_CONTENT_TYPE },
+      Expires: 300,
     });
 
-    return NextResponse.json(jsonResponse);
+    return NextResponse.json({ url, fields, key });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }

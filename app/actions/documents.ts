@@ -7,7 +7,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import type { DocumentCategory } from "@/app/generated/prisma/client";
 
-export async function saveDocument(memberId: string, params: { name: string; category: DocumentCategory; url: string }) {
+export async function saveDocument(memberId: string, params: { name: string; category: DocumentCategory; key: string }) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
 
@@ -17,7 +17,7 @@ export async function saveDocument(memberId: string, params: { name: string; cat
       uploadedById: session.userId,
       name: params.name,
       category: params.category,
-      storageKey: params.url,
+      storageKey: params.key,
     },
   });
 
