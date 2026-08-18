@@ -7,11 +7,23 @@
 resource "random_password" "db_password" {
   length  = 32
   special = false # RDS master password disallows some special characters
+
+  # CLI-imported values don't carry their original generation parameters,
+  # so `special` reads back as the provider's default (true) instead of
+  # what actually generated this value. Without this, that mismatch is a
+  # ForceNew diff that would silently rotate the real RDS password.
+  lifecycle {
+    ignore_changes = [special]
+  }
 }
 
 resource "random_password" "session_secret" {
   length  = 44
   special = false
+
+  lifecycle {
+    ignore_changes = [special]
+  }
 }
 
 resource "aws_secretsmanager_secret" "db_credentials" {
