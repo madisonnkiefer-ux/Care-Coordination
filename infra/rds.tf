@@ -57,6 +57,13 @@ resource "aws_db_instance" "main" {
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 
   tags = { Name = "${local.name_prefix}-db" }
+
+  # Password rotation should be a deliberate, separate action, never an
+  # incidental side effect of an unrelated `terraform apply` picking up a
+  # fresh random_password value (e.g. after a state import or state loss).
+  lifecycle {
+    ignore_changes = [password]
+  }
 }
 
 resource "aws_cloudwatch_log_group" "rds" {
