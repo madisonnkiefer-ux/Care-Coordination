@@ -6,6 +6,7 @@ import { Search, Check, X, Download } from "lucide-react";
 import { Badge, Avatar } from "@/components/ui";
 import { formatDate, titleCase } from "@/lib/format";
 import { statusBadgeColor } from "@/lib/member-status";
+import { logBulkExport } from "@/app/actions/export";
 import type { MemberStatus } from "@/app/generated/prisma/client";
 
 const CSV_HEADERS = [
@@ -170,7 +171,14 @@ export function MemberList({ members, currentUserId }: { members: MemberRow[]; c
         </div>
         <button
           type="button"
-          onClick={() => downloadCsv(filtered, scope === "mine" ? "my-members" : "all-members")}
+          onClick={async () => {
+            try {
+              await logBulkExport("MemberList", filtered.map((m) => m.id));
+            } catch (error) {
+              console.error("Failed to record export audit event", error);
+            }
+            downloadCsv(filtered, scope === "mine" ? "my-members" : "all-members");
+          }}
           disabled={filtered.length === 0}
           className="flex shrink-0 items-center gap-2 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
         >

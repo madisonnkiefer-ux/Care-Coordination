@@ -28,6 +28,23 @@ const MEDICATION_FIELDS = ["name", "dosage", "frequency", "startDate", "endDate"
 const BACKUP_CONTACT_FIELDS = ["name", "phone", "address", "relationship"] as const;
 const DISASTER_CONTACT_FIELDS = ["name", "phone", "helpWith"] as const;
 
+// `authorizeMemberAccess(memberId)` only proves the caller's clinic owns
+// `memberId` — it says nothing about whether a *separately supplied*
+// carePlanId/goalId actually belongs to that member. Every mutation below
+// takes one of those as a second, independently-tampered-with parameter, so
+// each one re-verifies the chain back to `memberId` before writing.
+async function requireOwnCarePlan(carePlanId: string, memberId: string) {
+  const carePlan = await db.carePlan.findUnique({ where: { id: carePlanId } });
+  if (!carePlan || carePlan.memberId !== memberId) throw new Error("Forbidden");
+  return carePlan;
+}
+
+async function requireOwnCarePlanGoal(goalId: string, memberId: string) {
+  const goal = await db.carePlanGoal.findUnique({ where: { id: goalId }, include: { carePlan: true } });
+  if (!goal || goal.carePlan.memberId !== memberId) throw new Error("Forbidden");
+  return goal;
+}
+
 export async function createNewCarePlan(memberId: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
@@ -51,6 +68,7 @@ export async function createNewCarePlan(memberId: string) {
 export async function saveCarePlan(memberId: string, carePlanId: string, formData: FormData) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
+  await requireOwnCarePlan(carePlanId, memberId);
 
   const teamMembers = zipRows(formData, TEAM_MEMBER_FIELDS);
   const medications = zipRows(formData, MEDICATION_FIELDS);
@@ -154,6 +172,7 @@ export async function saveCarePlan(memberId: string, carePlanId: string, formDat
 export async function addGoal(memberId: string, carePlanId: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
+  await requireOwnCarePlan(carePlanId, memberId);
 
   const goal = await db.carePlanGoal.create({
     data: { carePlanId, title: "Untitled goal" },
@@ -173,6 +192,8 @@ export async function addGoal(memberId: string, carePlanId: string) {
 export async function saveGoal(memberId: string, carePlanId: string, goalId: string, formData: FormData) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
+  const goal = await requireOwnCarePlanGoal(goalId, memberId);
+  if (goal.carePlanId !== carePlanId) throw new Error("Forbidden");
 
   const opportunity = str(formData, "opportunity");
   const goalText = str(formData, "goalText");
@@ -227,12 +248,10 @@ export type UpdateGoalStatusState = { error?: string } | undefined;
 export async function updateGoalStatus(memberId: string, goalId: string, status: GoalStatus): Promise<UpdateGoalStatusState> {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
+  const goal = await requireOwnCarePlanGoal(goalId, memberId);
 
-  if (status === "COMPLETE") {
-    const goal = await db.carePlanGoal.findUnique({ where: { id: goalId } });
-    if (!goal || !isGoalReadyForCompletion(goal)) {
-      return { error: GOAL_COMPLETION_REQUIREMENTS_MESSAGE };
-    }
+  if (status === "COMPLETE" && !isGoalReadyForCompletion(goal)) {
+    return { error: GOAL_COMPLETION_REQUIREMENTS_MESSAGE };
   }
 
   await db.carePlanGoal.update({ where: { id: goalId }, data: { status } });
@@ -258,6 +277,8 @@ export async function updateGoalStatus(memberId: string, goalId: string, status:
 export async function addProgressNote(memberId: string, carePlanId: string, goalId: string, formData: FormData) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
+  const goal = await requireOwnCarePlanGoal(goalId, memberId);
+  if (goal.carePlanId !== carePlanId) throw new Error("Forbidden");
 
   const track = formData.get("track") === "COORDINATOR" ? "COORDINATOR" : "MEMBER";
   const noteValues = formData.getAll("note");

@@ -7,6 +7,7 @@ import { formatDate, titleCase } from "@/lib/format";
 import { statusBadgeColor, ALL_STATUSES } from "@/lib/member-status";
 import { getWindowStart } from "@/lib/touchpoint-compliance";
 import { reassignMember } from "@/app/actions/member-assignment";
+import { logBulkExport } from "@/app/actions/export";
 import type { getReportsData } from "@/lib/data/reports";
 
 type ReportsData = Awaited<ReturnType<typeof getReportsData>>;
@@ -61,6 +62,22 @@ function downloadCsv(filename: string, headers: string[], rows: (string | number
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// Every export button below is generated entirely client-side from data the
+// page already fetched via an audited server call — there's no server round
+// trip at download time for writeAuditLog (server-only) to hook into. This
+// wraps the actual downloadCsv() call so every export still lands in the
+// audit trail (EXPORT, with the member IDs it covered), same
+// accounting-of-disclosures requirement PRINT logging already covers for
+// single-record prints — see app/actions/print.ts / components/print-button.tsx.
+async function exportCsv(resource: string, memberIds: string[], filename: string, headers: string[], rows: (string | number)[][]) {
+  try {
+    await logBulkExport(resource, memberIds);
+  } catch (error) {
+    console.error("Failed to record export audit event", error);
+  }
+  downloadCsv(filename, headers, rows);
 }
 
 export function ReportsClient({ members, coordinators, programs }: ReportsData) {
@@ -201,7 +218,7 @@ function FilterField({ label, children }: { label: string; children: React.React
   );
 }
 
-function ExportButton({ onClick }: { onClick: () => void }) {
+function ExportButton({ onClick }: { onClick: () => void | Promise<void> }) {
   return (
     <button
       type="button"
@@ -225,7 +242,7 @@ function ReportShell({
   count: number;
   unit?: string;
   emptyMessage?: string;
-  onExport: () => void;
+  onExport: () => void | Promise<void>;
   children: React.ReactNode;
 }) {
   return (
@@ -252,7 +269,9 @@ function ActiveRosterReport({ members }: { members: ReportMember[] }) {
       title="Active Roster"
       count={members.length}
       onExport={() =>
-        downloadCsv(
+        exportCsv(
+          "ActiveRosterReport",
+          members.map((m) => m.id),
           "active-roster.csv",
           ["Name", "Chart ID", "Medicaid ID", "Program", "Status", "CCL Level", "Coordinator"],
           members.map((m) => [
@@ -413,7 +432,9 @@ function CaseloadDistributionReport({
         unit="coordinator"
         emptyMessage="No coordinators match these filters."
         onExport={() =>
-          downloadCsv(
+          exportCsv(
+            "CaseloadDistributionReport",
+            members.map((m) => m.id),
             "caseload-distribution.csv",
             ["Coordinator", "Total", "Active", "Program Breakdown"],
             rows.map((r) => [
@@ -482,7 +503,9 @@ function MemberListCard({
       count={members.length}
       emptyMessage={emptyMessage}
       onExport={() =>
-        downloadCsv(
+        exportCsv(
+          "MemberListReport",
+          members.map((m) => m.id),
           filename,
           ["Name", "Chart ID", "Program", "Status"],
           members.map((m) => [`${m.firstName} ${m.lastName}`, m.chartId ?? "", m.program ?? "", titleCase(m.status)])
@@ -580,7 +603,9 @@ function OutreachCompletionReport({ members, dateFrom, dateTo }: { members: Repo
         title={`Outreach Completion (${contactedCount}/${rows.length} contacted in range)`}
         count={rows.length}
         onExport={() =>
-          downloadCsv(
+          exportCsv(
+            "OutreachCompletionReport",
+            rows.map((r) => r.id),
             "outreach-completion.csv",
             ["Name", "Coordinator", "Attempts in Range", "Successful in Range", "Last Successful Contact", "Contacted in Range"],
             rows.map((r) => [
@@ -666,7 +691,9 @@ function AnnualCnaStatusReport({ members, month }: { members: ReportMember[]; mo
       title={month ? `Annual CNA Status — Completed ${month}` : "Annual CNA Status"}
       count={rows.length}
       onExport={() =>
-        downloadCsv(
+        exportCsv(
+          "AnnualCnaStatusReport",
+          rows.map((r) => r.id),
           month ? `annual-cna-status-${month}.csv` : "annual-cna-status.csv",
           ["Name", "Coordinator", "Last CNA Date", "Type", "Due Date", "Status"],
           rows.map((r) => [
@@ -775,7 +802,9 @@ function MonthlyDashboardReport({
       unit="coordinator"
       emptyMessage="No care coordinators match these filters."
       onExport={() =>
-        downloadCsv(
+        exportCsv(
+          "MonthlyDashboardReport",
+          members.map((m) => m.id),
           `monthly-dashboard-${month}.csv`,
           [
             "Care Coordinator",

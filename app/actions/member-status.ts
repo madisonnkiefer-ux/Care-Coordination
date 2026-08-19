@@ -93,8 +93,10 @@ export async function changeMemberStatus(memberId: string, formData: FormData) {
 export async function approveStatusChange(memberId: string, statusChangeId: string) {
   const session = await requireRole("SUPERVISOR", "ADMIN");
 
-  const change = await db.memberStatusChange.findUnique({ where: { id: statusChangeId } });
-  if (!change || change.memberId !== memberId) throw new Error("Not found");
+  const change = await db.memberStatusChange.findUnique({ where: { id: statusChangeId }, include: { member: true } });
+  if (!change || change.memberId !== memberId || change.member.clinicId !== session.clinicId) {
+    throw new Error("Not found");
+  }
   if (!change.requiresApproval || change.approvedAt || change.rejectedAt) throw new Error("Not pending");
 
   await db.memberStatusChange.update({
@@ -133,8 +135,10 @@ export async function approveStatusChange(memberId: string, statusChangeId: stri
 export async function rejectStatusChange(memberId: string, statusChangeId: string, formData: FormData) {
   const session = await requireRole("SUPERVISOR", "ADMIN");
 
-  const change = await db.memberStatusChange.findUnique({ where: { id: statusChangeId } });
-  if (!change || change.memberId !== memberId) throw new Error("Not found");
+  const change = await db.memberStatusChange.findUnique({ where: { id: statusChangeId }, include: { member: true } });
+  if (!change || change.memberId !== memberId || change.member.clinicId !== session.clinicId) {
+    throw new Error("Not found");
+  }
   if (!change.requiresApproval || change.approvedAt || change.rejectedAt) throw new Error("Not pending");
 
   const rejectionReason = str(formData, "rejectionReason") ?? "No reason given";
