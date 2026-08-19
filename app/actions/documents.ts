@@ -11,6 +11,14 @@ export async function saveDocument(memberId: string, params: { name: string; cat
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
 
+  // The presigned-upload flow always issues a key scoped to this member
+  // (app/api/documents/upload/route.ts), but this action is a directly
+  // callable network entry point — without this check, a caller who has
+  // legitimate upload access to two different members could link one
+  // member's real uploaded file into a different member's chart just by
+  // supplying its key here.
+  if (!params.key.startsWith(`${memberId}/`)) throw new Error("Forbidden");
+
   const document = await db.document.create({
     data: {
       memberId,

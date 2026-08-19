@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { writeAuditLog } from "@/lib/audit";
 
 export async function getClinicUsers() {
   const session = await requireRole("ADMIN");
@@ -27,6 +28,12 @@ export async function getClinicUsers() {
 // exclusion in lib/db.ts by explicitly filtering on deletedAt itself.
 export async function getDeletedMembers() {
   const session = await requireRole("ADMIN");
+
+  await writeAuditLog({
+    userId: session.userId,
+    action: "VIEW",
+    resource: "DeletedMembers",
+  });
 
   return db.member.findMany({
     where: { clinicId: session.clinicId, deletedAt: { not: null } },

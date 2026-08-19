@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { writeAuditLog } from "@/lib/audit";
 
 export async function getStatusHistory(memberId: string) {
   return db.memberStatusChange.findMany({
@@ -16,9 +17,15 @@ export async function getStatusHistory(memberId: string) {
 export async function getPendingStatusChanges() {
   const session = await requireRole("SUPERVISOR", "ADMIN");
 
+  await writeAuditLog({
+    userId: session.userId,
+    action: "VIEW",
+    resource: "PendingStatusChanges",
+  });
+
   return db.memberStatusChange.findMany({
     where: {
-      member: { clinicId: session.clinicId },
+      member: { clinicId: session.clinicId, deletedAt: null },
       requiresApproval: true,
       approvedAt: null,
       rejectedAt: null,

@@ -44,6 +44,9 @@ export async function createResource(formData: FormData) {
 export async function updateResource(resourceId: string, formData: FormData) {
   const session = await requireRole("ADMIN", "SUPERVISOR");
 
+  const target = await db.resourceEntry.findUnique({ where: { id: resourceId } });
+  if (!target || target.clinicId !== session.clinicId) throw new Error("Not found");
+
   const name = str(formData, "name");
   if (!name) return;
 
@@ -73,6 +76,9 @@ export async function updateResource(resourceId: string, formData: FormData) {
 
 export async function deleteResource(resourceId: string) {
   const session = await requireRole("ADMIN", "SUPERVISOR");
+
+  const target = await db.resourceEntry.findUnique({ where: { id: resourceId } });
+  if (!target || target.clinicId !== session.clinicId) throw new Error("Not found");
 
   await db.resourceEntry.delete({ where: { id: resourceId } });
 

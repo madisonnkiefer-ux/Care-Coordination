@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
+import { writeAuditLog } from "@/lib/audit";
 import { firstEnrollmentDate, isTouchpointCompliant, progressNotesToContacts } from "@/lib/touchpoint-compliance";
 
 export async function getDashboardData() {
@@ -10,6 +11,12 @@ export async function getDashboardData() {
     session.role === "CARE_COORDINATOR"
       ? { clinicId: session.clinicId, assignedCoordinatorId: session.userId }
       : { clinicId: session.clinicId };
+
+  await writeAuditLog({
+    userId: session.userId,
+    action: "VIEW",
+    resource: "Dashboard",
+  });
 
   const now = new Date();
   // Widest window either cadence ever needs, regardless of a member's own

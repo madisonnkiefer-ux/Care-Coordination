@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
 
 export type MonthlyActivityDetailRow = {
+  id: string;
   firstName: string;
   lastName: string;
   medicaidId: string | null;
@@ -131,6 +132,7 @@ export async function getMonthlyActivityReport(
 
   const detailRows: MonthlyActivityDetailRow[] = members
     .map((m) => ({
+      id: m.id,
       firstName: m.firstName,
       lastName: m.lastName,
       medicaidId: m.medicaidId,

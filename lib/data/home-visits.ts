@@ -1,20 +1,31 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
+import { writeAuditLog } from "@/lib/audit";
 import { listActiveCoordinators } from "@/lib/data/members";
 
 export async function getHomeVisitsPageData() {
   const session = await verifySession();
   const isSupervisor = session.role === "SUPERVISOR" || session.role === "ADMIN";
 
+  await writeAuditLog({
+    userId: session.userId,
+    action: "VIEW",
+    resource: "HomeVisitsPage",
+  });
+
   const memberScope =
     session.role === "CARE_COORDINATOR"
       ? { clinicId: session.clinicId, assignedCoordinatorId: session.userId }
       : { clinicId: session.clinicId };
 
-  const requestScope = isSupervisor ? { member: { clinicId: session.clinicId } } : { assignedCoordinatorId: session.userId };
+  const requestScope = isSupervisor
+    ? { member: { clinicId: session.clinicId, deletedAt: null } }
+    : { assignedCoordinatorId: session.userId, member: { deletedAt: null } };
 
-  const visitScope = isSupervisor ? { member: { clinicId: session.clinicId } } : { coordinatorId: session.userId };
+  const visitScope = isSupervisor
+    ? { member: { clinicId: session.clinicId, deletedAt: null } }
+    : { coordinatorId: session.userId, member: { deletedAt: null } };
 
   const [openRequests, recentVisits, members, coordinators] = await Promise.all([
     db.homeVisitRequest.findMany({

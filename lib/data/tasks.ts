@@ -1,10 +1,17 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
+import { writeAuditLog } from "@/lib/audit";
 import { listActiveCoordinators } from "@/lib/data/members";
 
 export async function getTasksPageData() {
   const session = await verifySession();
+
+  await writeAuditLog({
+    userId: session.userId,
+    action: "VIEW",
+    resource: "TasksPage",
+  });
 
   const memberScope =
     session.role === "CARE_COORDINATOR"

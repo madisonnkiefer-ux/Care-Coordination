@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { requireRole, authorizeMemberAccess } from "@/lib/dal";
+import { writeAuditLog } from "@/lib/audit";
 import { graduationReviewStatus } from "@/lib/graduation";
 
 // Single-member graduation info for the member chart's alert card and the
@@ -31,6 +32,12 @@ export async function getMemberGraduationInfo(memberId: string) {
 export async function getUpcomingGraduations() {
   const session = await requireRole("SUPERVISOR", "ADMIN");
   const clinicId = session.clinicId;
+
+  await writeAuditLog({
+    userId: session.userId,
+    action: "VIEW",
+    resource: "UpcomingGraduations",
+  });
 
   const members = await db.member.findMany({
     where: { clinicId, hedisMeasures: { deliveryDate: { not: null } } },

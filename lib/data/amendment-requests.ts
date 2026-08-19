@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
 import { authorizeMemberAccess } from "@/lib/dal";
+import { writeAuditLog } from "@/lib/audit";
 
 // Requests aren't resolved by editing the underlying versioned record in
 // place; a supervisor/admin accepts or denies the request here, and any
@@ -27,8 +28,14 @@ export async function getAmendmentRequestsForMember(memberId: string) {
 export async function getAllAmendmentRequests() {
   const session = await requireRole("ADMIN");
 
+  await writeAuditLog({
+    userId: session.userId,
+    action: "VIEW",
+    resource: "AmendmentRequests",
+  });
+
   return db.amendmentRequest.findMany({
-    where: { member: { clinicId: session.clinicId } },
+    where: { member: { clinicId: session.clinicId, deletedAt: null } },
     orderBy: [{ status: "asc" }, { createdAt: "asc" }],
     include: {
       member: { select: { id: true, firstName: true, lastName: true } },

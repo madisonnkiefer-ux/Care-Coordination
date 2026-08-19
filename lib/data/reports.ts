@@ -1,11 +1,18 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { writeAuditLog } from "@/lib/audit";
 import { firstEnrollmentDate, progressNotesToContacts } from "@/lib/touchpoint-compliance";
 
 export async function getReportsData() {
   const session = await requireRole("SUPERVISOR", "ADMIN");
   const clinicId = session.clinicId;
+
+  await writeAuditLog({
+    userId: session.userId,
+    action: "VIEW",
+    resource: "ReportsData",
+  });
 
   const [members, coordinators] = await Promise.all([
     db.member.findMany({

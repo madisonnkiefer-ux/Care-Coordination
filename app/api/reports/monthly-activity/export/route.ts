@@ -63,9 +63,14 @@ export async function POST(request: Request) {
 
   await writeAuditLog({
     userId: session.userId,
-    action: "CREATE",
+    action: "EXPORT",
     resource: "MonthlyActivityReport",
-    metadata: { startDate: startRaw, endDate: endRaw, memberCount: detailRows.length },
+    metadata: {
+      startDate: startRaw,
+      endDate: endRaw,
+      memberCount: detailRows.length,
+      memberIds: detailRows.map((r) => r.id),
+    },
   });
 
   const buffer = await workbook.xlsx.writeBuffer();

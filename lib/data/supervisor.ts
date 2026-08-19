@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { writeAuditLog } from "@/lib/audit";
 import { TERMINAL_STATUSES } from "@/lib/member-status";
 import { firstEnrollmentDate, getComplianceCadence, getWindowStart, isTouchpointCompliant, progressNotesToContacts } from "@/lib/touchpoint-compliance";
 import { addBusinessDays, businessDaysBetween } from "@/lib/business-days";
@@ -12,6 +13,12 @@ const INITIAL_CCP_DUE_BUSINESS_DAYS = 14;
 export async function getSupervisorData() {
   const session = await requireRole("SUPERVISOR", "ADMIN");
   const clinicId = session.clinicId;
+
+  await writeAuditLog({
+    userId: session.userId,
+    action: "VIEW",
+    resource: "SupervisorDashboard",
+  });
 
   const now = new Date();
   const dayOfWeek = now.getDay();
@@ -52,8 +59,8 @@ export async function getSupervisorData() {
     db.member.count({ where: { clinicId, status: "ACTIVE" } }),
     db.member.count({ where: { clinicId, status: "GRADUATED" } }),
     db.member.count({ where: { clinicId, status: "TERMED" } }),
-    db.intakeVersion.count({ where: { member: { clinicId }, signedAt: null } }),
-    db.tocRecord.count({ where: { member: { clinicId }, signedAt: null } }),
+    db.intakeVersion.count({ where: { member: { clinicId, deletedAt: null }, signedAt: null } }),
+    db.tocRecord.count({ where: { member: { clinicId, deletedAt: null }, signedAt: null } }),
     db.member.findMany({
       where: { clinicId },
       select: {
@@ -71,7 +78,7 @@ export async function getSupervisorData() {
     }),
     db.memberStatusChange.findMany({
       where: {
-        member: { clinicId },
+        member: { clinicId, deletedAt: null },
         toStatus: { in: TERMINAL_STATUSES },
         approvedAt: { not: null },
         effectiveDate: { gte: weekStart },
