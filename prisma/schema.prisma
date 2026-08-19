@@ -1240,6 +1240,7 @@ enum AuditAction {
   // Doubles as the HIPAA accounting-of-disclosures trail: who released a
   // member's full record, when, and to whom (see metadata).
   EXPORT
+  PRINT
 }
 
 model AuditLog {

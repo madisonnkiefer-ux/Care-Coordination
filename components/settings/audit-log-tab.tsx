@@ -10,6 +10,7 @@ const ACTION_COLORS: Record<string, "green" | "blue" | "yellow" | "red" | "slate
   LOGIN_FAILED: "red",
   LOGOUT: "slate",
   EXPORT: "fuchsia",
+  PRINT: "yellow",
 };
 
 type AuditUser = { id: string; name: string; email: string };

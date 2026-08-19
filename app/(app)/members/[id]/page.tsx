@@ -107,7 +107,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
         }`}
         action={
           <div className="flex items-center gap-3">
-            <PrintButton label="Print Full Chart" />
+            <PrintButton label="Print Full Chart" memberId={id} resource="Member" />
             {session.role !== "CARE_COORDINATOR" && (
               <a
                 href={`/api/members/${id}/export`}

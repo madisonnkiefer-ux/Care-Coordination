@@ -49,7 +49,7 @@ export default async function CarePlanPage({
         title="Care Plan"
         description={`${member.firstName} ${member.lastName}`}
         backHref={`/members/${id}`}
-        action={<PrintButton label="Print This Form" />}
+        action={<PrintButton label="Print This Form" memberId={id} resource="CarePlan" />}
       />
       <Tabs
         defaultTabId={tab}

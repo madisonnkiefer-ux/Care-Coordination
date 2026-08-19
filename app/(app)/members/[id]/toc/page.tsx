@@ -39,7 +39,7 @@ export default async function TocPage({
         title="Transition of Care (TOC)"
         description={`${member.firstName} ${member.lastName}`}
         backHref={`/members/${id}`}
-        action={<PrintButton label="Print This TOC" />}
+        action={<PrintButton label="Print This TOC" memberId={id} resource="TocRecord" />}
       />
       <TocForm
         memberId={id}

@@ -47,7 +47,7 @@ export default async function IntakePage({
         title="Enrollment"
         description={`${member.firstName} ${member.lastName}`}
         backHref={`/members/${id}`}
-        action={<PrintButton label="Print This Form" />}
+        action={<PrintButton label="Print This Form" memberId={id} resource="IntakeVersion" />}
       />
       <IntakeShell
         memberId={id}
