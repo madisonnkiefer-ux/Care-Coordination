@@ -10,11 +10,25 @@ function str(formData: FormData, key: string) {
   return typeof v === "string" && v.trim() ? v.trim() : null;
 }
 
+// The presigned-upload route (app/api/resources/upload/route.ts) always
+// issues a key scoped to the caller's own clinic — this re-verifies it
+// before linking, the same defense used in app/actions/documents.ts, so a
+// tampered key can't attach another clinic's uploaded file to this one's
+// resource directory.
+function requireOwnDocumentKey(formData: FormData, clinicId: string) {
+  const key = str(formData, "documentKey");
+  if (!key) return { documentKey: null, documentName: null };
+  if (!key.startsWith(`resources/${clinicId}/`)) throw new Error("Forbidden");
+  return { documentKey: key, documentName: str(formData, "documentName") };
+}
+
 export async function createResource(formData: FormData) {
   const session = await requireRole("ADMIN", "SUPERVISOR");
 
   const name = str(formData, "name");
   if (!name) return;
+
+  const { documentKey, documentName } = requireOwnDocumentKey(formData, session.clinicId);
 
   const resource = await db.resourceEntry.create({
     data: {
@@ -28,6 +42,8 @@ export async function createResource(formData: FormData) {
       contactEmail: str(formData, "contactEmail"),
       eligibility: str(formData, "eligibility"),
       notes: str(formData, "notes"),
+      documentKey,
+      documentName,
     },
   });
 
@@ -50,6 +66,17 @@ export async function updateResource(resourceId: string, formData: FormData) {
   const name = str(formData, "name");
   if (!name) return;
 
+  // Three states for the attachment: a new key means replace it, the
+  // "removeDocument" flag means clear it, otherwise leave whatever's
+  // already on the record untouched.
+  const uploaded = requireOwnDocumentKey(formData, session.clinicId);
+  const removeDocument = formData.get("removeDocument") === "true";
+  const documentFields = uploaded.documentKey
+    ? uploaded
+    : removeDocument
+      ? { documentKey: null, documentName: null }
+      : {};
+
   await db.resourceEntry.update({
     where: { id: resourceId },
     data: {
@@ -61,6 +88,7 @@ export async function updateResource(resourceId: string, formData: FormData) {
       contactEmail: str(formData, "contactEmail"),
       eligibility: str(formData, "eligibility"),
       notes: str(formData, "notes"),
+      ...documentFields,
     },
   });
 

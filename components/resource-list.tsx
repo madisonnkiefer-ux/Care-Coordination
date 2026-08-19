@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Search, Phone, Mail, Trash2 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Search, Phone, Mail, Trash2, Upload, FileText, X } from "lucide-react";
 import { Card, Badge } from "@/components/ui";
 import { createResource, updateResource, deleteResource } from "@/app/actions/resources";
 import type { ResourceEntry } from "@/app/generated/prisma/client";
@@ -175,6 +175,18 @@ function ResourceCard({ resource, canEdit }: { resource: ResourceEntry; canEdit:
         </p>
       )}
       {resource.notes && <p className="mt-1 text-xs text-stone-400">{resource.notes}</p>}
+
+      {resource.documentKey && (
+        <a
+          href={`/api/resources/${resource.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 flex items-center gap-1.5 border-t border-stone-100 pt-3 text-xs font-medium text-charcoal hover:underline"
+        >
+          <FileText className="h-3.5 w-3.5 text-stone-400" />
+          {resource.documentName ?? "Download PDF"}
+        </a>
+      )}
     </Card>
   );
 }
@@ -188,9 +200,59 @@ function ResourceForm({
   action: (formData: FormData) => Promise<void>;
   onCancel: () => void;
 }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [attachment, setAttachment] = useState<{ key: string; name: string } | null>(
+    resource?.documentKey ? { key: resource.documentKey, name: resource.documentName ?? "Attached PDF" } : null
+  );
+  const [removedExisting, setRemovedExisting] = useState(false);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadError(null);
+    setIsUploading(true);
+    try {
+      const presignRes = await fetch("/api/resources/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name }),
+      });
+      if (!presignRes.ok) {
+        const body = await presignRes.json().catch(() => null);
+        throw new Error(body?.error ?? "Upload failed.");
+      }
+      const { url, fields, key } = (await presignRes.json()) as {
+        url: string;
+        fields: Record<string, string>;
+        key: string;
+      };
+
+      const uploadFormData = new FormData();
+      for (const [k, v] of Object.entries(fields)) uploadFormData.append(k, v);
+      uploadFormData.append("file", file);
+
+      const uploadRes = await fetch(url, { method: "POST", body: uploadFormData });
+      if (!uploadRes.ok) throw new Error("Upload to storage failed.");
+
+      setAttachment({ key, name: file.name });
+      setRemovedExisting(false);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   return (
     <Card>
       <form action={action} className="space-y-3">
+        {attachment && <input type="hidden" name="documentKey" value={attachment.key} />}
+        {attachment && <input type="hidden" name="documentName" value={attachment.name} />}
+        {removedExisting && <input type="hidden" name="removeDocument" value="true" />}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Name</label>
@@ -272,6 +334,41 @@ function ResourceForm({
             defaultValue={resource?.notes ?? ""}
             className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
           />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Attached PDF</label>
+          {attachment ? (
+            <div className="flex items-center gap-2 rounded-md border border-stone-300 bg-stone-50 px-3 py-1.5 text-sm">
+              <FileText className="h-3.5 w-3.5 shrink-0 text-stone-400" />
+              <span className="flex-1 truncate text-stone-700">{attachment.name}</span>
+              <button
+                type="button"
+                aria-label="Remove attachment"
+                onClick={() => {
+                  setAttachment(null);
+                  setRemovedExisting(true);
+                }}
+                className="shrink-0 text-stone-400 hover:text-red-600"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-stone-300 px-3 py-2 text-xs font-medium text-stone-500 hover:border-fuchsia-400 hover:text-fuchsia-600">
+              <Upload className="h-3.5 w-3.5" />
+              {isUploading ? "Uploading…" : "Upload PDF"}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                onChange={handleFileChange}
+                disabled={isUploading}
+                className="hidden"
+              />
+            </label>
+          )}
+          {uploadError && <p className="mt-1 text-xs text-red-600">{uploadError}</p>}
         </div>
 
         <div className="flex gap-2">

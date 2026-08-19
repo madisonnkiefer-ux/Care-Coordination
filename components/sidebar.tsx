@@ -55,13 +55,14 @@ const NAV_ITEMS: NavItem[] = [
     icon: Receipt,
     roles: ["SUPERVISOR", "ADMIN"],
   },
-  {
-    href: "/settings",
-    label: "Settings",
-    icon: Settings,
-    roles: ["ADMIN"],
-  },
 ];
+
+const SETTINGS_ITEM: NavItem = {
+  href: "/settings",
+  label: "Settings",
+  icon: Settings,
+  roles: ["ADMIN"],
+};
 
 export function Sidebar({
   user,
@@ -117,6 +118,19 @@ export function Sidebar({
             <p className="truncate text-xs text-stone-500">{roleLabel(user.role)}</p>
           </div>
         </div>
+        {(!SETTINGS_ITEM.roles || SETTINGS_ITEM.roles.includes(user.role)) && (
+          <Link
+            href={SETTINGS_ITEM.href}
+            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+              pathname.startsWith(SETTINGS_ITEM.href)
+                ? "bg-charcoal text-white"
+                : "text-stone-500 hover:bg-stone-100 hover:text-charcoal"
+            }`}
+          >
+            <Settings className="h-4 w-4" />
+            {SETTINGS_ITEM.label}
+          </Link>
+        )}
         <Link
           href="/account"
           className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${

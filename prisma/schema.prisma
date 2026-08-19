@@ -1415,6 +1415,13 @@ model ResourceEntry {
   contactEmail String?
   eligibility  String?
   notes        String?
+  // Optional attached PDF (a flyer, referral form, program handout) —
+  // same private-bucket-plus-key pattern as Document.storageKey, just
+  // without a member to scope it to. documentName is the original
+  // filename, kept separately from storageKey since the key includes a
+  // random suffix for uniqueness.
+  documentKey  String?
+  documentName String?
   createdById  String
   createdBy    User     @relation(fields: [createdById], references: [id])
   createdAt    DateTime @default(now())

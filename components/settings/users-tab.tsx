@@ -29,6 +29,12 @@ type ClinicUser = {
 };
 
 export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; currentUserId: string }) {
+  // Deactivated staff sink to the bottom, under their own divider row, so
+  // the active roster (what a supervisor/admin actually cares about day to
+  // day) isn't interleaved with accounts nobody's using anymore.
+  const activeUsers = users.filter((u) => u.active);
+  const deactivatedUsers = users.filter((u) => !u.active);
+
   return (
     <div className="space-y-6 p-8">
       <Card title="Add User">
@@ -52,99 +58,18 @@ export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; curren
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td className="px-4 py-2.5 text-stone-800">
-                    {u.name} {u.id === currentUserId && <span className="text-xs text-stone-400">(you)</span>}
-                  </td>
-                  <td className="px-4 py-2.5 text-stone-600">{u.email}</td>
-                  <td className="px-4 py-2.5">
-                    {u.id === currentUserId ? (
-                      <Badge color="slate">{ROLE_LABELS[u.role]}</Badge>
-                    ) : (
-                      <form key={u.role} action={updateUserRole.bind(null, u.id)} className="flex items-center gap-2">
-                        <select
-                          name="role"
-                          defaultValue={u.role}
-                          className="rounded-md border border-stone-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                        >
-                          {ROLE_OPTIONS.map(([value, label]) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="submit"
-                          className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
-                        >
-                          Save
-                        </button>
-                      </form>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {u.id === currentUserId ? (
-                        <Badge color={u.active ? "green" : "slate"}>{u.active ? "Active" : "Deactivated"}</Badge>
-                      ) : (
-                        <form action={setUserActive.bind(null, u.id)}>
-                          <input type="hidden" name="active" value={u.active ? "false" : "true"} />
-                          <button
-                            type="submit"
-                            className={`rounded-md border px-2 py-1 text-xs font-medium ${
-                              u.active
-                                ? "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
-                                : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                            }`}
-                          >
-                            {u.active ? "Deactivate" : "Reactivate"}
-                          </button>
-                        </form>
-                      )}
-                      {u.lockedUntil && u.lockedUntil > new Date() && (
-                        <>
-                          <Badge color="red">Locked</Badge>
-                          <form action={unlockUser.bind(null, u.id)}>
-                            <button
-                              type="submit"
-                              className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
-                            >
-                              Unlock
-                            </button>
-                          </form>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <ResetPasswordControl userId={u.id} />
-                  </td>
-                  <td className="px-4 py-2.5">
-                    {u.mfaEnabled ? (
-                      <div className="flex items-center gap-1.5">
-                        <Badge color="green">On</Badge>
-                        <form action={adminResetMfa.bind(null, u.id)}>
-                          <button
-                            type="submit"
-                            className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
-                          >
-                            Reset
-                          </button>
-                        </form>
-                      </div>
-                    ) : (
-                      <Badge color="slate">Off</Badge>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5 whitespace-nowrap text-stone-500">{formatDate(u.createdAt)}</td>
-                  <td className="px-4 py-2.5 whitespace-nowrap text-stone-500">{formatDateTime(u.lastLoginAt)}</td>
-                  <td className="px-4 py-2.5">
-                    <Link href={`/settings?tab=audit&user=${u.id}`} className="text-xs font-medium text-charcoal hover:underline">
-                      View log →
-                    </Link>
+              {activeUsers.map((u) => (
+                <UserRow key={u.id} u={u} currentUserId={currentUserId} />
+              ))}
+              {deactivatedUsers.length > 0 && (
+                <tr>
+                  <td colSpan={9} className="bg-stone-50 px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-stone-400">
+                    Deactivated
                   </td>
                 </tr>
+              )}
+              {deactivatedUsers.map((u) => (
+                <UserRow key={u.id} u={u} currentUserId={currentUserId} />
               ))}
               {users.length === 0 && (
                 <tr>
@@ -158,6 +83,103 @@ export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; curren
         </div>
       </Card>
     </div>
+  );
+}
+
+function UserRow({ u, currentUserId }: { u: ClinicUser; currentUserId: string }) {
+  return (
+    <tr className={u.active ? undefined : "opacity-60"}>
+      <td className="px-4 py-2.5 text-stone-800">
+        {u.name} {u.id === currentUserId && <span className="text-xs text-stone-400">(you)</span>}
+      </td>
+      <td className="px-4 py-2.5 text-stone-600">{u.email}</td>
+      <td className="px-4 py-2.5">
+        {u.id === currentUserId ? (
+          <Badge color="slate">{ROLE_LABELS[u.role]}</Badge>
+        ) : (
+          <form key={u.role} action={updateUserRole.bind(null, u.id)} className="flex items-center gap-2">
+            <select
+              name="role"
+              defaultValue={u.role}
+              className="rounded-md border border-stone-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-deep-rose"
+            >
+              {ROLE_OPTIONS.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+            >
+              Save
+            </button>
+          </form>
+        )}
+      </td>
+      <td className="px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {u.id === currentUserId ? (
+            <Badge color={u.active ? "green" : "slate"}>{u.active ? "Active" : "Deactivated"}</Badge>
+          ) : (
+            <form action={setUserActive.bind(null, u.id)}>
+              <input type="hidden" name="active" value={u.active ? "false" : "true"} />
+              <button
+                type="submit"
+                className={`rounded-md border px-2 py-1 text-xs font-medium ${
+                  u.active
+                    ? "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
+                    : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                }`}
+              >
+                {u.active ? "Deactivate" : "Reactivate"}
+              </button>
+            </form>
+          )}
+          {u.lockedUntil && u.lockedUntil > new Date() && (
+            <>
+              <Badge color="red">Locked</Badge>
+              <form action={unlockUser.bind(null, u.id)}>
+                <button
+                  type="submit"
+                  className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+                >
+                  Unlock
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+      </td>
+      <td className="px-4 py-2.5">
+        <ResetPasswordControl userId={u.id} />
+      </td>
+      <td className="px-4 py-2.5">
+        {u.mfaEnabled ? (
+          <div className="flex items-center gap-1.5">
+            <Badge color="green">On</Badge>
+            <form action={adminResetMfa.bind(null, u.id)}>
+              <button
+                type="submit"
+                className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+              >
+                Reset
+              </button>
+            </form>
+          </div>
+        ) : (
+          <Badge color="slate">Off</Badge>
+        )}
+      </td>
+      <td className="px-4 py-2.5 whitespace-nowrap text-stone-500">{formatDate(u.createdAt)}</td>
+      <td className="px-4 py-2.5 whitespace-nowrap text-stone-500">{formatDateTime(u.lastLoginAt)}</td>
+      <td className="px-4 py-2.5">
+        <Link href={`/settings?tab=audit&user=${u.id}`} className="text-xs font-medium text-charcoal hover:underline">
+          View log →
+        </Link>
+      </td>
+    </tr>
   );
 }
 
