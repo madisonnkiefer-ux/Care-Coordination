@@ -27,6 +27,7 @@ export default async function TocPage({
 
   const { member, records } = tocData;
   const currentUserIsAdmin = currentUser?.role === "ADMIN";
+  const canDelete = session.permissions.includes("DELETE_RECORDS");
 
   const [customQuestionDefs, customAnswersByRecord] = await Promise.all([
     getActiveCustomQuestionDefs(session.clinicId, "toc"),
@@ -45,6 +46,7 @@ export default async function TocPage({
         memberId={id}
         records={records}
         currentUserIsAdmin={currentUserIsAdmin}
+        canDelete={canDelete}
         defaultVersionId={version}
         fields={fields}
         customQuestionDefs={customQuestionDefs}

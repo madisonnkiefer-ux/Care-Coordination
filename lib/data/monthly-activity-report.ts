@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 
 export type MonthlyActivityDetailRow = {
   id: string;
@@ -52,7 +52,7 @@ export async function getMonthlyActivityReport(
   startDate: Date,
   endDate: Date
 ): Promise<{ detailRows: MonthlyActivityDetailRow[]; summaryRows: MonthlySummaryRow[] }> {
-  const session = await requireRole("SUPERVISOR", "ADMIN");
+  const session = await requirePermission("EXPORT_REPORTS");
   const clinicId = session.clinicId;
 
   const rangeEnd = new Date(endDate);

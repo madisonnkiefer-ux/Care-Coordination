@@ -1,7 +1,7 @@
 import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import type { Role } from "@/app/generated/prisma/client";
+import type { Permission, Role } from "@/app/generated/prisma/client";
 import { SESSION_EXPIRY_COOKIE_NAME } from "@/lib/session-shared";
 
 export { SESSION_EXPIRY_COOKIE_NAME } from "@/lib/session-shared";
@@ -24,6 +24,11 @@ export type SessionPayload = {
   userId: string;
   clinicId: string;
   role: Role;
+  // Resolved once at login from the user's role (or custom role, if
+  // assigned) — see lib/data/permissions.ts's resolveUserPermissions. A
+  // permission change an admin makes doesn't affect an already-logged-in
+  // session until next login, same staleness tradeoff `role` already has.
+  permissions: Permission[];
   name: string;
   email: string;
   issuedAt: number; // ms epoch, absolute session start
@@ -55,11 +60,13 @@ export async function createSession(user: {
   role: Role;
   name: string;
   email: string;
+  permissions: Permission[];
 }) {
   const payload: SessionPayload = {
     userId: user.id,
     clinicId: user.clinicId,
     role: user.role,
+    permissions: user.permissions,
     name: user.name,
     email: user.email,
     issuedAt: Date.now(),

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { authorizeMemberAccess, requireRole } from "@/lib/dal";
+import { authorizeMemberAccess, requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import { CLOSURE_CHECKLIST_FIELDS } from "@/lib/member-status";
@@ -91,7 +91,7 @@ export async function changeMemberStatus(memberId: string, formData: FormData) {
 }
 
 export async function approveStatusChange(memberId: string, statusChangeId: string) {
-  const session = await requireRole("SUPERVISOR", "ADMIN");
+  const session = await requirePermission("APPROVE_STATUS_CHANGES");
 
   const change = await db.memberStatusChange.findUnique({ where: { id: statusChangeId }, include: { member: true } });
   if (!change || change.memberId !== memberId || change.member.clinicId !== session.clinicId) {
@@ -133,7 +133,7 @@ export async function approveStatusChange(memberId: string, statusChangeId: stri
 }
 
 export async function rejectStatusChange(memberId: string, statusChangeId: string, formData: FormData) {
-  const session = await requireRole("SUPERVISOR", "ADMIN");
+  const session = await requirePermission("APPROVE_STATUS_CHANGES");
 
   const change = await db.memberStatusChange.findUnique({ where: { id: statusChangeId }, include: { member: true } });
   if (!change || change.memberId !== memberId || change.member.clinicId !== session.clinicId) {

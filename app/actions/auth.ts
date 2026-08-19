@@ -16,6 +16,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { getSession } from "@/lib/dal";
 import { isLockedOut, recordLoginFailure, recordLoginSuccess, GENERIC_LOGIN_ERROR } from "@/lib/auth-lockout";
 import { verifyTotpCode, consumeBackupCode } from "@/lib/mfa";
+import { resolveUserPermissions } from "@/lib/data/permissions";
 
 const LoginSchema = z.object({
   email: z.email({ error: "Enter a valid email." }),
@@ -85,7 +86,8 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
     return { mfaRequired: true };
   }
 
-  await createSession(user);
+  const permissions = await resolveUserPermissions(user, user.clinicId);
+  await createSession({ ...user, permissions });
   await recordLoginSuccess(user.id);
   await writeAuditLog({
     userId: user.id,
@@ -137,7 +139,8 @@ export async function verifyMfaCode(_state: MfaVerifyState, formData: FormData):
     await db.user.update({ where: { id: user.id }, data: { mfaBackupCodeHashes: remainingHashes } });
   }
 
-  await createSession(user);
+  const permissions = await resolveUserPermissions(user, user.clinicId);
+  await createSession({ ...user, permissions });
   await recordLoginSuccess(user.id);
   await clearMfaPendingCookie();
   await writeAuditLog({

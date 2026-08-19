@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 
 // Everything here is a soft delete: sets deletedAt/deletedById instead of
@@ -19,7 +19,7 @@ async function requireOwnClinicMember(memberId: string, clinicId: string) {
 }
 
 export async function deleteMember(memberId: string) {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("DELETE_RECORDS");
   const member = await requireOwnClinicMember(memberId, session.clinicId);
 
   await db.member.update({
@@ -41,7 +41,7 @@ export async function deleteMember(memberId: string) {
 }
 
 export async function restoreMember(memberId: string) {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("DELETE_RECORDS");
 
   const result = await db.member.updateMany({
     where: { id: memberId, clinicId: session.clinicId, deletedAt: { not: null } },
@@ -63,7 +63,7 @@ export async function restoreMember(memberId: string) {
 }
 
 export async function deleteIntakeVersion(memberId: string, versionId: string) {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("DELETE_RECORDS");
   await requireOwnClinicMember(memberId, session.clinicId);
 
   const version = await db.intakeVersion.findUnique({ where: { id: versionId } });
@@ -87,7 +87,7 @@ export async function deleteIntakeVersion(memberId: string, versionId: string) {
 }
 
 export async function deleteCarePlan(memberId: string, carePlanId: string) {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("DELETE_RECORDS");
   await requireOwnClinicMember(memberId, session.clinicId);
 
   const carePlan = await db.carePlan.findUnique({ where: { id: carePlanId } });
@@ -110,7 +110,7 @@ export async function deleteCarePlan(memberId: string, carePlanId: string) {
 }
 
 export async function deleteTocRecord(memberId: string, tocRecordId: string) {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("DELETE_RECORDS");
   await requireOwnClinicMember(memberId, session.clinicId);
 
   const tocRecord = await db.tocRecord.findUnique({ where: { id: tocRecordId } });

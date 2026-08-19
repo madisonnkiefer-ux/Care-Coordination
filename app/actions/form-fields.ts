@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { getFieldDef, DEMOGRAPHICS_FIELD_KEYS, PROTECTED_OPTIONS } from "@/lib/form-fields/registry";
 import { resolveFormOrder, serializeItemRef } from "@/lib/form-fields/ordering";
@@ -30,7 +30,7 @@ function parseOptions(formData: FormData): string[] {
 }
 
 export async function updateFormFieldOverride(fieldKey: string, formData: FormData) {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_FORM_CONTENT");
   const def = getFieldDef(fieldKey);
   if (!def) throw new Error("Unknown form field.");
 
@@ -73,7 +73,7 @@ export async function updateFormFieldOverride(fieldKey: string, formData: FormDa
 }
 
 export async function moveFormField(form: string, fieldKey: string, direction: "up" | "down") {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_FORM_CONTENT");
   const def = getFieldDef(fieldKey);
   const registryFieldKeysInOrder = ORDERABLE_FORMS[form];
   if (!def || !registryFieldKeysInOrder || !registryFieldKeysInOrder.includes(fieldKey)) {
@@ -119,7 +119,7 @@ export async function moveFormField(form: string, fieldKey: string, direction: "
 }
 
 export async function resetFormFieldOverride(fieldKey: string) {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_FORM_CONTENT");
 
   await db.formFieldOverride.deleteMany({ where: { clinicId: session.clinicId, fieldKey } });
 

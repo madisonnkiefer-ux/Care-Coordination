@@ -3,7 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionPayload, type SessionPayload } from "@/lib/session";
-import type { Role } from "@/app/generated/prisma/client";
+import type { Permission, Role } from "@/app/generated/prisma/client";
 
 // Central auth/authorization checkpoint. Every page, layout, server action,
 // and route handler that touches PHI should call this (or requireRole)
@@ -31,6 +31,20 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
 export async function requireRole(...roles: Role[]) {
   const session = await verifySession();
   if (!roles.includes(session.role)) {
+    redirect("/");
+  }
+  return session;
+}
+
+// Checks the admin-configurable permission grid (see lib/permissions.ts) —
+// distinct from requireRole, which gates on the hardcoded Role enum for
+// invariants that were never meant to be configurable (signing authority,
+// the status-change approval workflow, caseload scoping). Passing more
+// than one permission requires ANY of them, matching requireRole's
+// any-of-these-roles semantics.
+export async function requirePermission(...permissions: Permission[]) {
+  const session = await verifySession();
+  if (!permissions.some((p) => session.permissions.includes(p))) {
     redirect("/");
   }
   return session;

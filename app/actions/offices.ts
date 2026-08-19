@@ -4,7 +4,7 @@ import * as z from "zod";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 
 const OFFICE_CODE_REGEX = /^[A-Z0-9-]+$/;
@@ -25,7 +25,7 @@ const CreateOfficeSchema = z.object({
 export type CreateOfficeState = { error?: string } | undefined;
 
 export async function createOffice(_state: CreateOfficeState, formData: FormData): Promise<CreateOfficeState> {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_OFFICES");
 
   const validated = CreateOfficeSchema.safeParse({
     officeName: formData.get("officeName"),
@@ -94,7 +94,7 @@ export async function updateOffice(
   _state: UpdateOfficeState,
   formData: FormData,
 ): Promise<UpdateOfficeState> {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_OFFICES");
 
   const target = await db.clinic.findUnique({ where: { id: clinicId } });
   if (!target) throw new Error("Not found");

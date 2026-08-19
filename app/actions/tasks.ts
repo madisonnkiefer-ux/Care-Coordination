@@ -30,7 +30,7 @@ export async function createTask(formData: FormData) {
   // same server-side backstop pattern used for member assignment.
   const requestedAssigneeId = String(formData.get("assigneeId") ?? "") || null;
   let assigneeId = session.userId;
-  if (requestedAssigneeId && requestedAssigneeId !== session.userId && (session.role === "SUPERVISOR" || session.role === "ADMIN")) {
+  if (requestedAssigneeId && requestedAssigneeId !== session.userId && session.permissions.includes("ASSIGN_WORK_TO_OTHERS")) {
     const assignee = await db.user.findUnique({ where: { id: requestedAssigneeId } });
     if (!assignee || assignee.clinicId !== session.clinicId) {
       throw new Error("Forbidden");

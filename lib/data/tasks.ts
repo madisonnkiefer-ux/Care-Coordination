@@ -44,7 +44,7 @@ export async function getTasksPageData() {
       orderBy: { lastName: "asc" },
       select: { id: true, firstName: true, lastName: true },
     }),
-    session.role === "SUPERVISOR" || session.role === "ADMIN" ? listActiveCoordinators() : Promise.resolve([]),
+    session.permissions.includes("ASSIGN_WORK_TO_OTHERS") ? listActiveCoordinators() : Promise.resolve([]),
   ]);
 
   return { session, openTasks, completedTasks, notes, members, coordinators };

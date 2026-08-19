@@ -30,6 +30,7 @@ export default async function IntakePage({
 
   const { member, versions } = intakeData;
   const currentUserIsAdmin = currentUser?.role === "ADMIN";
+  const canDelete = session.permissions.includes("DELETE_RECORDS");
 
   const recordIds = versions.flatMap((v) => [v.demographics?.id, v.hra?.id, v.cna?.id, v.note?.id].filter((x): x is string => Boolean(x)));
   const [customDemographics, customHra, customCna, customCcn, customAnswersByRecord] = await Promise.all([
@@ -53,6 +54,7 @@ export default async function IntakePage({
         memberId={id}
         versions={versions}
         currentUserIsAdmin={currentUserIsAdmin}
+        canDelete={canDelete}
         defaultSubTab={tab}
         defaultVersionId={version}
         fields={fields}

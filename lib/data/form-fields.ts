@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { FORM_FIELD_REGISTRY, DEMOGRAPHICS_FIELD_KEYS, getFieldDef, type ResolvedFormFields } from "@/lib/form-fields/registry";
 import { resolveFormOrder } from "@/lib/form-fields/ordering";
 
@@ -75,7 +75,7 @@ export type SettingsFormFieldRow = {
 // Settings → Form Content listing: every registry field plus whether this
 // clinic has customized it, for the admin editor.
 export async function getFormFieldsForSettings(): Promise<SettingsFormFieldRow[]> {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_FORM_CONTENT");
   const [overrides, orderableResolved] = await Promise.all([
     db.formFieldOverride.findMany({ where: { clinicId: session.clinicId } }),
     Promise.all(

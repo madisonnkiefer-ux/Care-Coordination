@@ -9,7 +9,7 @@ const HOME_VISIT_PERSON_CONTACTED_OPTIONS = [...PERSON_CONTACTED_OPTIONS, "No on
 
 export default async function HomeVisitsPage() {
   const { session, openRequests, recentVisits, members, coordinators } = await getHomeVisitsPageData();
-  const canAssign = session.role === "SUPERVISOR" || session.role === "ADMIN";
+  const canAssign = session.permissions.includes("ASSIGN_WORK_TO_OTHERS");
 
   return (
     <div>

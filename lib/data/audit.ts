@@ -1,9 +1,9 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 
 export async function getAuditLog(userId?: string) {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("VIEW_AUDIT_LOG");
 
   return db.auditLog.findMany({
     where: {

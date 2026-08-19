@@ -108,7 +108,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
         action={
           <div className="flex items-center gap-3">
             <PrintButton label="Print Full Chart" memberId={id} resource="Member" />
-            {session.role !== "CARE_COORDINATOR" && (
+            {session.permissions.includes("EXPORT_MEMBER_RECORD") && (
               <a
                 href={`/api/members/${id}/export`}
                 className="flex items-center gap-2 rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50 print:hidden"
@@ -118,7 +118,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               </a>
             )}
             <Badge color={statusBadgeColor(member.status)}>{titleCase(member.status)}</Badge>
-            {session.role === "ADMIN" && (
+            {session.permissions.includes("DELETE_RECORDS") && (
               <DeleteMemberButton memberId={id} memberName={`${member.firstName} ${member.lastName}`} />
             )}
           </div>

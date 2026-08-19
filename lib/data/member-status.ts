@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 
 export async function getStatusHistory(memberId: string) {
@@ -15,7 +15,7 @@ export async function getStatusHistory(memberId: string) {
 }
 
 export async function getPendingStatusChanges() {
-  const session = await requireRole("SUPERVISOR", "ADMIN");
+  const session = await requirePermission("VIEW_SUPERVISOR_DASHBOARD");
 
   await writeAuditLog({
     userId: session.userId,

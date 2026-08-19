@@ -4,15 +4,11 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Card, Badge } from "@/components/ui";
 import { createUser, updateUserRole, setUserActive, resetUserPassword, unlockUser } from "@/app/actions/users";
+import { assignCustomRole } from "@/app/actions/permissions";
 import { adminResetMfa } from "@/app/actions/mfa";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { ROLE_LABELS } from "@/lib/permissions";
 import type { Role } from "@/app/generated/prisma/client";
-
-const ROLE_LABELS: Record<Role, string> = {
-  CARE_COORDINATOR: "Care Coordinator",
-  SUPERVISOR: "Supervisor",
-  ADMIN: "Admin",
-};
 
 const ROLE_OPTIONS = Object.entries(ROLE_LABELS) as [Role, string][];
 
@@ -26,9 +22,20 @@ type ClinicUser = {
   lastLoginAt: Date | null;
   lockedUntil: Date | null;
   mfaEnabled: boolean;
+  customRole: { id: string; name: string } | null;
 };
 
-export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; currentUserId: string }) {
+type CustomRoleOption = { id: string; name: string; basedOn: Role };
+
+export function UsersTab({
+  users,
+  currentUserId,
+  customRoles = [],
+}: {
+  users: ClinicUser[];
+  currentUserId: string;
+  customRoles?: CustomRoleOption[];
+}) {
   // Deactivated staff sink to the bottom, under their own divider row, so
   // the active roster (what a supervisor/admin actually cares about day to
   // day) isn't interleaved with accounts nobody's using anymore.
@@ -59,7 +66,7 @@ export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; curren
             </thead>
             <tbody className="divide-y divide-stone-100">
               {activeUsers.map((u) => (
-                <UserRow key={u.id} u={u} currentUserId={currentUserId} />
+                <UserRow key={u.id} u={u} currentUserId={currentUserId} customRoles={customRoles} />
               ))}
               {deactivatedUsers.length > 0 && (
                 <tr>
@@ -69,7 +76,7 @@ export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; curren
                 </tr>
               )}
               {deactivatedUsers.map((u) => (
-                <UserRow key={u.id} u={u} currentUserId={currentUserId} />
+                <UserRow key={u.id} u={u} currentUserId={currentUserId} customRoles={customRoles} />
               ))}
               {users.length === 0 && (
                 <tr>
@@ -86,7 +93,9 @@ export function UsersTab({ users, currentUserId }: { users: ClinicUser[]; curren
   );
 }
 
-function UserRow({ u, currentUserId }: { u: ClinicUser; currentUserId: string }) {
+function UserRow({ u, currentUserId, customRoles }: { u: ClinicUser; currentUserId: string; customRoles: CustomRoleOption[] }) {
+  const matchingCustomRoles = customRoles.filter((r) => r.basedOn === u.role);
+
   return (
     <tr className={u.active ? undefined : "opacity-60"}>
       <td className="px-4 py-2.5 text-stone-800">
@@ -95,27 +104,55 @@ function UserRow({ u, currentUserId }: { u: ClinicUser; currentUserId: string })
       <td className="px-4 py-2.5 text-stone-600">{u.email}</td>
       <td className="px-4 py-2.5">
         {u.id === currentUserId ? (
-          <Badge color="slate">{ROLE_LABELS[u.role]}</Badge>
+          <Badge color="slate">{u.customRole?.name ?? ROLE_LABELS[u.role]}</Badge>
         ) : (
-          <form key={u.role} action={updateUserRole.bind(null, u.id)} className="flex items-center gap-2">
-            <select
-              name="role"
-              defaultValue={u.role}
-              className="rounded-md border border-stone-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-deep-rose"
-            >
-              {ROLE_OPTIONS.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
-            >
-              Save
-            </button>
-          </form>
+          <div className="space-y-1">
+            <form key={u.role} action={updateUserRole.bind(null, u.id)} className="flex items-center gap-2">
+              <select
+                name="role"
+                defaultValue={u.role}
+                className="rounded-md border border-stone-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-deep-rose"
+              >
+                {ROLE_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="submit"
+                className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+              >
+                Save
+              </button>
+            </form>
+            {matchingCustomRoles.length > 0 && (
+              <form
+                key={u.customRole?.id ?? "none"}
+                action={(formData) => assignCustomRole(u.id, String(formData.get("customRoleId") ?? "") || null)}
+                className="flex items-center gap-2"
+              >
+                <select
+                  name="customRoleId"
+                  defaultValue={u.customRole?.id ?? ""}
+                  className="rounded-md border border-stone-300 px-2 py-1 text-xs text-stone-500 focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                >
+                  <option value="">— no custom role —</option>
+                  {matchingCustomRoles.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+                >
+                  Save
+                </button>
+              </form>
+            )}
+          </div>
         )}
       </td>
       <td className="px-4 py-2.5">

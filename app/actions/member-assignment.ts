@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import { isTerminalStatus } from "@/lib/member-status";
 
 export async function reassignMember(memberId: string, formData: FormData) {
-  const session = await requireRole("SUPERVISOR", "ADMIN");
+  const session = await requirePermission("ASSIGN_MEMBERS");
 
   const member = await db.member.findUnique({ where: { id: memberId } });
   if (!member || member.clinicId !== session.clinicId) throw new Error("Forbidden");

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import type { CustomQuestionType } from "@/app/generated/prisma/client";
 
@@ -25,7 +25,7 @@ function parseOptions(formData: FormData): string[] {
 }
 
 export async function createCustomQuestion(form: string, formData: FormData) {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_FORM_CONTENT");
 
   const label = String(formData.get("label") ?? "").trim();
   if (!label) throw new Error("A question label is required.");
@@ -81,7 +81,7 @@ export async function createCustomQuestion(form: string, formData: FormData) {
 }
 
 export async function moveCustomQuestion(questionId: string, direction: "up" | "down") {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_FORM_CONTENT");
   const question = await db.customQuestion.findUnique({ where: { id: questionId } });
   if (!question || question.clinicId !== session.clinicId) throw new Error("Not found.");
 
@@ -111,7 +111,7 @@ export async function moveCustomQuestion(questionId: string, direction: "up" | "
 }
 
 export async function deleteCustomQuestion(questionId: string) {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_FORM_CONTENT");
   const question = await db.customQuestion.findUnique({
     where: { id: questionId },
     include: { _count: { select: { answers: true } } },
@@ -129,7 +129,7 @@ export async function deleteCustomQuestion(questionId: string) {
 }
 
 export async function setCustomQuestionActive(questionId: string, active: boolean) {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_FORM_CONTENT");
   const question = await db.customQuestion.findUnique({ where: { id: questionId } });
   if (!question || question.clinicId !== session.clinicId) throw new Error("Not found.");
 

@@ -22,6 +22,35 @@ enum Role {
   ADMIN
 }
 
+// Every admin-configurable page/action gate in the app — deliberately NOT
+// exhaustive of every single thing a role check touches. Compliance/
+// identity invariants (who may legally sign a chart, the care-coordinator-
+// request vs. supervisor-direct status-change approval workflow, caseload
+// data-scoping) stay hardwired to the `Role` enum itself, in code, and are
+// not part of this list — see lib/permissions.ts for the full rationale.
+enum Permission {
+  VIEW_SUPERVISOR_DASHBOARD
+  VIEW_REPORTS
+  EXPORT_REPORTS
+  VIEW_BILLING
+  EXPORT_BILLING
+  EXPORT_MEMBER_RECORD
+  MANAGE_USERS
+  MANAGE_OFFICES
+  MANAGE_VENDORS
+  MANAGE_FORM_CONTENT
+  MANAGE_RESOURCES
+  RESET_USER_MFA
+  VIEW_AUDIT_LOG
+  VIEW_SECURITY_ALERTS
+  DELETE_RECORDS
+  ASSIGN_MEMBERS
+  APPROVE_STATUS_CHANGES
+  RESOLVE_AMENDMENT_REQUESTS
+  ASSIGN_WORK_TO_OTHERS
+  VIEW_SETTINGS
+}
+
 model Clinic {
   id        String   @id @default(cuid())
   name      String
@@ -39,6 +68,51 @@ model Clinic {
   customQuestions    CustomQuestion[]
   formFieldOrders    FormFieldOrder[]
   vendors            Vendor[]
+  rolePermissions    RolePermissions[]
+  customRoles        CustomRole[]
+}
+
+// Per-clinic, per-built-in-role permission set — lets an admin edit what
+// Care Coordinator/Supervisor/Admin can each see and do, independent of
+// the hardcoded Role enum itself (see the Permission enum's comment).
+// Seeded per clinic to match the app's original hardcoded defaults; a row
+// missing for a given role falls back to those same defaults (see
+// lib/permissions.ts's DEFAULT_PERMISSIONS) so a clinic that's never
+// touched this feature behaves exactly as before.
+model RolePermissions {
+  id          String       @id @default(cuid())
+  clinicId    String
+  clinic      Clinic       @relation(fields: [clinicId], references: [id])
+  role        Role
+  permissions Permission[]
+  updatedAt   DateTime     @updatedAt
+  updatedById String?
+  updatedBy   User?        @relation("RolePermissionsUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([clinicId, role])
+}
+
+// An admin-created named permission set, always cloned from one of the 3
+// built-in roles at creation time — that starting copy is then edited
+// independently. A user assigned to a custom role keeps their underlying
+// `User.role` enum value for every hardcoded business rule (signing
+// authority, the status-change approval workflow, caseload scoping); the
+// custom role only overrides the admin-configurable permission grid.
+model CustomRole {
+  id          String       @id @default(cuid())
+  clinicId    String
+  clinic      Clinic       @relation(fields: [clinicId], references: [id])
+  name        String
+  basedOn     Role
+  permissions Permission[]
+  createdById String
+  createdBy   User         @relation("CustomRoleCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  users User[]
+
+  @@unique([clinicId, name])
 }
 
 model User {
@@ -52,6 +126,12 @@ model User {
   active       Boolean   @default(true)
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
+
+  // Optional admin-created permission set overriding the built-in `role`'s
+  // default permissions (see CustomRole above) — `role` itself is untouched
+  // and still governs every hardcoded business rule.
+  customRoleId String?
+  customRole   CustomRole? @relation(fields: [customRoleId], references: [id])
 
   // Brute-force lockout: failedLoginAttempts resets to 0 on any successful
   // login. Hitting LOCKOUT_THRESHOLD (see app/actions/auth.ts) sets
@@ -111,7 +191,11 @@ model User {
   homeVisitRequestsAssigned HomeVisitRequest[] @relation("HomeVisitRequestAssignee")
   homeVisitRequestsMade     HomeVisitRequest[] @relation("HomeVisitRequestRequestedBy")
 
+  rolePermissionsUpdated RolePermissions[] @relation("RolePermissionsUpdatedBy")
+  customRolesCreated     CustomRole[]      @relation("CustomRoleCreatedBy")
+
   @@index([clinicId])
+  @@index([customRoleId])
 }
 
 // ---------- Member (patient) ----------

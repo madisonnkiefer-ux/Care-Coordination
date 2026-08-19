@@ -22,6 +22,7 @@ export function TocForm({
   memberId,
   records,
   currentUserIsAdmin,
+  canDelete,
   defaultVersionId,
   fields,
   customQuestionDefs,
@@ -30,6 +31,7 @@ export function TocForm({
   memberId: string;
   records: TocRecordWithRelations[];
   currentUserIsAdmin: boolean;
+  canDelete: boolean;
   defaultVersionId?: string;
   fields: ResolvedFormFields;
   customQuestionDefs: CustomQuestionDef[];
@@ -57,7 +59,7 @@ export function TocForm({
         onSelect={setSelectedId}
         newAction={createNewTocRecord.bind(null, memberId)}
         newLabel="+ New TOC"
-        onDelete={currentUserIsAdmin ? deleteTocRecord.bind(null, memberId) : undefined}
+        onDelete={canDelete ? deleteTocRecord.bind(null, memberId) : undefined}
       />
 
       {!draft ? (

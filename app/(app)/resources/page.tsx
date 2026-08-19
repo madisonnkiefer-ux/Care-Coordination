@@ -1,11 +1,11 @@
 import { listResources } from "@/lib/data/resources";
-import { getCurrentUser } from "@/lib/dal";
+import { verifySession } from "@/lib/dal";
 import { PageHeader } from "@/components/ui";
 import { ResourceList } from "@/components/resource-list";
 
 export default async function ResourcesPage() {
-  const [resources, currentUser] = await Promise.all([listResources(), getCurrentUser()]);
-  const canEdit = currentUser?.role === "ADMIN" || currentUser?.role === "SUPERVISOR";
+  const [resources, session] = await Promise.all([listResources(), verifySession()]);
+  const canEdit = session.permissions.includes("MANAGE_RESOURCES");
 
   return (
     <div>

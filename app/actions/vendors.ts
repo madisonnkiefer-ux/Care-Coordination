@@ -3,7 +3,7 @@
 import * as z from "zod";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 
 function toDateOrNull(value: FormDataEntryValue | null) {
@@ -39,7 +39,7 @@ function parseVendorForm(formData: FormData) {
 export type VendorFormState = { error?: string } | undefined;
 
 export async function createVendor(_state: VendorFormState, formData: FormData): Promise<VendorFormState> {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_VENDORS");
 
   const validated = parseVendorForm(formData);
   if (!validated.success) {
@@ -79,7 +79,7 @@ export async function updateVendor(
   _state: VendorFormState,
   formData: FormData,
 ): Promise<VendorFormState> {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_VENDORS");
 
   const target = await db.vendor.findUnique({ where: { id: vendorId } });
   if (!target || target.clinicId !== session.clinicId) throw new Error("Not found");
@@ -117,7 +117,7 @@ export async function updateVendor(
 }
 
 export async function setVendorActive(vendorId: string, active: boolean) {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_VENDORS");
 
   const target = await db.vendor.findUnique({ where: { id: vendorId } });
   if (!target || target.clinicId !== session.clinicId) throw new Error("Not found");

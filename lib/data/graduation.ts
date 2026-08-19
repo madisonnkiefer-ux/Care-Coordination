@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { requireRole, authorizeMemberAccess } from "@/lib/dal";
+import { requirePermission, authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { graduationReviewStatus } from "@/lib/graduation";
 
@@ -30,7 +30,7 @@ export async function getMemberGraduationInfo(memberId: string) {
 // UPCOMING or OVERDUE (REVIEWED/NOT_DUE members are left out — nothing for a
 // supervisor to act on there).
 export async function getUpcomingGraduations() {
-  const session = await requireRole("SUPERVISOR", "ADMIN");
+  const session = await requirePermission("VIEW_SUPERVISOR_DASHBOARD");
   const clinicId = session.clinicId;
 
   await writeAuditLog({

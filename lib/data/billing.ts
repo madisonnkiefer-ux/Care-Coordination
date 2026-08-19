@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { computeBillingEligibility } from "@/lib/billing";
 
@@ -10,7 +10,7 @@ import { computeBillingEligibility } from "@/lib/billing";
 // approved status change to Termed/Graduated), same philosophy as the rest
 // of the app's "derive, don't duplicate" data layer (see patient-snapshot.ts).
 export async function getBillingRoster() {
-  const session = await requireRole("SUPERVISOR", "ADMIN");
+  const session = await requirePermission("VIEW_BILLING");
   const clinicId = session.clinicId;
 
   await writeAuditLog({

@@ -30,6 +30,7 @@ export function IntakeShell({
   memberId,
   versions,
   currentUserIsAdmin,
+  canDelete,
   defaultSubTab,
   defaultVersionId,
   fields,
@@ -40,6 +41,7 @@ export function IntakeShell({
   memberId: string;
   versions: IntakeVersionRecord[];
   currentUserIsAdmin: boolean;
+  canDelete: boolean;
   defaultSubTab?: string;
   defaultVersionId?: string;
   fields: ResolvedFormFields;
@@ -68,7 +70,7 @@ export function IntakeShell({
           onSelect={setSelectedId}
           newAction={createNewIntakeVersion.bind(null, memberId)}
           newLabel="+ New Enrollment"
-          onDelete={currentUserIsAdmin ? deleteIntakeVersion.bind(null, memberId) : undefined}
+          onDelete={canDelete ? deleteIntakeVersion.bind(null, memberId) : undefined}
         />
 
         {version && <SignPanel memberId={memberId} version={version} currentUserIsAdmin={currentUserIsAdmin} />}

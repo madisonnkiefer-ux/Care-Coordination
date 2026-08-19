@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { authorizeMemberAccess, requireRole } from "@/lib/dal";
+import { authorizeMemberAccess, requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 
 // Logging a request to amend a record — HIPAA right to amend, 45 CFR
@@ -38,7 +38,7 @@ export async function resolveAmendmentRequest(
   _state: ResolveAmendmentState,
   formData: FormData,
 ): Promise<ResolveAmendmentState> {
-  const session = await requireRole("SUPERVISOR", "ADMIN");
+  const session = await requirePermission("RESOLVE_AMENDMENT_REQUESTS");
 
   const status = formData.get("status");
   if (status !== "ACCEPTED" && status !== "DENIED") {

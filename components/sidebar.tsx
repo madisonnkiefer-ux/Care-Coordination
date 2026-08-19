@@ -20,14 +20,14 @@ import {
 import { logout } from "@/app/actions/auth";
 import { Avatar } from "@/components/ui";
 import { NotificationBell } from "@/components/notification-bell";
-import type { Role } from "@/app/generated/prisma/client";
+import type { Permission, Role } from "@/app/generated/prisma/client";
 import type { getNotificationBellData } from "@/lib/data/notifications";
 
 type NavItem = {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  roles?: Role[];
+  permission?: Permission;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -41,19 +41,19 @@ const NAV_ITEMS: NavItem[] = [
     href: "/supervisor",
     label: "Supervisor Dashboard",
     icon: ShieldCheck,
-    roles: ["SUPERVISOR", "ADMIN"],
+    permission: "VIEW_SUPERVISOR_DASHBOARD",
   },
   {
     href: "/reports",
     label: "Reports",
     icon: BarChart3,
-    roles: ["SUPERVISOR", "ADMIN"],
+    permission: "VIEW_REPORTS",
   },
   {
     href: "/billing",
     label: "Billing",
     icon: Receipt,
-    roles: ["SUPERVISOR", "ADMIN"],
+    permission: "VIEW_BILLING",
   },
 ];
 
@@ -61,14 +61,14 @@ const SETTINGS_ITEM: NavItem = {
   href: "/settings",
   label: "Settings",
   icon: Settings,
-  roles: ["ADMIN"],
+  permission: "VIEW_SETTINGS",
 };
 
 export function Sidebar({
   user,
   notificationData,
 }: {
-  user: { name: string; email: string; role: Role };
+  user: { name: string; email: string; role: Role; permissions: Permission[] };
   notificationData: Awaited<ReturnType<typeof getNotificationBellData>>;
 }) {
   const pathname = usePathname();
@@ -88,7 +88,7 @@ export function Sidebar({
       </div>
 
       <nav className="overflow-y-auto py-4 px-3 space-y-1">
-        {NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(user.role)).map(
+        {NAV_ITEMS.filter((item) => !item.permission || user.permissions.includes(item.permission)).map(
           (item) => {
             const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             const Icon = item.icon;
@@ -118,7 +118,7 @@ export function Sidebar({
             <p className="truncate text-xs text-stone-500">{roleLabel(user.role)}</p>
           </div>
         </div>
-        {(!SETTINGS_ITEM.roles || SETTINGS_ITEM.roles.includes(user.role)) && (
+        {(!SETTINGS_ITEM.permission || user.permissions.includes(SETTINGS_ITEM.permission)) && (
           <Link
             href={SETTINGS_ITEM.href}
             className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${

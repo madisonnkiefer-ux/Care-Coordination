@@ -9,7 +9,7 @@ import { formatDate, formatDateTime, titleCase } from "@/lib/format";
 export default async function TasksPage({ searchParams }: { searchParams: Promise<{ note?: string }> }) {
   const { note } = await searchParams;
   const { session, openTasks, completedTasks, notes, members, coordinators } = await getTasksPageData();
-  const canAssign = session.role === "SUPERVISOR" || session.role === "ADMIN";
+  const canAssign = session.permissions.includes("ASSIGN_WORK_TO_OTHERS");
   const returnPath = "/tasks";
 
   return (

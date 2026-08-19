@@ -1,11 +1,11 @@
 import ExcelJS from "exceljs";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { getMonthlyActivityReport } from "@/lib/data/monthly-activity-report";
 import { formatDate } from "@/lib/format";
 
 export async function POST(request: Request) {
-  const session = await requireRole("SUPERVISOR", "ADMIN");
+  const session = await requirePermission("EXPORT_REPORTS");
   const formData = await request.formData();
 
   const startRaw = formData.get("startDate");

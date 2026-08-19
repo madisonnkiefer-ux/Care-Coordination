@@ -20,10 +20,10 @@ export async function requestHomeVisit(formData: FormData) {
   const member = await db.member.findUnique({ where: { id: memberId } });
   if (!member || member.clinicId !== session.clinicId) throw new Error("Forbidden");
 
-  const isSupervisor = session.role === "SUPERVISOR" || session.role === "ADMIN";
+  const canAssignToOthers = session.permissions.includes("ASSIGN_WORK_TO_OTHERS");
   let assignedCoordinatorId = session.userId;
 
-  if (isSupervisor) {
+  if (canAssignToOthers) {
     const requested = str(formData, "assignedCoordinatorId");
     if (requested) {
       const coordinator = await db.user.findUnique({ where: { id: requested } });
@@ -70,8 +70,8 @@ export async function cancelHomeVisitRequest(requestId: string) {
   const request = await db.homeVisitRequest.findUnique({ where: { id: requestId }, include: { member: true } });
   if (!request || request.member.clinicId !== session.clinicId) throw new Error("Forbidden");
 
-  const isSupervisor = session.role === "SUPERVISOR" || session.role === "ADMIN";
-  if (!isSupervisor && request.assignedCoordinatorId !== session.userId && request.requestedById !== session.userId) {
+  const canAssignToOthers = session.permissions.includes("ASSIGN_WORK_TO_OTHERS");
+  if (!canAssignToOthers && request.assignedCoordinatorId !== session.userId && request.requestedById !== session.userId) {
     throw new Error("Forbidden");
   }
 

@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { TERMINAL_STATUSES } from "@/lib/member-status";
 import { firstEnrollmentDate, getComplianceCadence, getWindowStart, isTouchpointCompliant, progressNotesToContacts } from "@/lib/touchpoint-compliance";
@@ -11,7 +11,7 @@ import { addBusinessDays, businessDaysBetween } from "@/lib/business-days";
 const INITIAL_CCP_DUE_BUSINESS_DAYS = 14;
 
 export async function getSupervisorData() {
-  const session = await requireRole("SUPERVISOR", "ADMIN");
+  const session = await requirePermission("VIEW_SUPERVISOR_DASHBOARD");
   const clinicId = session.clinicId;
 
   await writeAuditLog({

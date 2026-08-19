@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 
@@ -26,7 +26,7 @@ export async function getAmendmentRequestsForMember(memberId: string) {
 // Clinic-wide view for the Settings > Patient Rights tab, so open requests
 // don't get missed just because nobody happens to be on that member's chart.
 export async function getAllAmendmentRequests() {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("RESOLVE_AMENDMENT_REQUESTS");
 
   await writeAuditLog({
     userId: session.userId,
@@ -48,7 +48,7 @@ export async function getAllAmendmentRequests() {
 // Full-record releases (right-to-access fulfillments), read off the audit
 // trail — this is the HIPAA accounting-of-disclosures view.
 export async function getRecordExportLog() {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("RESOLVE_AMENDMENT_REQUESTS");
 
   return db.auditLog.findMany({
     where: { action: "EXPORT", resource: "MemberRecordExport", user: { clinicId: session.clinicId } },

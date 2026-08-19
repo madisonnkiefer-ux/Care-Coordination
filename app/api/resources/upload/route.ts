@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { s3, DOCUMENTS_BUCKET } from "@/lib/s3";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 
 // Same presigned-POST pattern as /api/documents/upload — the file goes
 // straight from the browser to the private bucket, never through this
@@ -12,7 +12,7 @@ const ALLOWED_CONTENT_TYPE = "application/pdf";
 const MAX_SIZE_BYTES = 25 * 1024 * 1024;
 
 export async function POST(request: Request) {
-  const session = await requireRole("ADMIN", "SUPERVISOR");
+  const session = await requirePermission("MANAGE_RESOURCES");
   const { fileName } = (await request.json()) as { fileName?: string };
 
   if (!fileName) {

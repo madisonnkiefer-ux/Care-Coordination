@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getCarePlanFormData } from "@/lib/data/care-plan";
 import { getGeneralCommunicationFormData } from "@/lib/data/general-communication";
 import { getHedisFormData } from "@/lib/data/hedis";
-import { getCurrentUser, verifySession } from "@/lib/dal";
+import { verifySession } from "@/lib/dal";
 import { getFormFieldOverrides } from "@/lib/data/form-fields";
 import { getActiveCustomQuestionDefs, getCustomAnswersByRecord } from "@/lib/data/custom-questions";
 import { PageHeader } from "@/components/ui";
@@ -23,18 +23,17 @@ export default async function CarePlanPage({
   const { tab, version } = await searchParams;
 
   const session = await verifySession();
-  const [carePlanData, commData, hedisData, currentUser, fields] = await Promise.all([
+  const [carePlanData, commData, hedisData, fields] = await Promise.all([
     getCarePlanFormData(id),
     getGeneralCommunicationFormData(id),
     getHedisFormData(id),
-    getCurrentUser(),
     getFormFieldOverrides(session.clinicId),
   ]);
 
   if (!carePlanData || !commData || !hedisData) notFound();
 
   const { member, records: carePlans } = carePlanData;
-  const currentUserIsAdmin = currentUser?.role === "ADMIN";
+  const canDelete = session.permissions.includes("DELETE_RECORDS");
 
   const [ccpQuestionDefs, generalCommQuestionDefs, ccpAnswers, generalCommAnswers] = await Promise.all([
     getActiveCustomQuestionDefs(session.clinicId, "ccp"),
@@ -62,7 +61,7 @@ export default async function CarePlanPage({
                 memberId={id}
                 records={carePlans}
                 defaultVersionId={version}
-                currentUserIsAdmin={currentUserIsAdmin}
+                currentUserIsAdmin={canDelete}
                 fields={fields}
                 customQuestionDefs={ccpQuestionDefs}
                 customAnswersByRecord={ccpAnswers}

@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { getFullMemberRecordForExport } from "@/lib/data/record-export";
 
@@ -10,7 +10,7 @@ import { getFullMemberRecordForExport } from "@/lib/data/record-export";
 // trail for these releases (see Settings > Patient Rights).
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await requireRole("SUPERVISOR", "ADMIN");
+  const session = await requirePermission("EXPORT_MEMBER_RECORD");
 
   const record = await getFullMemberRecordForExport(id);
   if (!record) return new Response("Not found", { status: 404 });

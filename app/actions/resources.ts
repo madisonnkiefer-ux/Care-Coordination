@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 
 function str(formData: FormData, key: string) {
@@ -23,7 +23,7 @@ function requireOwnDocumentKey(formData: FormData, clinicId: string) {
 }
 
 export async function createResource(formData: FormData) {
-  const session = await requireRole("ADMIN", "SUPERVISOR");
+  const session = await requirePermission("MANAGE_RESOURCES");
 
   const name = str(formData, "name");
   if (!name) return;
@@ -58,7 +58,7 @@ export async function createResource(formData: FormData) {
 }
 
 export async function updateResource(resourceId: string, formData: FormData) {
-  const session = await requireRole("ADMIN", "SUPERVISOR");
+  const session = await requirePermission("MANAGE_RESOURCES");
 
   const target = await db.resourceEntry.findUnique({ where: { id: resourceId } });
   if (!target || target.clinicId !== session.clinicId) throw new Error("Not found");
@@ -103,7 +103,7 @@ export async function updateResource(resourceId: string, formData: FormData) {
 }
 
 export async function deleteResource(resourceId: string) {
-  const session = await requireRole("ADMIN", "SUPERVISOR");
+  const session = await requirePermission("MANAGE_RESOURCES");
 
   const target = await db.resourceEntry.findUnique({ where: { id: resourceId } });
   if (!target || target.clinicId !== session.clinicId) throw new Error("Not found");

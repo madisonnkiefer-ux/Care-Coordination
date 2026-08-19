@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import type { CustomQuestionDef } from "@/lib/custom-questions-shared";
 
 export type { CustomQuestionDef, CustomQuestionForRecord } from "@/lib/custom-questions-shared";
@@ -55,7 +55,7 @@ export type SettingsCustomQuestion = {
 // Settings → Form Content → Additional Questions: every question (active or
 // retired) this clinic has defined, admin-only.
 export async function getCustomQuestionsForSettings(): Promise<SettingsCustomQuestion[]> {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_FORM_CONTENT");
   const questions = await db.customQuestion.findMany({
     where: { clinicId: session.clinicId },
     orderBy: [{ form: "asc" }, { order: "asc" }, { createdAt: "asc" }],

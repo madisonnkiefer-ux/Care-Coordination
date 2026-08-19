@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 
 const LOOKBACK_DAYS = 30;
 
@@ -42,7 +42,7 @@ export type FailedLoginAlert = {
 };
 
 export async function getSecurityAlerts() {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("VIEW_SECURITY_ALERTS");
   const clinicId = session.clinicId;
   const since = new Date(Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
 

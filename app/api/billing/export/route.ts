@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { getBillingRoster } from "@/lib/data/billing";
@@ -12,7 +12,7 @@ import { formatDate, titleCase } from "@/lib/format";
 // + audit log) per the "who/when/which filters/how many" recordkeeping
 // requirement for finalized monthly rosters.
 export async function POST(request: Request) {
-  const session = await requireRole("SUPERVISOR", "ADMIN");
+  const session = await requirePermission("EXPORT_BILLING");
   const formData = await request.formData();
 
   const str = (key: string) => {

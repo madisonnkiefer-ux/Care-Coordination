@@ -1,10 +1,10 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { requireRole } from "@/lib/dal";
+import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 
 export async function getClinicUsers() {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("MANAGE_USERS");
 
   return db.user.findMany({
     where: { clinicId: session.clinicId },
@@ -19,6 +19,7 @@ export async function getClinicUsers() {
       lastLoginAt: true,
       lockedUntil: true,
       mfaEnabled: true,
+      customRole: { select: { id: true, name: true } },
     },
   });
 }
@@ -27,7 +28,7 @@ export async function getClinicUsers() {
 // legitimate place that needs deleted rows back — bypasses the default
 // exclusion in lib/db.ts by explicitly filtering on deletedAt itself.
 export async function getDeletedMembers() {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("DELETE_RECORDS");
 
   await writeAuditLog({
     userId: session.userId,
@@ -55,7 +56,7 @@ export async function getDeletedMembers() {
 // exposes office metadata only (name, code, staff count), never another
 // office's members or PHI.
 export async function getAllOffices() {
-  await requireRole("ADMIN");
+  await requirePermission("MANAGE_OFFICES");
 
   return db.clinic.findMany({
     orderBy: { name: "asc" },

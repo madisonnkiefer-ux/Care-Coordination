@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { verifySession, requireRole } from "@/lib/dal";
+import { verifySession, requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { generateTotpSecret, verifyTotpCode, generateBackupCodes, hashBackupCodes } from "@/lib/mfa";
 
@@ -102,7 +102,7 @@ export async function disableMfa(_state: DisableMfaState, formData: FormData): P
 // back on password-only login and can re-enroll from /account), since
 // there's no way to verify a lost device's original secret.
 export async function adminResetMfa(userId: string) {
-  const session = await requireRole("ADMIN");
+  const session = await requirePermission("RESET_USER_MFA");
 
   const target = await db.user.findUnique({ where: { id: userId } });
   if (!target || target.clinicId !== session.clinicId) throw new Error("Not found");
