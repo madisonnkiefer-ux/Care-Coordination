@@ -8,6 +8,24 @@ resource "aws_s3_bucket" "documents" {
   bucket = "${local.name_prefix}-documents-${data.aws_caller_identity.current.account_id}"
 }
 
+# Uploads go straight from the browser to this bucket via a presigned POST
+# (app/api/documents/upload and app/api/resources/upload) — the client
+# fetch()es the bucket's own endpoint directly, which is cross-origin from
+# avanza.care's perspective. Without this, the browser blocks the
+# upload response entirely — the request reaches S3 fine, but the client
+# never sees a successful response, so it just looks broken with no
+# server-side error to find.
+resource "aws_s3_bucket_cors_configuration" "documents" {
+  bucket = aws_s3_bucket.documents.id
+
+  cors_rule {
+    allowed_origins = ["https://${var.domain_name}"]
+    allowed_methods = ["POST"]
+    allowed_headers = ["*"]
+    max_age_seconds = 3000
+  }
+}
+
 resource "aws_s3_bucket_versioning" "documents" {
   bucket = aws_s3_bucket.documents.id
   versioning_configuration {
