@@ -12,18 +12,18 @@ terraform {
     }
   }
 
-  # Uncomment and fill in once you have an S3 bucket + DynamoDB table for
-  # remote state (create these by hand once, outside this config, so state
-  # locking works from the start). Local state is fine to start with, but
-  # move off it before more than one person touches this.
-  #
-  # backend "s3" {
-  #   bucket         = "carecoord-hub-terraform-state"
-  #   key            = "carecoord-hub/terraform.tfstate"
-  #   region         = "us-east-1"
-  #   dynamodb_table = "carecoord-hub-terraform-locks"
-  #   encrypt        = true
-  # }
+  # Bucket + table created by hand (AWS CLI, not this config — a backend
+  # can't bootstrap the resources it depends on to store its own state).
+  # Both are versioned/KMS-encrypted/public-access-blocked to match the
+  # rest of this account's S3 posture; see infra/README.md's "Remote
+  # state" section for the exact commands used to create them.
+  backend "s3" {
+    bucket         = "carecoord-hub-pilot-terraform-state-413790912837"
+    key            = "carecoord-hub-pilot/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "carecoord-hub-pilot-terraform-locks"
+    encrypt        = true
+  }
 }
 
 provider "aws" {

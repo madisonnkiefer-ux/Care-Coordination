@@ -104,10 +104,48 @@ re-run the same way.
 
 ## Remote state
 
-This config uses local state by default. Before more than one person
-applies changes, create an S3 bucket + DynamoDB table for remote state and
-uncomment the `backend "s3"` block in `versions.tf` — do this early, state
-files can contain sensitive values.
+State lives in S3 (versioned, KMS-encrypted, public access blocked, TLS-only
+bucket policy) with a DynamoDB table for locking — not in this config, since
+a backend can't bootstrap the resources it depends on to store its own
+state. They were created once, by hand:
+
+```bash
+BUCKET=carecoord-hub-pilot-terraform-state-413790912837
+TABLE=carecoord-hub-pilot-terraform-locks
+KMS_ARN=arn:aws:kms:us-east-1:413790912837:key/42950557-143c-47c3-9b88-02f091409a2a
+
+aws s3api create-bucket --bucket "$BUCKET" --region us-east-1
+aws s3api put-bucket-versioning --bucket "$BUCKET" --versioning-configuration Status=Enabled
+aws s3api put-bucket-encryption --bucket "$BUCKET" --server-side-encryption-configuration \
+  '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"aws:kms","KMSMasterKeyID":"'"$KMS_ARN"'"},"BucketKeyEnabled":true}]}'
+aws s3api put-public-access-block --bucket "$BUCKET" --public-access-block-configuration \
+  BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+aws s3api put-bucket-policy --bucket "$BUCKET" --policy \
+  '{"Version":"2012-10-17","Statement":[{"Sid":"DenyInsecureTransport","Effect":"Deny","Principal":"*","Action":"s3:*","Resource":["arn:aws:s3:::'"$BUCKET"'","arn:aws:s3:::'"$BUCKET"'/*"],"Condition":{"Bool":{"aws:SecureTransport":"false"}}}]}'
+
+aws dynamodb create-table --table-name "$TABLE" \
+  --attribute-definitions AttributeName=LockID,AttributeType=S \
+  --key-schema AttributeName=LockID,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST \
+  --sse-specification Enabled=true,SSEType=KMS,KMSMasterKeyId=42950557-143c-47c3-9b88-02f091409a2a \
+  --region us-east-1
+```
+
+Migrating an existing local state file onto this backend is a one-time
+`terraform init -migrate-state` from wherever that local state file already
+lives — it copies the state, it doesn't touch any real AWS resources:
+
+```bash
+cd infra
+git pull
+terraform init -migrate-state
+# "Do you want to copy existing state to the new backend?" -> yes
+```
+
+After that, `terraform.tfstate` (and its `.backup`) can be deleted locally —
+state now lives in S3, and `terraform plan`/`apply` from any machine with
+the right AWS credentials will read/write it there, with DynamoDB
+preventing two concurrent applies from stepping on each other.
 
 ## Cost note
 
