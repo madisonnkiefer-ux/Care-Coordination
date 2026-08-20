@@ -17,6 +17,16 @@ import { getSession } from "@/lib/dal";
 import { isLockedOut, recordLoginFailure, recordLoginSuccess, GENERIC_LOGIN_ERROR } from "@/lib/auth-lockout";
 import { verifyTotpCode, consumeBackupCode } from "@/lib/mfa";
 import { resolveUserPermissions } from "@/lib/data/permissions";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+// Complements the per-account lockout in lib/auth-lockout.ts, which only
+// engages after repeated failures against the *same* account — an attacker
+// trying many different emails from one IP never trips it. Generous enough
+// that a shared clinic office IP retrying a forgotten password isn't at
+// real risk of hitting it.
+const RATE_LIMIT_ATTEMPTS = 15;
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const RATE_LIMIT_ERROR = "Too many attempts from this network. Please wait a few minutes and try again.";
 
 const LoginSchema = z.object({
   email: z.email({ error: "Enter a valid email." }),
@@ -39,6 +49,10 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
 
   const { email, password, officeCode } = validated.data;
   const ipAddress = (await headers()).get("x-forwarded-for") ?? undefined;
+
+  if (ipAddress && !checkRateLimit(`login:${ipAddress}`, RATE_LIMIT_ATTEMPTS, RATE_LIMIT_WINDOW_MS)) {
+    return { error: RATE_LIMIT_ERROR };
+  }
 
   const user = await db.user.findUnique({ where: { email }, include: { clinic: true } });
 
@@ -105,6 +119,10 @@ export type MfaVerifyState = { error?: string } | undefined;
 export async function verifyMfaCode(_state: MfaVerifyState, formData: FormData): Promise<MfaVerifyState> {
   const code = String(formData.get("code") ?? "").trim();
   const ipAddress = (await headers()).get("x-forwarded-for") ?? undefined;
+
+  if (ipAddress && !checkRateLimit(`mfa:${ipAddress}`, RATE_LIMIT_ATTEMPTS, RATE_LIMIT_WINDOW_MS)) {
+    return { error: RATE_LIMIT_ERROR };
+  }
 
   const userId = await readMfaPendingUserId();
   if (!userId) {
