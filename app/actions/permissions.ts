@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requirePermission } from "@/lib/dal";
+import { requireRole } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { ALL_PERMISSIONS } from "@/lib/permissions";
 import { setRolePermissions, createCustomRole, setCustomRolePermissions, deleteCustomRole } from "@/lib/data/permissions";
@@ -75,7 +75,11 @@ export async function removeCustomRole(customRoleId: string) {
 // base-role business logic behind them, e.g. no real signing authority
 // even if the permission grid says otherwise).
 export async function assignCustomRole(userId: string, customRoleId: string | null) {
-  const session = await requirePermission("MANAGE_USERS");
+  // Every other write in this file is requireRole("ADMIN"), never
+  // requirePermission — MANAGE_USERS is a delegatable permission, and this
+  // still edits what permission set a user effectively has, so it must not
+  // be reachable by anyone who isn't an actual Admin.
+  const session = await requireRole("ADMIN");
 
   const target = await db.user.findUnique({ where: { id: userId } });
   if (!target || target.clinicId !== session.clinicId) throw new Error("Not found");

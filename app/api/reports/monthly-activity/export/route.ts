@@ -6,6 +6,9 @@ import { formatDate } from "@/lib/format";
 
 export async function POST(request: Request) {
   const session = await requirePermission("EXPORT_REPORTS");
+  // proxy.ts's MFA-enrollment redirect never runs for /api routes — see
+  // app/api/documents/[id]/route.ts's matching comment.
+  if (!session.mfaEnabled) return new Response("MFA setup required", { status: 403 });
   const formData = await request.formData();
 
   const startRaw = formData.get("startDate");

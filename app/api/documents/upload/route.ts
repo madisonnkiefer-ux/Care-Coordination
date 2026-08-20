@@ -22,9 +22,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing memberId or fileName" }, { status: 400 });
   }
 
-  const { member } = await authorizeMemberAccess(memberId);
+  const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  // proxy.ts's MFA-enrollment redirect never runs for /api routes — see
+  // app/api/documents/[id]/route.ts's matching comment.
+  if (!session.mfaEnabled) {
+    return NextResponse.json({ error: "MFA setup required" }, { status: 403 });
   }
 
   const key = `${memberId}/${randomUUID()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
@@ -39,7 +44,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ url, fields, key });
-  } catch (error) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
+  } catch {
+    return NextResponse.json({ error: "Could not prepare upload." }, { status: 400 });
   }
 }

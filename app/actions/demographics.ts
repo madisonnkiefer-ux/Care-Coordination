@@ -124,5 +124,12 @@ export async function saveDemographics(memberId: string, demographicsId: string,
   });
 
   revalidatePath(`/members/${memberId}/intake`);
+  // Demographics writes Member.firstName/lastName/phone/etc directly (not
+  // just the intake record), which the Members list and this member's own
+  // chart header (a separate route from /intake) both surface — without
+  // these, an edit here looked saved but appeared stale everywhere else
+  // until an unrelated revalidation happened to touch the same paths.
+  revalidatePath(`/members/${memberId}`);
+  revalidatePath("/members");
   redirect(`/members/${memberId}/intake?tab=demographics`);
 }

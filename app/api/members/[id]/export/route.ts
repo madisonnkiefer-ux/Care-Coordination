@@ -11,6 +11,9 @@ import { getFullMemberRecordForExport } from "@/lib/data/record-export";
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await requirePermission("EXPORT_MEMBER_RECORD");
+  // proxy.ts's MFA-enrollment redirect never runs for /api routes — see
+  // app/api/documents/[id]/route.ts's matching comment.
+  if (!session.mfaEnabled) return new Response("MFA setup required", { status: 403 });
 
   const record = await getFullMemberRecordForExport(id);
   if (!record) return new Response("Not found", { status: 404 });

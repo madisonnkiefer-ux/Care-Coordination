@@ -34,7 +34,12 @@ const CSV_HEADERS = [
 ];
 
 function csvCell(value: string) {
-  return /[",\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+  // See components/reports/reports-client.tsx's downloadCsv for why: a
+  // leading =/+/-/@ is a formula trigger in Excel/Sheets, and member names
+  // land here unvalidated.
+  let v = value;
+  if (/^[=+\-@]/.test(v)) v = `'${v}`;
+  return /[",\n]/.test(v) ? `"${v.replaceAll('"', '""')}"` : v;
 }
 
 function downloadCsv(rows: MemberRow[], filenamePrefix: string) {

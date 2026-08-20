@@ -275,5 +275,10 @@ export async function saveCna(memberId: string, cnaId: string, formData: FormDat
   });
 
   revalidatePath(`/members/${memberId}/intake`);
+  // The Members list's CNA-date columns and the dashboard's CNA-due count
+  // both read cnaAssessments directly — without these, completing a CNA
+  // wouldn't clear it from either view until an unrelated revalidation.
+  revalidatePath("/members");
+  revalidatePath("/");
   redirect(`/members/${memberId}/intake?tab=cna`);
 }

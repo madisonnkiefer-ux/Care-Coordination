@@ -13,6 +13,11 @@ const MAX_SIZE_BYTES = 25 * 1024 * 1024;
 
 export async function POST(request: Request) {
   const session = await requirePermission("MANAGE_RESOURCES");
+  // proxy.ts's MFA-enrollment redirect never runs for /api routes — see
+  // app/api/documents/[id]/route.ts's matching comment.
+  if (!session.mfaEnabled) {
+    return NextResponse.json({ error: "MFA setup required" }, { status: 403 });
+  }
   const { fileName } = (await request.json()) as { fileName?: string };
 
   if (!fileName) {

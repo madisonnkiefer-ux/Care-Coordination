@@ -89,7 +89,11 @@ export async function changeMemberStatus(memberId: string, formData: FormData) {
     }
   }
 
-  revalidatePath(`/members/${memberId}`);
+  // "layout" (not the default "page") busts every tab under this member's
+  // shared layout — care-plan/toc/intake all render the same status badge
+  // via that layout, and without this they'd keep showing the old status
+  // until an unrelated revalidation happened to touch them too.
+  revalidatePath(`/members/${memberId}`, "layout");
   revalidatePath("/members");
   revalidatePath("/supervisor");
 }
@@ -133,7 +137,7 @@ export async function approveStatusChange(memberId: string, statusChangeId: stri
     memberId,
   });
 
-  revalidatePath(`/members/${memberId}`);
+  revalidatePath(`/members/${memberId}`, "layout");
   revalidatePath("/members");
   revalidatePath("/supervisor");
 }
@@ -177,6 +181,6 @@ export async function rejectStatusChange(memberId: string, statusChangeId: strin
     });
   }
 
-  revalidatePath(`/members/${memberId}`);
+  revalidatePath(`/members/${memberId}`, "layout");
   revalidatePath("/supervisor");
 }

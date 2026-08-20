@@ -51,7 +51,13 @@ function toInputDate(d: Date) {
 
 function downloadCsv(filename: string, headers: string[], rows: (string | number)[][]) {
   const escape = (v: string | number) => {
-    const s = String(v ?? "");
+    // A leading =, +, -, or @ is a formula trigger in Excel/Sheets — member
+    // names and other free-text fields end up in these exports unvalidated,
+    // so without this a crafted name becomes an executing formula the
+    // moment staff open the file. The leading apostrophe forces text
+    // interpretation without altering the underlying value.
+    let s = String(v ?? "");
+    if (/^[=+\-@]/.test(s)) s = `'${s}`;
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const csv = [headers, ...rows].map((row) => row.map(escape).join(",")).join("\n");

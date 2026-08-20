@@ -36,6 +36,16 @@ export async function createUser(_state: CreateUserState, formData: FormData): P
 
   const { name, email, password, role } = validated.data;
 
+  // Minting an Admin account is equivalent to full control of the
+  // permissions system (lib/data/permissions.ts is deliberately gated to
+  // requireRole("ADMIN"), never requirePermission, for exactly this
+  // reason) — MANAGE_USERS is a delegatable permission, so without this
+  // check a Supervisor granted it could create a brand-new Admin account
+  // and log in as it, going around that gate entirely.
+  if (role === "ADMIN" && session.role !== "ADMIN") {
+    return { error: "Only an Admin can create another Admin account." };
+  }
+
   const existing = await db.user.findUnique({ where: { email } });
   if (existing) {
     return { error: "A user with that email already exists." };
@@ -70,6 +80,13 @@ export async function updateUserRole(userId: string, formData: FormData) {
     throw new Error("Invalid role");
   }
   if (role === target.role) return;
+
+  // Same invariant as createUser above: promoting someone to Admin, or
+  // changing an existing Admin's role, must go through an actual Admin —
+  // not just whoever holds the delegatable MANAGE_USERS permission.
+  if ((role === "ADMIN" || target.role === "ADMIN") && session.role !== "ADMIN") {
+    throw new Error("Only an Admin can grant or change Admin access.");
+  }
 
   // A custom role is always based on one specific built-in role (see
   // CustomRole.basedOn) — changing the base role out from under it would

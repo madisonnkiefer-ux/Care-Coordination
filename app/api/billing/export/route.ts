@@ -13,6 +13,9 @@ import { formatDate, titleCase } from "@/lib/format";
 // requirement for finalized monthly rosters.
 export async function POST(request: Request) {
   const session = await requirePermission("EXPORT_BILLING");
+  // proxy.ts's MFA-enrollment redirect never runs for /api routes — see
+  // app/api/documents/[id]/route.ts's matching comment.
+  if (!session.mfaEnabled) return new Response("MFA setup required", { status: 403 });
   const formData = await request.formData();
 
   const str = (key: string) => {

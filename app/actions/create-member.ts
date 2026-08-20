@@ -36,6 +36,12 @@ export async function createMember(_state: CreateMemberState, formData: FormData
   // one via Caseload Management. The form already hides this field for
   // coordinators; this is the server-side backstop.
   const assignedCoordinatorId = session.role === "CARE_COORDINATOR" ? null : str("assignedCoordinatorId");
+  if (assignedCoordinatorId) {
+    const coordinator = await db.user.findUnique({ where: { id: assignedCoordinatorId } });
+    if (!coordinator || coordinator.clinicId !== session.clinicId) {
+      return { error: "Choose a valid care coordinator." };
+    }
+  }
   const eddRaw = str("edd");
   const programRaw = str("program");
   const program = programRaw && PATIENT_TYPES.includes(programRaw) ? programRaw : null;
@@ -47,34 +53,32 @@ export async function createMember(_state: CreateMemberState, formData: FormData
   const autoActivate = Boolean(assignedCoordinatorId) && requestedStatus !== "ACTIVE" && !isTerminalStatus(requestedStatus);
   const status = autoActivate ? "ACTIVE" : requestedStatus;
 
-  const member = await db.member.create({
-    data: {
-      clinicId: session.clinicId,
-      firstName,
-      lastName,
-      dateOfBirth: new Date(dateOfBirthRaw),
-      phone: str("phone"),
-      medicaidId: str("medicaidId"),
-      memberIdExternal: str("memberIdExternal"),
-      subscriberId: str("subscriberId"),
-      program,
-      status,
-      cclLevel,
-      edd: eddRaw ? new Date(eddRaw) : null,
-      assignedCoordinatorId,
-    },
-  });
+  // Both writes must land together — same reasoning as reassignMember in
+  // app/actions/member-assignment.ts: a member created with status ACTIVE
+  // but no MemberStatusChange explaining why is an unexplained gap in the
+  // status audit trail this table exists to provide.
+  const { member, change } = await db.$transaction(async (tx) => {
+    const member = await tx.member.create({
+      data: {
+        clinicId: session.clinicId,
+        firstName,
+        lastName,
+        dateOfBirth: new Date(dateOfBirthRaw),
+        phone: str("phone"),
+        medicaidId: str("medicaidId"),
+        memberIdExternal: str("memberIdExternal"),
+        subscriberId: str("subscriberId"),
+        program,
+        status,
+        cclLevel,
+        edd: eddRaw ? new Date(eddRaw) : null,
+        assignedCoordinatorId,
+      },
+    });
 
-  await writeAuditLog({
-    userId: session.userId,
-    memberId: member.id,
-    action: "CREATE",
-    resource: "Member",
-    resourceId: member.id,
-  });
+    if (!autoActivate) return { member, change: null };
 
-  if (autoActivate) {
-    const change = await db.memberStatusChange.create({
+    const change = await tx.memberStatusChange.create({
       data: {
         memberId: member.id,
         fromStatus: requestedStatus,
@@ -88,6 +92,18 @@ export async function createMember(_state: CreateMemberState, formData: FormData
       },
     });
 
+    return { member, change };
+  });
+
+  await writeAuditLog({
+    userId: session.userId,
+    memberId: member.id,
+    action: "CREATE",
+    resource: "Member",
+    resourceId: member.id,
+  });
+
+  if (change) {
     await writeAuditLog({
       userId: session.userId,
       memberId: member.id,

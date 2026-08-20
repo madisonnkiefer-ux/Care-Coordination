@@ -15,6 +15,10 @@ export async function reassignMember(memberId: string, formData: FormData) {
 
   const raw = formData.get("coordinatorId");
   const newCoordinatorId = typeof raw === "string" && raw ? raw : null;
+  if (newCoordinatorId) {
+    const coordinator = await db.user.findUnique({ where: { id: newCoordinatorId } });
+    if (!coordinator || coordinator.clinicId !== session.clinicId) throw new Error("Forbidden");
+  }
 
   // A member's first-ever coordinator assignment starts their billing clock —
   // mark them Active right away rather than waiting on someone to remember
@@ -27,22 +31,18 @@ export async function reassignMember(memberId: string, formData: FormData) {
     member.status !== "ACTIVE" &&
     !isTerminalStatus(member.status);
 
-  await db.member.update({
-    where: { id: memberId },
-    data: { assignedCoordinatorId: newCoordinatorId, ...(autoActivate ? { status: "ACTIVE" } : {}) },
-  });
+  // Both writes must land together — a member left with status ACTIVE but
+  // no MemberStatusChange explaining why (or vice versa) is an unexplained
+  // gap in the status audit trail this table exists to provide.
+  const change = await db.$transaction(async (tx) => {
+    await tx.member.update({
+      where: { id: memberId },
+      data: { assignedCoordinatorId: newCoordinatorId, ...(autoActivate ? { status: "ACTIVE" } : {}) },
+    });
 
-  await writeAuditLog({
-    userId: session.userId,
-    memberId,
-    action: "UPDATE",
-    resource: "Member",
-    resourceId: memberId,
-    metadata: { previousCoordinatorId: member.assignedCoordinatorId, newCoordinatorId, autoActivated: autoActivate },
-  });
+    if (!autoActivate) return null;
 
-  if (autoActivate) {
-    const change = await db.memberStatusChange.create({
+    return tx.memberStatusChange.create({
       data: {
         memberId,
         fromStatus: member.status,
@@ -55,7 +55,18 @@ export async function reassignMember(memberId: string, formData: FormData) {
         approvedAt: new Date(),
       },
     });
+  });
 
+  await writeAuditLog({
+    userId: session.userId,
+    memberId,
+    action: "UPDATE",
+    resource: "Member",
+    resourceId: memberId,
+    metadata: { previousCoordinatorId: member.assignedCoordinatorId, newCoordinatorId, autoActivated: autoActivate },
+  });
+
+  if (change) {
     await writeAuditLog({
       userId: session.userId,
       memberId,

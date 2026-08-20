@@ -12,6 +12,9 @@ import { s3, DOCUMENTS_BUCKET } from "@/lib/s3";
 // patient record.
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await verifySession();
+  // proxy.ts's MFA-enrollment redirect never runs for /api routes — see
+  // app/api/documents/[id]/route.ts's matching comment.
+  if (!session.mfaEnabled) return new NextResponse("MFA setup required", { status: 403 });
   const { id } = await params;
 
   const resource = await db.resourceEntry.findUnique({ where: { id } });
@@ -26,6 +29,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       "Content-Type": object.ContentType ?? "application/pdf",
       "Content-Disposition": `inline; filename="${(resource.documentName ?? "resource.pdf").replace(/"/g, "")}"`,
       "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }
