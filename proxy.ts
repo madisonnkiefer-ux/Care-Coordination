@@ -85,6 +85,19 @@ export default async function proxy(request: NextRequest) {
     return applyHeaders(NextResponse.redirect(new URL("/", request.url)));
   }
 
+  // MFA enforcement for the two highest-access roles: user management,
+  // full-record exports, and (for Admin) editing what every other role can
+  // see are reachable with a password alone otherwise. /account stays
+  // reachable so there's always a way to actually enroll.
+  const needsMfaEnrollment =
+    session &&
+    !session.mfaEnabled &&
+    (session.role === "ADMIN" || session.role === "SUPERVISOR") &&
+    !pathname.startsWith("/account");
+  if (needsMfaEnrollment) {
+    return applyHeaders(NextResponse.redirect(new URL("/account?mfaRequired=1", request.url)));
+  }
+
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", headers["Content-Security-Policy"]);

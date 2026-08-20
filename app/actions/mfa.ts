@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { verifySession, requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { createSession } from "@/lib/session";
 import { generateTotpSecret, verifyTotpCode, generateBackupCodes, hashBackupCodes } from "@/lib/mfa";
 
 export async function startMfaEnrollment() {
@@ -57,6 +58,21 @@ export async function confirmMfaEnrollment(_state: ConfirmMfaState, formData: Fo
     resourceId: session.userId,
     metadata: { mfaEnabled: true },
   });
+
+  // Re-issue the session with mfaEnabled: true right away — otherwise a
+  // Supervisor/Admin who just finished enrolling would stay stuck at
+  // /account (proxy.ts's MFA-enforcement redirect) until their next login,
+  // since the session JWT's mfaEnabled flag is only resolved at login time.
+  await createSession({
+    id: session.userId,
+    clinicId: session.clinicId,
+    role: session.role,
+    name: session.name,
+    email: session.email,
+    permissions: session.permissions,
+    mfaEnabled: true,
+  });
+
   // No revalidatePath here deliberately: the client shows the returned
   // backupCodes from PendingView's own state, and a same-transition
   // revalidation would flip the parent's `mfa` prop to "enabled" and

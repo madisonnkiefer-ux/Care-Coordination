@@ -29,6 +29,13 @@ export type SessionPayload = {
   // permission change an admin makes doesn't affect an already-logged-in
   // session until next login, same staleness tradeoff `role` already has.
   permissions: Permission[];
+  // Baked in at login for proxy.ts's MFA-enforcement redirect (Supervisor/
+  // Admin without MFA get routed to /account until they enroll) — a fast,
+  // cookie-only check needs this here rather than a DB round trip on every
+  // request. Re-issued immediately on successful enrollment (see
+  // app/actions/mfa.ts's confirmMfaEnrollment) so a user isn't stuck
+  // mid-session after finishing setup.
+  mfaEnabled: boolean;
   name: string;
   email: string;
   issuedAt: number; // ms epoch, absolute session start
@@ -61,12 +68,14 @@ export async function createSession(user: {
   name: string;
   email: string;
   permissions: Permission[];
+  mfaEnabled: boolean;
 }) {
   const payload: SessionPayload = {
     userId: user.id,
     clinicId: user.clinicId,
     role: user.role,
     permissions: user.permissions,
+    mfaEnabled: user.mfaEnabled,
     name: user.name,
     email: user.email,
     issuedAt: Date.now(),
