@@ -71,9 +71,9 @@ variable "db_backup_retention_days" {
 }
 
 variable "app_image" {
-  description = "Container image (repo:tag) to deploy to ECS. Leave as the placeholder until you've pushed a real image to the ECR repo this config creates — the ECS service won't start on the placeholder, which is expected on first apply."
+  description = "Container image (repo:tag) to deploy to ECS. Not kept in sync automatically — every app-code deploy (see DEPLOY.md) registers a new task definition revision directly via the AWS CLI, bypassing Terraform entirely (the ECS service's lifecycle.ignore_changes=[task_definition] is specifically there to let that happen without Terraform fighting it). Update this default when you touch this file for an unrelated reason, so a plan run doesn't propose reverting to a stale image."
   type        = string
-  default     = "public.ecr.aws/docker/library/nginx:latest"
+  default     = "413790912837.dkr.ecr.us-east-1.amazonaws.com/carecoord-hub-pilot-app:c94af89"
 }
 
 variable "app_port" {
@@ -110,4 +110,22 @@ variable "route53_zone_id" {
   description = "Existing Route53 hosted zone ID for domain_name. Required only if domain_name is set and you want Terraform to manage the DNS record and ACM validation."
   type        = string
   default     = ""
+}
+
+variable "app_timezone" {
+  description = "IANA timezone the app container runs in (e.g. \"America/Denver\") — every compliance-window date calculation (touchpoint cadence, CCP grace period, CNA/graduation due dates) runs in this timezone. Leave empty to run in UTC, which is almost certainly not what you want for a clinic in any US timezone."
+  type        = string
+  default     = "America/Denver"
+}
+
+variable "alert_email" {
+  description = "Email address that receives production alerts (app erroring, unreachable, or maxed out). SNS sends a one-time confirmation link to this address on first apply — it must be clicked before alerts actually deliver."
+  type        = string
+  default     = "mkiefer@riopecosmed.com"
+}
+
+variable "alert_phone" {
+  description = "Phone number (E.164 format, e.g. \"+15756529588\") that receives production alerts via SMS. Leave empty to skip SMS alerting."
+  type        = string
+  default     = "+15756529588"
 }
