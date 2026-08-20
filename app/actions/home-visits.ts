@@ -109,16 +109,33 @@ export async function logHomeVisit(formData: FormData) {
   const leftCardOrNote = leftCardOrNoteRaw === "yes" ? true : leftCardOrNoteRaw === "no" ? false : null;
   const notes = str(formData, "notes");
 
-  const visit = await db.homeVisit.create({
-    data: {
-      memberId,
-      coordinatorId: session.userId,
-      visitedAt: visitedAtRaw ? new Date(visitedAtRaw) : new Date(),
-      successful,
-      personContacted,
-      leftCardOrNote,
-      notes,
-    },
+  const visit = await db.$transaction(async (tx) => {
+    const visit = await tx.homeVisit.create({
+      data: {
+        memberId,
+        coordinatorId: session.userId,
+        visitedAt: visitedAtRaw ? new Date(visitedAtRaw) : new Date(),
+        successful,
+        personContacted,
+        leftCardOrNote,
+        notes,
+      },
+    });
+
+    // Logging the visit *is* fulfilling any matching open request — no need
+    // to make the coordinator explicitly pick which one they're closing out.
+    const openRequest = await tx.homeVisitRequest.findFirst({
+      where: { memberId, assignedCoordinatorId: session.userId, status: "OPEN" },
+      orderBy: { createdAt: "asc" },
+    });
+    if (openRequest) {
+      await tx.homeVisitRequest.update({
+        where: { id: openRequest.id },
+        data: { status: "FULFILLED", resolvedAt: new Date(), fulfilledByVisitId: visit.id },
+      });
+    }
+
+    return visit;
   });
 
   await writeAuditLog({
@@ -128,19 +145,6 @@ export async function logHomeVisit(formData: FormData) {
     resource: "HomeVisit",
     resourceId: visit.id,
   });
-
-  // Logging the visit *is* fulfilling any matching open request — no need
-  // to make the coordinator explicitly pick which one they're closing out.
-  const openRequest = await db.homeVisitRequest.findFirst({
-    where: { memberId, assignedCoordinatorId: session.userId, status: "OPEN" },
-    orderBy: { createdAt: "asc" },
-  });
-  if (openRequest) {
-    await db.homeVisitRequest.update({
-      where: { id: openRequest.id },
-      data: { status: "FULFILLED", resolvedAt: new Date(), fulfilledByVisitId: visit.id },
-    });
-  }
 
   revalidatePath("/home-visits");
 }

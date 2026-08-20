@@ -37,25 +37,29 @@ export async function changeMemberStatus(memberId: string, formData: FormData) {
   // status is. Supervisors and admins can still set status directly.
   const requiresApproval = session.role === "CARE_COORDINATOR";
 
-  const change = await db.memberStatusChange.create({
-    data: {
-      memberId,
-      fromStatus: member.status,
-      toStatus,
-      effectiveDate: new Date(effectiveDateRaw),
-      reason,
-      note,
-      changedById: session.userId,
-      requiresApproval,
-      approvedById: requiresApproval ? null : session.userId,
-      approvedAt: requiresApproval ? null : new Date(),
-      ...closureFields,
-    },
-  });
+  const change = await db.$transaction(async (tx) => {
+    const change = await tx.memberStatusChange.create({
+      data: {
+        memberId,
+        fromStatus: member.status,
+        toStatus,
+        effectiveDate: new Date(effectiveDateRaw),
+        reason,
+        note,
+        changedById: session.userId,
+        requiresApproval,
+        approvedById: requiresApproval ? null : session.userId,
+        approvedAt: requiresApproval ? null : new Date(),
+        ...closureFields,
+      },
+    });
 
-  if (!requiresApproval) {
-    await db.member.update({ where: { id: memberId }, data: { status: toStatus } });
-  }
+    if (!requiresApproval) {
+      await tx.member.update({ where: { id: memberId }, data: { status: toStatus } });
+    }
+
+    return change;
+  });
 
   await writeAuditLog({
     userId: session.userId,
@@ -99,14 +103,16 @@ export async function approveStatusChange(memberId: string, statusChangeId: stri
   }
   if (!change.requiresApproval || change.approvedAt || change.rejectedAt) throw new Error("Not pending");
 
-  await db.memberStatusChange.update({
-    where: { id: statusChangeId },
-    data: { approvedById: session.userId, approvedAt: new Date() },
-  });
+  const member = await db.$transaction(async (tx) => {
+    await tx.memberStatusChange.update({
+      where: { id: statusChangeId },
+      data: { approvedById: session.userId, approvedAt: new Date() },
+    });
 
-  const member = await db.member.update({
-    where: { id: memberId },
-    data: { status: change.toStatus },
+    return tx.member.update({
+      where: { id: memberId },
+      data: { status: change.toStatus },
+    });
   });
 
   await writeAuditLog({

@@ -20,26 +20,24 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
   // within the last 3 calendar months.
   const contactFetchFloor = new Date(now.getFullYear(), now.getMonth() - 3, 1);
 
-  const [tasksDueCount, membersForAnnualCna, membersForContactCheck] = await Promise.all([
+  // Both counts scan the same member scope, so this is one table scan with
+  // both nested includes rather than two — it ran as two separate
+  // db.member.findMany calls before, doubling the cost of a query that
+  // already fires on every page navigation via the persistent layout.
+  const [tasksDueCount, members] = await Promise.all([
     db.task.count({ where: { assigneeId: session.userId, status: "OPEN" } }),
-    db.member.findMany({
-      where: memberScope,
-      select: {
-        id: true,
-        cnaAssessments: {
-          where: { status: "COMPLETED" },
-          orderBy: { assessmentDate: "desc" },
-          take: 1,
-          select: { assessmentDate: true },
-        },
-      },
-    }),
     db.member.findMany({
       where: memberScope,
       select: {
         id: true,
         createdAt: true,
         program: true,
+        cnaAssessments: {
+          where: { status: "COMPLETED" },
+          orderBy: { assessmentDate: "desc" },
+          take: 1,
+          select: { assessmentDate: true },
+        },
         generalCommunications: {
           where: { createdAt: { gte: contactFetchFloor } },
           select: { createdAt: true, successful: true },
@@ -61,7 +59,7 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
     }),
   ]);
 
-  const annualCnaDueCount = membersForAnnualCna.filter((m) => {
+  const annualCnaDueCount = members.filter((m) => {
     const lastCnaDate = m.cnaAssessments[0]?.assessmentDate ?? null;
     const dueDate = lastCnaDate
       ? new Date(lastCnaDate.getFullYear() + 1, lastCnaDate.getMonth(), lastCnaDate.getDate())
@@ -70,7 +68,7 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
   }).length;
 
   // Touchpoint compliance is program-based — see lib/touchpoint-compliance.ts.
-  const touchpointGapCount = membersForContactCheck.filter((m) => {
+  const touchpointGapCount = members.filter((m) => {
     const contacts = [
       ...m.generalCommunications,
       ...progressNotesToContacts(m.carePlans.flatMap((cp) => cp.goals.flatMap((g) => g.progressNotes))),

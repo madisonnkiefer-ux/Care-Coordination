@@ -1118,6 +1118,8 @@ model TocRecord {
   followUp3Notes  String?
 
   needs TocNeed[]
+
+  @@index([memberId])
 }
 
 // The standardized form's "Needs" checkboxes are always None/Yes(describe) —
