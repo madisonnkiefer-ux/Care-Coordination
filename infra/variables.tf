@@ -129,3 +129,9 @@ variable "alert_phone" {
   type        = string
   default     = "+15756529588"
 }
+
+variable "waf_rate_limit_per_5min" {
+  description = "Requests from a single IP in a 5-minute window before the WAF blocks it. Deliberately generous — a small clinic's staff mostly share one office IP, and a too-low limit would lock out the whole office over normal use, not just an attacker. Tighten this once real traffic patterns are known."
+  type        = number
+  default     = 3000
+}
