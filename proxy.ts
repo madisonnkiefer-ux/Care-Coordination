@@ -13,13 +13,26 @@ import {
 
 const PUBLIC_ROUTES = ["/login"];
 
+// PDF uploads (components/resource-list.tsx, components/document-upload.tsx)
+// go straight from the browser to this bucket via a presigned POST — a
+// fetch() call to a different origin than the app itself. Without this in
+// connect-src, the browser's own CSP blocks that fetch before it ever
+// reaches the network (a client-side block, not a CORS/server-side one —
+// see infra/s3.tf's CORS config for the separate fix that was needed
+// alongside this one), which fails identically on every network/browser,
+// unlike a real connectivity problem.
+const documentsBucketOrigin = process.env.S3_DOCUMENTS_BUCKET
+  ? `https://${process.env.S3_DOCUMENTS_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com`
+  : "";
+
 // Security headers, applied to every response. CSP uses the Next.js-
 // documented nonce + 'strict-dynamic' pattern (nextjs.org/docs/app/guides/
 // content-security-policy) so its own hydration/chunk-loading scripts keep
 // working without 'unsafe-inline'. style-src needs 'unsafe-inline' because
 // components/goal-donut.tsx sets a computed inline `style` attribute; every
 // other directive stays same-origin-only since the app has no external
-// scripts, fonts (next/font self-hosts at build time), images, or API calls.
+// scripts, fonts (next/font self-hosts at build time), or images — connect-src
+// is the one exception, for direct-to-S3 uploads (see above).
 function securityHeaders(nonce: string) {
   const csp = `
     default-src 'self';
@@ -27,7 +40,7 @@ function securityHeaders(nonce: string) {
     style-src 'self' 'unsafe-inline';
     img-src 'self';
     font-src 'self';
-    connect-src 'self';
+    connect-src 'self' ${documentsBucketOrigin};
     object-src 'none';
     base-uri 'self';
     form-action 'self';
