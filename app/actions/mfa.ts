@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { verifySession, requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
-import { createSession } from "@/lib/session";
+import { createSession, trustThisDeviceForMfa } from "@/lib/session";
 import { generateTotpSecret, verifyTotpCode, generateBackupCodes, hashBackupCodes } from "@/lib/mfa";
 
 export async function startMfaEnrollment() {
@@ -72,6 +72,12 @@ export async function confirmMfaEnrollment(_state: ConfirmMfaState, formData: Fo
     permissions: session.permissions,
     mfaEnabled: true,
   });
+
+  // The device that just proved possession of the authenticator is trusted
+  // immediately — otherwise the very next login on this same device would
+  // ask for a code again right away, before the 90-day window ever had a
+  // chance to mean anything.
+  await trustThisDeviceForMfa(session.userId);
 
   // No revalidatePath here deliberately: the client shows the returned
   // backupCodes from PendingView's own state, and a same-transition

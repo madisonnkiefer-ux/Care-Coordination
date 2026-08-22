@@ -137,6 +137,46 @@ export async function clearMfaPendingCookie() {
   cookieStore.delete(MFA_PENDING_COOKIE_NAME);
 }
 
+// "Remember this device" for MFA — a password alone is never enough to
+// finish login (this cookie is checked in addition to, never instead of,
+// the password check in app/actions/auth.ts's login()), but re-typing a
+// fresh authenticator code on every single login was more friction than
+// this clinic wanted for a device someone actually owns. Trust is scoped
+// to one specific browser/device (a stolen password alone still can't log
+// in from anywhere else) and slides forward on every use — an account
+// used at least once every 90 days never re-prompts; 90+ days of
+// inactivity, or any new device/browser, does.
+const MFA_TRUSTED_DEVICE_COOKIE_NAME = "cch_mfa_trusted";
+const MFA_TRUSTED_DEVICE_DAYS = 90;
+
+export async function trustThisDeviceForMfa(userId: string) {
+  const token = await new SignJWT({ userId })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${MFA_TRUSTED_DEVICE_DAYS}d`)
+    .sign(encodedKey);
+  const cookieStore = await cookies();
+  cookieStore.set(MFA_TRUSTED_DEVICE_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: MFA_TRUSTED_DEVICE_DAYS * 24 * 60 * 60,
+  });
+}
+
+export async function isDeviceTrustedForMfa(userId: string): Promise<boolean> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(MFA_TRUSTED_DEVICE_COOKIE_NAME)?.value;
+  if (!token) return false;
+  try {
+    const { payload } = await jwtVerify(token, encodedKey, { algorithms: ["HS256"] });
+    return (payload as { userId: string }).userId === userId;
+  } catch {
+    return false;
+  }
+}
+
 // Read-only: safe to call from Server Components, which (per Next.js) may
 // only read cookies, never write them. Sliding the idle-timeout window
 // forward happens in proxy.ts instead, where writing response cookies is

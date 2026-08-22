@@ -11,6 +11,8 @@ import {
   createMfaPendingCookie,
   readMfaPendingUserId,
   clearMfaPendingCookie,
+  isDeviceTrustedForMfa,
+  trustThisDeviceForMfa,
 } from "@/lib/session";
 import { writeAuditLog } from "@/lib/audit";
 import { getSession } from "@/lib/dal";
@@ -89,6 +91,27 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
   }
 
   if (user.mfaEnabled) {
+    // "Remember this device" — a password alone still isn't enough to reach
+    // here (see lib/session.ts's trustThisDeviceForMfa), so skipping the
+    // code prompt on a device that already proved possession of the
+    // authenticator within the last 90 days doesn't weaken what MFA is
+    // actually defending against.
+    const deviceTrusted = await isDeviceTrustedForMfa(user.id);
+    if (deviceTrusted) {
+      const permissions = await resolveUserPermissions(user, user.clinicId);
+      await createSession({ ...user, permissions });
+      await recordLoginSuccess(user.id);
+      await trustThisDeviceForMfa(user.id); // slide the 90-day window forward
+      await writeAuditLog({
+        userId: user.id,
+        action: "LOGIN",
+        resource: "User",
+        resourceId: user.id,
+        metadata: { ipAddress, mfa: true, trustedDevice: true },
+      });
+      redirect("/");
+    }
+
     await createMfaPendingCookie(user.id);
     await writeAuditLog({
       userId: user.id,
@@ -161,6 +184,7 @@ export async function verifyMfaCode(_state: MfaVerifyState, formData: FormData):
   await createSession({ ...user, permissions });
   await recordLoginSuccess(user.id);
   await clearMfaPendingCookie();
+  await trustThisDeviceForMfa(user.id);
   await writeAuditLog({
     userId: user.id,
     action: "LOGIN",
