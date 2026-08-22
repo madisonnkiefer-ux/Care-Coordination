@@ -22,7 +22,8 @@ export async function saveRolePermissions(
   try {
     await setRolePermissions(role, permissionsFromForm(formData));
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Couldn't save." };
+    console.error("setRolePermissions failed", err);
+    return { error: "Couldn't save." };
   }
   revalidatePath("/settings");
   return { success: true };
@@ -55,7 +56,8 @@ export async function saveCustomRolePermissions(
   try {
     await setCustomRolePermissions(customRoleId, permissionsFromForm(formData));
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Couldn't save." };
+    console.error("setCustomRolePermissions failed", err);
+    return { error: "Couldn't save." };
   }
   revalidatePath("/settings");
   return { success: true };

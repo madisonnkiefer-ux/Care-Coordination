@@ -9,7 +9,8 @@ export function Tabs({
   tabs: { id: string; label: string; content: ReactNode }[];
   defaultTabId?: string;
 }) {
-  const [active, setActive] = useState(defaultTabId ?? tabs[0]?.id);
+  const initialTabId = defaultTabId && tabs.some((tab) => tab.id === defaultTabId) ? defaultTabId : tabs[0]?.id;
+  const [active, setActive] = useState(initialTabId);
 
   return (
     <div>

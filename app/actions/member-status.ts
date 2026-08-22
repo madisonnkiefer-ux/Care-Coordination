@@ -96,6 +96,13 @@ export async function changeMemberStatus(memberId: string, formData: FormData) {
   revalidatePath(`/members/${memberId}`, "layout");
   revalidatePath("/members");
   revalidatePath("/supervisor");
+  // Status directly gates billing eligibility (lib/billing.ts) and drives
+  // the Caseload Distribution report's active counts/status filter — both
+  // read Member.status straight from the DB, so without this a supervisor
+  // who already had either tab open this session keeps seeing the
+  // pre-change status until a hard refresh.
+  revalidatePath("/billing");
+  revalidatePath("/reports");
 }
 
 export async function approveStatusChange(memberId: string, statusChangeId: string) {
@@ -140,6 +147,8 @@ export async function approveStatusChange(memberId: string, statusChangeId: stri
   revalidatePath(`/members/${memberId}`, "layout");
   revalidatePath("/members");
   revalidatePath("/supervisor");
+  revalidatePath("/billing");
+  revalidatePath("/reports");
 }
 
 export async function rejectStatusChange(memberId: string, statusChangeId: string, formData: FormData) {
