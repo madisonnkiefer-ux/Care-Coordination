@@ -33,7 +33,8 @@ that isn't tied to the AppSmith runtime.
    npm run dev
    ```
 
-Demo logins after seeding (password `DemoPass123!` for all):
+Demo logins after seeding — the seed command prints the generated password
+(a fresh random one each run, not a fixed value) to your terminal:
 
 | Email | Role |
 |---|---|

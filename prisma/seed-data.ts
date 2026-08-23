@@ -1,11 +1,20 @@
 // Demo/dev seed data only. All names, IDs, and contact details below are
 // fictional placeholders — never load real PHI into this script or a
 // non-production database.
+import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import type { PrismaClient } from "../app/generated/prisma/client";
 import { seedResources } from "./resource-seed-data";
 
-const DEMO_PASSWORD = "DemoPass123!";
+// Generated fresh on every run rather than a fixed literal — a hardcoded
+// password here would be bcrypt-hashed onto real login accounts (including
+// an Admin) and permanently public to anyone with repo read access. Both
+// callers (prisma/seed.ts's CLI output, app/api/seed/route.ts's JSON
+// response) already surface the actual password used, so this doesn't cost
+// the local-dev convenience of knowing what to log in with.
+function generateDemoPassword() {
+  return `Demo${randomBytes(9).toString("base64url")}!`;
+}
 
 export async function seedDemoData(db: PrismaClient) {
   console.log("Seeding demo data...");
@@ -16,7 +25,8 @@ export async function seedDemoData(db: PrismaClient) {
     create: { id: "demo-clinic", name: "Rio Pecos Care Coordination (Demo)", code: "DEMO1000" },
   });
 
-  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  const demoPassword = generateDemoPassword();
+  const passwordHash = await bcrypt.hash(demoPassword, 10);
 
   const [jessica, amanda, michael, supervisor, admin] = await Promise.all([
     upsertUser(db, "jessica.martinez@demo.carecoord.local", "Jessica Martinez", "CARE_COORDINATOR", clinic.id, passwordHash),
@@ -255,7 +265,7 @@ export async function seedDemoData(db: PrismaClient) {
     clinicName: clinic.name,
     clinicCode: clinic.code,
     memberCount: memberSeeds.length,
-    demoPassword: DEMO_PASSWORD,
+    demoPassword,
     users: [jessica, amanda, michael, supervisor, admin].map((u) => ({ email: u.email, role: u.role })),
   };
 }
