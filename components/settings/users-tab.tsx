@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Card, Badge } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
 import { createUser, updateUserRole, setUserActive, resetUserPassword, unlockUser } from "@/app/actions/users";
 import { assignCustomRole } from "@/app/actions/permissions";
 import { adminResetMfa } from "@/app/actions/mfa";
@@ -119,12 +120,12 @@ function UserRow({ u, currentUserId, customRoles }: { u: ClinicUser; currentUser
                   </option>
                 ))}
               </select>
-              <button
-                type="submit"
-                className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+              <SubmitButton
+                pendingLabel="Saving…"
+                className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
               >
                 Save
-              </button>
+              </SubmitButton>
             </form>
             {matchingCustomRoles.length > 0 && (
               <form
@@ -144,12 +145,12 @@ function UserRow({ u, currentUserId, customRoles }: { u: ClinicUser; currentUser
                     </option>
                   ))}
                 </select>
-                <button
-                  type="submit"
-                  className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+                <SubmitButton
+                  pendingLabel="Saving…"
+                  className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
                 >
                   Save
-                </button>
+                </SubmitButton>
               </form>
             )}
           </div>
@@ -162,28 +163,28 @@ function UserRow({ u, currentUserId, customRoles }: { u: ClinicUser; currentUser
           ) : (
             <form action={setUserActive.bind(null, u.id)}>
               <input type="hidden" name="active" value={u.active ? "false" : "true"} />
-              <button
-                type="submit"
-                className={`rounded-md border px-2 py-1 text-xs font-medium ${
+              <SubmitButton
+                pendingLabel="…"
+                className={`rounded-md border px-2 py-1 text-xs font-medium disabled:opacity-50 ${
                   u.active
                     ? "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
                     : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                 }`}
               >
                 {u.active ? "Deactivate" : "Reactivate"}
-              </button>
+              </SubmitButton>
             </form>
           )}
           {u.lockedUntil && u.lockedUntil > new Date() && (
             <>
               <Badge color="red">Locked</Badge>
               <form action={unlockUser.bind(null, u.id)}>
-                <button
-                  type="submit"
-                  className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+                <SubmitButton
+                  pendingLabel="…"
+                  className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
                 >
                   Unlock
-                </button>
+                </SubmitButton>
               </form>
             </>
           )}
@@ -197,12 +198,12 @@ function UserRow({ u, currentUserId, customRoles }: { u: ClinicUser; currentUser
           <div className="flex items-center gap-1.5">
             <Badge color="green">On</Badge>
             <form action={adminResetMfa.bind(null, u.id)}>
-              <button
-                type="submit"
-                className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+              <SubmitButton
+                pendingLabel="…"
+                className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
               >
                 Reset
-              </button>
+              </SubmitButton>
             </form>
           </div>
         ) : (

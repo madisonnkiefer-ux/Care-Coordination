@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Card, Badge } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
 import { changeMemberStatus } from "@/app/actions/member-status";
 import { formatDate, formatDateTime, titleCase, toDateInputValue } from "@/lib/format";
 import { ALL_STATUSES, statusBadgeColor, CLOSURE_CHECKLIST_FIELDS } from "@/lib/member-status";
@@ -143,9 +144,12 @@ export function MemberStatusCard({
             </div>
           )}
 
-          <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
+          <SubmitButton
+            pendingLabel="Submitting…"
+            className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50"
+          >
             {canEditDirectly ? "Submit Status Change" : "Submit Request"}
-          </button>
+          </SubmitButton>
         </form>
       )}
 

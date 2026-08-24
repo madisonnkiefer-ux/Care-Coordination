@@ -5,6 +5,7 @@ import { getUpcomingGraduations } from "@/lib/data/graduation";
 import { listActiveCoordinators } from "@/lib/data/members";
 import { approveStatusChange, rejectStatusChange } from "@/app/actions/member-status";
 import { PageHeader, Card, StatTile, Badge } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
 import { GraduationsCard } from "@/components/supervisor/graduations-card";
 import { formatDate, titleCase } from "@/lib/format";
 
@@ -82,12 +83,12 @@ export default async function SupervisorDashboardPage() {
                       <p className="text-xs text-stone-400">{change.reason}</p>
                     </div>
                     <form action={approveStatusChange.bind(null, change.member.id, change.id)}>
-                      <button
-                        type="submit"
-                        className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
+                      <SubmitButton
+                        pendingLabel="…"
+                        className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 hover:bg-emerald-100 disabled:opacity-50"
                       >
                         Approve
-                      </button>
+                      </SubmitButton>
                     </form>
                   </div>
                   <form action={rejectStatusChange.bind(null, change.member.id, change.id)} className="mt-2 flex gap-2">
@@ -98,12 +99,12 @@ export default async function SupervisorDashboardPage() {
                       placeholder="Reason for rejecting (required)"
                       className="flex-1 rounded-md border border-stone-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-deep-rose"
                     />
-                    <button
-                      type="submit"
-                      className="rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-800 hover:bg-red-100"
+                    <SubmitButton
+                      pendingLabel="…"
+                      className="rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-800 hover:bg-red-100 disabled:opacity-50"
                     >
                       Reject
-                    </button>
+                    </SubmitButton>
                   </form>
                 </li>
               ))}

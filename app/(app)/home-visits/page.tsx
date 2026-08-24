@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getHomeVisitsPageData } from "@/lib/data/home-visits";
 import { PageHeader, Card, Badge } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
 import { requestHomeVisit, cancelHomeVisitRequest, logHomeVisit } from "@/app/actions/home-visits";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { PERSON_CONTACTED_OPTIONS } from "@/components/care-plan/outreach-options";
@@ -37,12 +38,12 @@ export default async function HomeVisitsPage() {
                       {r.reason && <p className="mt-0.5 text-xs text-stone-600">{r.reason}</p>}
                     </div>
                     <form action={cancelHomeVisitRequest.bind(null, r.id)}>
-                      <button
-                        type="submit"
-                        className="rounded-md border border-stone-300 bg-white px-3 py-1 text-xs font-medium text-stone-600 hover:bg-stone-50"
+                      <SubmitButton
+                        pendingLabel="…"
+                        className="rounded-md border border-stone-300 bg-white px-3 py-1 text-xs font-medium text-stone-600 hover:bg-stone-50 disabled:opacity-50"
                       >
                         Cancel
-                      </button>
+                      </SubmitButton>
                     </form>
                   </li>
                 ))}
@@ -147,9 +148,12 @@ export default async function HomeVisitsPage() {
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">Notes</label>
                 <textarea name="notes" rows={3} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
               </div>
-              <button type="submit" className="w-full rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
+              <SubmitButton
+                pendingLabel="Logging…"
+                className="w-full rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50"
+              >
                 Log Visit
-              </button>
+              </SubmitButton>
             </form>
           </Card>
 
@@ -185,9 +189,12 @@ export default async function HomeVisitsPage() {
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">Reason (optional)</label>
                 <textarea name="reason" rows={2} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
               </div>
-              <button type="submit" className="w-full rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50">
+              <SubmitButton
+                pendingLabel="Requesting…"
+                className="w-full rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+              >
                 Request Visit
-              </button>
+              </SubmitButton>
             </form>
           </Card>
         </div>
