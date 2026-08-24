@@ -40,7 +40,6 @@ resource "aws_ecs_task_definition" "app" {
       secrets = [
         { name = "DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url.arn },
         { name = "SESSION_SECRET", valueFrom = aws_secretsmanager_secret.session_secret.arn },
-        { name = "SEED_ENDPOINT_TOKEN", valueFrom = aws_secretsmanager_secret.seed_endpoint_token.arn },
       ]
       logConfiguration = {
         logDriver = "awslogs"

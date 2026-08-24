@@ -26,15 +26,6 @@ resource "random_password" "session_secret" {
   }
 }
 
-resource "random_password" "seed_endpoint_token" {
-  length  = 44
-  special = false
-
-  lifecycle {
-    ignore_changes = [special]
-  }
-}
-
 resource "aws_secretsmanager_secret" "db_credentials" {
   name       = "${local.name_prefix}/db-credentials"
   kms_key_id = aws_kms_key.main.arn
@@ -66,17 +57,4 @@ resource "aws_secretsmanager_secret" "session_secret" {
 resource "aws_secretsmanager_secret_version" "session_secret" {
   secret_id     = aws_secretsmanager_secret.session_secret.id
   secret_string = random_password.session_secret.result
-}
-
-# Dedicated token for /api/seed — deliberately separate from session_secret
-# so this endpoint isn't a network-reachable oracle against the key that
-# signs every user's session JWT.
-resource "aws_secretsmanager_secret" "seed_endpoint_token" {
-  name       = "${local.name_prefix}/seed-endpoint-token"
-  kms_key_id = aws_kms_key.main.arn
-}
-
-resource "aws_secretsmanager_secret_version" "seed_endpoint_token" {
-  secret_id     = aws_secretsmanager_secret.seed_endpoint_token.id
-  secret_string = random_password.seed_endpoint_token.result
 }
