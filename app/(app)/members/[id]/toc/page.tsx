@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { getTocFormData } from "@/lib/data/toc";
 import { getCurrentUser, verifySession } from "@/lib/dal";
-import { getFormFieldOverrides } from "@/lib/data/form-fields";
+import { getFormFieldOverrides, getResolvedFieldOrder } from "@/lib/data/form-fields";
+import { TOC_FIELD_KEYS } from "@/lib/form-fields/registry";
 import { getActiveCustomQuestionDefs, getCustomAnswersByRecord } from "@/lib/data/custom-questions";
 import { PageHeader } from "@/components/ui";
 import { TocForm } from "@/components/toc/toc-form";
@@ -18,10 +19,11 @@ export default async function TocPage({
   const { version } = await searchParams;
 
   const session = await verifySession();
-  const [tocData, currentUser, fields] = await Promise.all([
+  const [tocData, currentUser, fields, fieldOrder] = await Promise.all([
     getTocFormData(id),
     getCurrentUser(),
     getFormFieldOverrides(session.clinicId),
+    getResolvedFieldOrder(session.clinicId, "toc", TOC_FIELD_KEYS),
   ]);
   if (!tocData) notFound();
 
@@ -49,6 +51,7 @@ export default async function TocPage({
         canDelete={canDelete}
         defaultVersionId={version}
         fields={fields}
+        fieldOrder={fieldOrder}
         customQuestionDefs={customQuestionDefs}
         customAnswersByRecord={customAnswersByRecord}
       />

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getIntakeFormData } from "@/lib/data/intake";
 import { getCurrentUser, verifySession } from "@/lib/dal";
 import { getFormFieldOverrides, getResolvedFieldOrder } from "@/lib/data/form-fields";
-import { DEMOGRAPHICS_FIELD_KEYS } from "@/lib/form-fields/registry";
+import { DEMOGRAPHICS_FIELD_KEYS, HRA_FIELD_KEYS, CNA_FIELD_KEYS, CCN_FIELD_KEYS } from "@/lib/form-fields/registry";
 import { getActiveCustomQuestionDefs, getCustomAnswersByRecord } from "@/lib/data/custom-questions";
 import { PageHeader } from "@/components/ui";
 import { IntakeShell } from "@/components/intake/intake-shell";
@@ -19,11 +19,14 @@ export default async function IntakePage({
   const { tab, version } = await searchParams;
 
   const session = await verifySession();
-  const [intakeData, currentUser, fields, demographicsFieldOrder] = await Promise.all([
+  const [intakeData, currentUser, fields, demographicsFieldOrder, hraFieldOrder, cnaFieldOrder, ccnFieldOrder] = await Promise.all([
     getIntakeFormData(id),
     getCurrentUser(),
     getFormFieldOverrides(session.clinicId),
     getResolvedFieldOrder(session.clinicId, "demographics", DEMOGRAPHICS_FIELD_KEYS),
+    getResolvedFieldOrder(session.clinicId, "hra", HRA_FIELD_KEYS),
+    getResolvedFieldOrder(session.clinicId, "cna", CNA_FIELD_KEYS),
+    getResolvedFieldOrder(session.clinicId, "ccn", CCN_FIELD_KEYS),
   ]);
 
   if (!intakeData) notFound();
@@ -59,6 +62,9 @@ export default async function IntakePage({
         defaultVersionId={version}
         fields={fields}
         demographicsFieldOrder={demographicsFieldOrder}
+        hraFieldOrder={hraFieldOrder}
+        cnaFieldOrder={cnaFieldOrder}
+        ccnFieldOrder={ccnFieldOrder}
         customQuestions={customQuestions}
         customAnswersByRecord={customAnswersByRecord}
       />

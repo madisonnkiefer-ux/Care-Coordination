@@ -35,6 +35,9 @@ export function IntakeShell({
   defaultVersionId,
   fields,
   demographicsFieldOrder,
+  hraFieldOrder,
+  cnaFieldOrder,
+  ccnFieldOrder,
   customQuestions,
   customAnswersByRecord,
 }: {
@@ -46,6 +49,9 @@ export function IntakeShell({
   defaultVersionId?: string;
   fields: ResolvedFormFields;
   demographicsFieldOrder: string[];
+  hraFieldOrder: string[];
+  cnaFieldOrder: string[];
+  ccnFieldOrder: string[];
   customQuestions: { demographics: CustomQuestionDef[]; hra: CustomQuestionDef[]; cna: CustomQuestionDef[]; ccn: CustomQuestionDef[] };
   customAnswersByRecord: Record<string, Record<string, unknown>>;
 }) {
@@ -107,6 +113,7 @@ export function IntakeShell({
                   record={version.hra}
                   locked={locked}
                   fields={fields}
+                  fieldOrder={hraFieldOrder}
                   customQuestions={mergeCustomQuestions(customQuestions.hra, customAnswersByRecord[version.hra.id])}
                 />
               ) : (
@@ -122,6 +129,7 @@ export function IntakeShell({
                   record={version.cna}
                   locked={locked}
                   fields={fields}
+                  fieldOrder={cnaFieldOrder}
                   customQuestions={mergeCustomQuestions(customQuestions.cna, customAnswersByRecord[version.cna.id])}
                 />
               ) : (
@@ -137,6 +145,7 @@ export function IntakeShell({
                   record={version.note}
                   locked={locked}
                   fields={fields}
+                  fieldOrder={ccnFieldOrder}
                   customQuestions={mergeCustomQuestions(customQuestions.ccn, customAnswersByRecord[version.note.id])}
                 />
               ) : (

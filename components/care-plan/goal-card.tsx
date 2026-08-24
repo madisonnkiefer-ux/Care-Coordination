@@ -9,6 +9,7 @@ import { TextField, TextArea, DateField, SelectField, Checkbox } from "@/compone
 import { GOAL_PRIORITY_OPTIONS } from "@/components/intake/options";
 import type { CarePlanGoal, CarePlanProgressNote, GoalStatus } from "@/app/generated/prisma/client";
 import type { ResolvedFormFields } from "@/lib/form-fields/registry";
+import { OrderedStack } from "@/components/intake/ordered-items";
 
 type Goal = CarePlanGoal & { progressNotes: CarePlanProgressNote[] };
 
@@ -17,11 +18,13 @@ export function GoalCard({
   carePlanId,
   goal,
   fields,
+  fieldOrder,
 }: {
   memberId: string;
   carePlanId: string;
   goal: Goal;
   fields: ResolvedFormFields;
+  fieldOrder: string[];
 }) {
   // Defaults to expanded so a full CCP print picks up every goal's detail
   // without the coordinator having to click through each one first.
@@ -60,64 +63,94 @@ export function GoalCard({
             action={saveGoal.bind(null, memberId, carePlanId, goal.id)}
             className="space-y-5"
           >
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-600">Opportunity</p>
-              <TextField id={`${goal.id}-opportunity`} name="opportunity" label="Opportunity" defaultValue={goal.opportunity} />
-              <div className="mt-2 max-w-xs">
-                <SelectField
-                  id={`${goal.id}-priority`}
-                  name="priority"
-                  label={fields["ccp.priority"]?.label ?? "Priority"}
-                  options={fields["ccp.priority"]?.options ?? GOAL_PRIORITY_OPTIONS}
-                  defaultValue={goal.priority}
-                />
-              </div>
-              <div className="mt-2">
-                <Checkbox
-                  name="hasAllocationTool"
-                  label="Member has an Allocation Tool for Community Benefit Personal Care Services (PCS)"
-                  defaultChecked={goal.hasAllocationTool ?? false}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <TextArea id={`${goal.id}-strengths`} name="strengths" label="Strengths" defaultValue={goal.strengths} rows={3} />
-              <TextArea id={`${goal.id}-barriers`} name="barriers" label="Barriers" defaultValue={goal.barriers} rows={3} />
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <Checkbox name="memberDeferredDiscussion" label="Member deferred discussion" defaultChecked={goal.memberDeferredDiscussion ?? false} />
-                <div className="mt-2">
-                  <TextField id={`${goal.id}-deferredReason`} name="deferredReason" label="Reason deferred (if stated)" defaultValue={goal.deferredReason} />
-                </div>
-              </div>
-              <div>
-                <Checkbox name="memberDeclinedDiscussion" label="Member declined discussion" defaultChecked={goal.memberDeclinedDiscussion ?? false} />
-                <div className="mt-2">
-                  <TextField id={`${goal.id}-declinedReason`} name="declinedReason" label="Reason declined (if stated)" defaultValue={goal.declinedReason} />
-                </div>
-              </div>
-            </div>
-
-            <TextArea id={`${goal.id}-goalText`} name="goalText" label="Goal" defaultValue={goal.goalText} rows={8} />
-
-            <div className="rounded-lg border border-stone-100 bg-stone-50 p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-600">Action I will take (Member)</p>
-              <TextArea
-                id={`${goal.id}-memberActionText`}
-                name="memberActionText"
-                label="Action I will take to achieve this goal"
-                defaultValue={goal.memberActionText}
-                rows={2}
-              />
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <DateField id={`${goal.id}-memberActionBeginDate`} name="memberActionBeginDate" label="Begin Date" defaultValue={toInputDate(goal.memberActionBeginDate)} />
-                <DateField id={`${goal.id}-memberActionTargetEndDate`} name="memberActionTargetEndDate" label="Target End Date" defaultValue={toInputDate(goal.memberActionTargetEndDate)} />
-                <DateField id={`${goal.id}-memberActionAccomplishedDate`} name="memberActionAccomplishedDate" label="Date Completed" defaultValue={toInputDate(goal.memberActionAccomplishedDate)} />
-              </div>
-            </div>
+            <OrderedStack
+              order={fieldOrder}
+              gap="space-y-5"
+              items={[
+                {
+                  key: "ccp.opportunity",
+                  el: (
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-600">Opportunity</p>
+                      <TextField id={`${goal.id}-opportunity`} name="opportunity" label="Opportunity" defaultValue={goal.opportunity} />
+                    </div>
+                  ),
+                },
+                {
+                  key: "ccp.priority",
+                  el: (
+                    <div>
+                      <div className="max-w-xs">
+                        <SelectField
+                          id={`${goal.id}-priority`}
+                          name="priority"
+                          label={fields["ccp.priority"]?.label ?? "Priority"}
+                          options={fields["ccp.priority"]?.options ?? GOAL_PRIORITY_OPTIONS}
+                          defaultValue={goal.priority}
+                        />
+                      </div>
+                      <div className="mt-2">
+                        <Checkbox
+                          name="hasAllocationTool"
+                          label="Member has an Allocation Tool for Community Benefit Personal Care Services (PCS)"
+                          defaultChecked={goal.hasAllocationTool ?? false}
+                        />
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  key: "ccp.strengths",
+                  el: <TextArea id={`${goal.id}-strengths`} name="strengths" label="Strengths" defaultValue={goal.strengths} rows={3} />,
+                },
+                {
+                  key: "ccp.barriers",
+                  el: (
+                    <div>
+                      <TextArea id={`${goal.id}-barriers`} name="barriers" label="Barriers" defaultValue={goal.barriers} rows={3} />
+                      <div className="mt-4 space-y-4">
+                        <div>
+                          <Checkbox name="memberDeferredDiscussion" label="Member deferred discussion" defaultChecked={goal.memberDeferredDiscussion ?? false} />
+                          <div className="mt-2">
+                            <TextField id={`${goal.id}-deferredReason`} name="deferredReason" label="Reason deferred (if stated)" defaultValue={goal.deferredReason} />
+                          </div>
+                        </div>
+                        <div>
+                          <Checkbox name="memberDeclinedDiscussion" label="Member declined discussion" defaultChecked={goal.memberDeclinedDiscussion ?? false} />
+                          <div className="mt-2">
+                            <TextField id={`${goal.id}-declinedReason`} name="declinedReason" label="Reason declined (if stated)" defaultValue={goal.declinedReason} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  key: "ccp.goalText",
+                  el: <TextArea id={`${goal.id}-goalText`} name="goalText" label="Goal" defaultValue={goal.goalText} rows={8} />,
+                },
+                {
+                  key: "ccp.memberActionText",
+                  el: (
+                    <div className="rounded-lg border border-stone-100 bg-stone-50 p-4">
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-600">Action I will take (Member)</p>
+                      <TextArea
+                        id={`${goal.id}-memberActionText`}
+                        name="memberActionText"
+                        label="Action I will take to achieve this goal"
+                        defaultValue={goal.memberActionText}
+                        rows={2}
+                      />
+                      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <DateField id={`${goal.id}-memberActionBeginDate`} name="memberActionBeginDate" label="Begin Date" defaultValue={toInputDate(goal.memberActionBeginDate)} />
+                        <DateField id={`${goal.id}-memberActionTargetEndDate`} name="memberActionTargetEndDate" label="Target End Date" defaultValue={toInputDate(goal.memberActionTargetEndDate)} />
+                        <DateField id={`${goal.id}-memberActionAccomplishedDate`} name="memberActionAccomplishedDate" label="Date Completed" defaultValue={toInputDate(goal.memberActionAccomplishedDate)} />
+                      </div>
+                    </div>
+                  ),
+                },
+              ]}
+            />
           </form>
 
           <div className="border-t border-stone-100 pt-5">

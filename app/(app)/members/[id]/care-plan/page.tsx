@@ -3,7 +3,8 @@ import { getCarePlanFormData } from "@/lib/data/care-plan";
 import { getGeneralCommunicationFormData } from "@/lib/data/general-communication";
 import { getHedisFormData } from "@/lib/data/hedis";
 import { verifySession } from "@/lib/dal";
-import { getFormFieldOverrides } from "@/lib/data/form-fields";
+import { getFormFieldOverrides, getResolvedFieldOrder } from "@/lib/data/form-fields";
+import { CCP_FIELD_KEYS } from "@/lib/form-fields/registry";
 import { getActiveCustomQuestionDefs, getCustomAnswersByRecord } from "@/lib/data/custom-questions";
 import { PageHeader } from "@/components/ui";
 import { Tabs } from "@/components/tabs";
@@ -23,11 +24,12 @@ export default async function CarePlanPage({
   const { tab, version } = await searchParams;
 
   const session = await verifySession();
-  const [carePlanData, commData, hedisData, fields] = await Promise.all([
+  const [carePlanData, commData, hedisData, fields, fieldOrder] = await Promise.all([
     getCarePlanFormData(id),
     getGeneralCommunicationFormData(id),
     getHedisFormData(id),
     getFormFieldOverrides(session.clinicId),
+    getResolvedFieldOrder(session.clinicId, "ccp", CCP_FIELD_KEYS),
   ]);
 
   if (!carePlanData || !commData || !hedisData) notFound();
@@ -63,6 +65,7 @@ export default async function CarePlanPage({
                 defaultVersionId={version}
                 currentUserIsAdmin={canDelete}
                 fields={fields}
+                fieldOrder={fieldOrder}
                 customQuestionDefs={ccpQuestionDefs}
                 customAnswersByRecord={ccpAnswers}
               />
@@ -79,6 +82,7 @@ export default async function CarePlanPage({
                 program={member.program}
                 enrollmentDate={commData.enrollmentDate}
                 fields={fields}
+                fieldOrder={fieldOrder}
                 customQuestionDefs={generalCommQuestionDefs}
                 customAnswersByRecord={generalCommAnswers}
               />

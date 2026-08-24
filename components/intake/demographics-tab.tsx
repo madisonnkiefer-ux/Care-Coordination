@@ -17,38 +17,7 @@ import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 import { FormFieldsProvider } from "@/lib/form-fields/context";
 import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
 import type { CustomQuestionForRecord } from "@/lib/custom-questions-shared";
-import type { ReactNode } from "react";
-
-// Reorders a Card's field items to match the clinic's admin-configured
-// order (Settings → Form Content), falling back to each item's position in
-// the array as given (the registry's default order) when it isn't
-// mentioned in `order` at all.
-function orderedItems<T extends { key: string }>(order: string[], items: T[]) {
-  const known = new Set(items.map((i) => i.key));
-  const indexOf = new Map(order.filter((k) => known.has(k)).map((k, i) => [k, i]));
-  return [...items].sort((a, b) => (indexOf.get(a.key) ?? 0) - (indexOf.get(b.key) ?? 0));
-}
-
-function OrderedGrid({
-  order,
-  items,
-  cols = 2,
-}: {
-  order: string[];
-  items: { key: string; el: ReactNode; span?: 2 }[];
-  cols?: 1 | 2 | 3;
-}) {
-  const colsClass = cols === 3 ? "sm:grid-cols-3" : cols === 2 ? "sm:grid-cols-2" : "";
-  return (
-    <div className={`grid grid-cols-1 gap-4 ${colsClass}`}>
-      {orderedItems(order, items).map((item) => (
-        <div key={item.key} className={item.span === 2 ? "sm:col-span-2" : undefined}>
-          {item.el}
-        </div>
-      ))}
-    </div>
-  );
-}
+import { OrderedGrid } from "@/components/intake/ordered-items";
 
 export function DemographicsTab({
   memberId,

@@ -4,15 +4,9 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
-import { getFieldDef, DEMOGRAPHICS_FIELD_KEYS, PROTECTED_OPTIONS } from "@/lib/form-fields/registry";
+import { getFieldDef, PROTECTED_OPTIONS } from "@/lib/form-fields/registry";
+import { ORDERABLE_FORMS } from "@/lib/form-fields/orderable-forms";
 import { resolveFormOrder, serializeItemRef } from "@/lib/form-fields/ordering";
-
-// Forms with an admin-configurable field order today. Extend this (and give
-// each new entry its own *_FIELD_KEYS export from registry.ts) as ordering
-// rolls out to the other intake forms.
-const ORDERABLE_FORMS: Record<string, string[]> = {
-  demographics: DEMOGRAPHICS_FIELD_KEYS,
-};
 
 function parseOptions(formData: FormData): string[] {
   const raw = formData.get("options");

@@ -423,11 +423,40 @@ export const PROTECTED_OPTIONS: Record<string, string[]> = {
   "hra.livingSituation": LIVING_SITUATION_CNA_REQUIRED,
 };
 
-// The Demographics tab's fields, in their current default order — reused by
-// lib/form-fields/ordering.ts as the base sequence for that tab's
-// admin-configurable order (see FormFieldOrder in schema.prisma). Kept in
-// sync with DEMOGRAPHICS above by construction, not by hand-transcription.
+// Each *_FIELD_KEYS export below is that tab's fields, in their current
+// default order — reused by lib/form-fields/ordering.ts as the base
+// sequence for that tab's admin-configurable order (see FormFieldOrder in
+// schema.prisma). Kept in sync with the Spec arrays above by construction,
+// not by hand-transcription.
 export const DEMOGRAPHICS_FIELD_KEYS: string[] = DEMOGRAPHICS.map(([key]) => key);
+
+// HRA also renders three fields it shares with Demographics (same
+// underlying record/registry key, same component) — spliced in after
+// healthConditions to match the form's current default visual position.
+export const HRA_FIELD_KEYS: string[] = (() => {
+  const keys = HRA.map(([key]) => key);
+  const afterHealthConditions = keys.indexOf("hra.healthConditions") + 1;
+  keys.splice(afterHealthConditions, 0, "shared.sexAssignedAtBirth", "shared.currentGender", "shared.sexualIdentity");
+  return keys;
+})();
+
+export const CNA_FIELD_KEYS: string[] = CNA.map(([key]) => key);
+
+export const CCN_FIELD_KEYS: string[] = CCN.map(([key]) => key);
+
+// One combined order per form covering every section it renders — the
+// distinct `section` values (e.g. "TOC" vs "TOC — Needs Assessment", or
+// "CCP" vs "CCP Goals" vs "General Communication") already keep
+// moveFormField's same-section swap constraint meaningful; each rendering
+// component just filters this shared resolved order down to its own slice.
+export const TOC_FIELD_KEYS: string[] = [...TOC.map(([key]) => key), ...TOC_NEEDS.map(([key]) => key)];
+
+export const CCP_FIELD_KEYS: string[] = CCP.map(([key]) => key);
+export const CCP_TOP_LEVEL_FIELD_KEYS: string[] = CCP.filter(([, section]) => section === "CCP").map(([key]) => key);
+export const CCP_GOALS_FIELD_KEYS: string[] = CCP.filter(([, section]) => section === "CCP Goals").map(([key]) => key);
+export const GENERAL_COMM_FIELD_KEYS: string[] = CCP.filter(([, section]) => section === "General Communication").map(
+  ([key]) => key
+);
 
 export const FORM_FIELD_REGISTRY: FormFieldDef[] = [
   ...expand(DEMOGRAPHICS, "enrollment"),

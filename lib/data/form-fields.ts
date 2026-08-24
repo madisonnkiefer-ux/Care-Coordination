@@ -1,14 +1,9 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/dal";
-import { FORM_FIELD_REGISTRY, DEMOGRAPHICS_FIELD_KEYS, getFieldDef, type ResolvedFormFields } from "@/lib/form-fields/registry";
+import { ORDERABLE_FORMS } from "@/lib/form-fields/orderable-forms";
+import { FORM_FIELD_REGISTRY, getFieldDef, type ResolvedFormFields } from "@/lib/form-fields/registry";
 import { resolveFormOrder } from "@/lib/form-fields/ordering";
-
-// Forms with an admin-configurable field order today — mirrors
-// ORDERABLE_FORMS in app/actions/form-fields.ts.
-const ORDERABLE_FORMS: Record<string, string[]> = {
-  demographics: DEMOGRAPHICS_FIELD_KEYS,
-};
 
 // Every registered field is always present in the returned map — call sites
 // (via lib/form-fields/context.tsx) never need a fallback for a field that's

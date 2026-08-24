@@ -13,6 +13,7 @@ import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 import { FormFieldsProvider } from "@/lib/form-fields/context";
 import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
 import { mergeCustomQuestions, type CustomQuestionDef } from "@/lib/custom-questions-shared";
+import { OrderedStack } from "@/components/intake/ordered-items";
 
 type CommRecord = GeneralCommunication & { author: { name: string } | null };
 
@@ -22,6 +23,7 @@ export function GeneralCommunicationTab({
   program,
   enrollmentDate,
   fields,
+  fieldOrder,
   customQuestionDefs,
   customAnswersByRecord,
 }: {
@@ -30,6 +32,7 @@ export function GeneralCommunicationTab({
   program: string | null;
   enrollmentDate: Date;
   fields: ResolvedFormFields;
+  fieldOrder: string[];
   customQuestionDefs: CustomQuestionDef[];
   customAnswersByRecord: Record<string, Record<string, unknown>>;
 }) {
@@ -105,6 +108,7 @@ export function GeneralCommunicationTab({
                 memberId={memberId}
                 record={record}
                 fields={fields}
+                fieldOrder={fieldOrder}
                 customQuestions={mergeCustomQuestions(customQuestionDefs, customAnswersByRecord[record.id])}
                 onCollapse={() => setExpandedId(null)}
               />
@@ -147,12 +151,14 @@ function GeneralCommunicationEntryForm({
   memberId,
   record,
   fields,
+  fieldOrder,
   customQuestions,
   onCollapse,
 }: {
   memberId: string;
   record: CommRecord;
   fields: ResolvedFormFields;
+  fieldOrder: string[];
   customQuestions: ReturnType<typeof mergeCustomQuestions>;
   onCollapse: () => void;
 }) {
@@ -168,44 +174,62 @@ function GeneralCommunicationEntryForm({
           Started {formatDateTime(record.createdAt)} by {record.author?.name ?? "unknown"}
           {record.updatedAt > record.createdAt && ` · last updated ${formatDateTime(record.updatedAt)}`}
         </p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <SelectField
-            name="contactMethod"
-            label={fields["generalComm.contactMethod"]?.label ?? "Contact Method"}
-            options={fields["generalComm.contactMethod"]?.options ?? CONTACT_METHOD_OPTIONS}
-            defaultValue={record.contactMethod}
-          />
-          <SelectField
-            name="personContacted"
-            label={fields["generalComm.personContacted"]?.label ?? "Person Contacted"}
-            options={fields["generalComm.personContacted"]?.options ?? PERSON_CONTACTED_OPTIONS}
-            defaultValue={record.personContacted}
-          />
-        </div>
-
-        <div className="mt-4">
-          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">Successful?</p>
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2 text-sm text-stone-600">
-              <input type="radio" name="successful" value="yes" defaultChecked={record.successful === true} className="h-4 w-4" />
-              Yes
-            </label>
-            <label className="flex items-center gap-2 text-sm text-stone-600">
-              <input type="radio" name="successful" value="no" defaultChecked={record.successful === false} className="h-4 w-4" />
-              No
-            </label>
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <SelectField
-            name="unsuccessfulReason"
-            label={fields["generalComm.unsuccessfulReason"]?.label ?? "If unsuccessful, reason"}
-            options={fields["generalComm.unsuccessfulReason"]?.options ?? UNSUCCESSFUL_REASON_OPTIONS}
-            defaultValue={record.unsuccessfulReason}
-          />
-          <DateField name="nextAttemptDate" label="Next Attempt Date" defaultValue={toDateInputValue(record.nextAttemptDate)} />
-        </div>
+        <OrderedStack
+          order={fieldOrder}
+          items={[
+            {
+              key: "generalComm.contactMethod",
+              el: (
+                <SelectField
+                  name="contactMethod"
+                  label={fields["generalComm.contactMethod"]?.label ?? "Contact Method"}
+                  options={fields["generalComm.contactMethod"]?.options ?? CONTACT_METHOD_OPTIONS}
+                  defaultValue={record.contactMethod}
+                />
+              ),
+            },
+            {
+              key: "generalComm.personContacted",
+              el: (
+                <div>
+                  <SelectField
+                    name="personContacted"
+                    label={fields["generalComm.personContacted"]?.label ?? "Person Contacted"}
+                    options={fields["generalComm.personContacted"]?.options ?? PERSON_CONTACTED_OPTIONS}
+                    defaultValue={record.personContacted}
+                  />
+                  <div className="mt-4">
+                    <p className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">Successful?</p>
+                    <div className="flex gap-6">
+                      <label className="flex items-center gap-2 text-sm text-stone-600">
+                        <input type="radio" name="successful" value="yes" defaultChecked={record.successful === true} className="h-4 w-4" />
+                        Yes
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-stone-600">
+                        <input type="radio" name="successful" value="no" defaultChecked={record.successful === false} className="h-4 w-4" />
+                        No
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: "generalComm.unsuccessfulReason",
+              el: (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <SelectField
+                    name="unsuccessfulReason"
+                    label={fields["generalComm.unsuccessfulReason"]?.label ?? "If unsuccessful, reason"}
+                    options={fields["generalComm.unsuccessfulReason"]?.options ?? UNSUCCESSFUL_REASON_OPTIONS}
+                    defaultValue={record.unsuccessfulReason}
+                  />
+                  <DateField name="nextAttemptDate" label="Next Attempt Date" defaultValue={toDateInputValue(record.nextAttemptDate)} />
+                </div>
+              ),
+            },
+          ]}
+        />
       </Card>
 
       <Card title="General Communication">

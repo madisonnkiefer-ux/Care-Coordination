@@ -4,18 +4,30 @@ import { Card } from "@/components/ui";
 import { needFieldName, type NeedsSectionConfig } from "@/components/toc/needs-config";
 import { useFieldOverride } from "@/lib/form-fields/context";
 import type { TocNeed } from "@/app/generated/prisma/client";
+import { OrderedStack } from "@/components/intake/ordered-items";
 
-export function NeedsSection({ config, existingNeeds }: { config: NeedsSectionConfig; existingNeeds: TocNeed[] }) {
+export function NeedsSection({
+  config,
+  existingNeeds,
+  fieldOrder,
+}: {
+  config: NeedsSectionConfig;
+  existingNeeds: TocNeed[];
+  fieldOrder: string[];
+}) {
   const byKey = new Map(existingNeeds.map((n) => [n.needKey, n]));
 
   return (
     <Card title={config.title}>
       <p className="mb-4 text-xs text-stone-400">{config.subtitle}</p>
-      <div className="space-y-4">
-        {config.needs.map((need) => (
-          <NeedRow key={need.key} section={config.section} needKey={need.key} defaultLabel={need.label} existing={byKey.get(need.key)} />
-        ))}
-      </div>
+      <OrderedStack
+        order={fieldOrder}
+        gap="space-y-4"
+        items={config.needs.map((need) => ({
+          key: `toc.need.${config.section}.${need.key}`,
+          el: <NeedRow key={need.key} section={config.section} needKey={need.key} defaultLabel={need.label} existing={byKey.get(need.key)} />,
+        }))}
+      />
     </Card>
   );
 }

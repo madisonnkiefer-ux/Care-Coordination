@@ -15,6 +15,7 @@ import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 import { FormFieldsProvider } from "@/lib/form-fields/context";
 import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
 import { mergeCustomQuestions, type CustomQuestionDef } from "@/lib/custom-questions-shared";
+import { OrderedStack } from "@/components/intake/ordered-items";
 
 type TocRecordWithRelations = TocRecord & { signedBy: { name: string } | null; needs: TocNeed[] };
 
@@ -25,6 +26,7 @@ export function TocForm({
   canDelete,
   defaultVersionId,
   fields,
+  fieldOrder,
   customQuestionDefs,
   customAnswersByRecord,
 }: {
@@ -34,6 +36,7 @@ export function TocForm({
   canDelete: boolean;
   defaultVersionId?: string;
   fields: ResolvedFormFields;
+  fieldOrder: string[];
   customQuestionDefs: CustomQuestionDef[];
   customAnswersByRecord: Record<string, Record<string, unknown>>;
 }) {
@@ -79,48 +82,76 @@ export function TocForm({
                   Member name, date of birth, Medicaid ID, contact info, and emergency contact are already on file under
                   Demographics — not repeated here.
                 </p>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <DateField name="mcoNotificationDate" label="Date of MCO Notification of Transition" defaultValue={toDateInputValue(draft.mcoNotificationDate)} />
-                  <DateField name="tocPlanStartDate" label="TOC Plan Start Date" defaultValue={toDateInputValue(draft.tocPlanStartDate)} />
-                  <DateField name="tocPlanCompletionDate" label="TOC Plan Completion Date" defaultValue={toDateInputValue(draft.tocPlanCompletionDate)} />
-                </div>
+                <OrderedStack
+                  order={fieldOrder}
+                  items={[
+                    {
+                      key: "toc.mcoNotificationDate",
+                      el: <DateField name="mcoNotificationDate" label="Date of MCO Notification of Transition" defaultValue={toDateInputValue(draft.mcoNotificationDate)} />,
+                    },
+                    {
+                      key: "toc.tocPlanStartDate",
+                      el: <DateField name="tocPlanStartDate" label="TOC Plan Start Date" defaultValue={toDateInputValue(draft.tocPlanStartDate)} />,
+                    },
+                    {
+                      key: "toc.tocPlanCompletionDate",
+                      el: (
+                        <div>
+                          <DateField name="tocPlanCompletionDate" label="TOC Plan Completion Date" defaultValue={toDateInputValue(draft.tocPlanCompletionDate)} />
 
-                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-500">Member&apos;s Address Prior to Transition</p>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <TextField name="priorAddressStreet" label="Street" defaultValue={draft.priorAddressStreet} />
-                  <TextField name="priorAddressCity" label="City" defaultValue={draft.priorAddressCity} />
-                  <TextField name="priorAddressStateZip" label="State / Zip" defaultValue={draft.priorAddressStateZip} />
-                </div>
+                          <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-500">Member&apos;s Address Prior to Transition</p>
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <TextField name="priorAddressStreet" label="Street" defaultValue={draft.priorAddressStreet} />
+                            <TextField name="priorAddressCity" label="City" defaultValue={draft.priorAddressCity} />
+                            <TextField name="priorAddressStateZip" label="State / Zip" defaultValue={draft.priorAddressStateZip} />
+                          </div>
 
-                <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-500">
-                  For Children in State Custody (CISC) Members (if applicable)
-                </p>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <TextField name="ciscPcName" label="Permanency Coordinator (PC) Name" defaultValue={draft.ciscPcName} />
-                  <TextField name="ciscPcPhone" label="PC Phone" defaultValue={draft.ciscPcPhone} />
-                </div>
-
-                <div className="mt-4">
-                  <SelectField
-                    name="transitionType"
-                    label={fields["toc.transitionType"]?.label ?? "Transition Type"}
-                    options={fields["toc.transitionType"]?.options ?? TRANSITION_TYPE_OPTIONS}
-                    defaultValue={draft.transitionType}
-                  />
-                </div>
+                          <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-500">
+                            For Children in State Custody (CISC) Members (if applicable)
+                          </p>
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <TextField name="ciscPcName" label="Permanency Coordinator (PC) Name" defaultValue={draft.ciscPcName} />
+                            <TextField name="ciscPcPhone" label="PC Phone" defaultValue={draft.ciscPcPhone} />
+                          </div>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "toc.transitionType",
+                      el: (
+                        <SelectField
+                          name="transitionType"
+                          label={fields["toc.transitionType"]?.label ?? "Transition Type"}
+                          options={fields["toc.transitionType"]?.options ?? TRANSITION_TYPE_OPTIONS}
+                          defaultValue={draft.transitionType}
+                        />
+                      ),
+                    },
+                  ]}
+                />
               </Card>
 
               <Card>
-                <TextArea
-                  name="dcTeamContactSummary"
-                  label="Summary of contact attempts with Discharge (D/C) Planning Team (if D/C planning team was not reached, enter &quot;None&quot; for the needs in Section 2 below)"
-                  defaultValue={draft.dcTeamContactSummary}
-                  rows={3}
+                <OrderedStack
+                  order={fieldOrder}
+                  items={[
+                    {
+                      key: "toc.dcTeamContactSummary",
+                      el: (
+                        <TextArea
+                          name="dcTeamContactSummary"
+                          label="Summary of contact attempts with Discharge (D/C) Planning Team (if D/C planning team was not reached, enter &quot;None&quot; for the needs in Section 2 below)"
+                          defaultValue={draft.dcTeamContactSummary}
+                          rows={3}
+                        />
+                      ),
+                    },
+                  ]}
                 />
               </Card>
 
               {TOC_NEEDS_SECTIONS.map((section) => (
-                <NeedsSection key={section.section} config={section} existingNeeds={draft.needs} />
+                <NeedsSection key={section.section} config={section} existingNeeds={draft.needs} fieldOrder={fieldOrder} />
               ))}
 
               <Card title="5. Monthly Follow-Up (for 3 months)">
