@@ -10,6 +10,7 @@ import {
   SESSION_EXPIRY_COOKIE_NAME,
   IDLE_TIMEOUT_MINUTES,
 } from "@/lib/session";
+import { isUserSessionRevoked } from "@/lib/session-revocation";
 
 const PUBLIC_ROUTES = ["/login"];
 
@@ -82,7 +83,8 @@ export default async function proxy(request: NextRequest) {
 
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const payload = await decrypt(token);
-  const session = payload && isWithinAbsoluteLifetime(payload) ? payload : null;
+  const session =
+    payload && isWithinAbsoluteLifetime(payload) && !isUserSessionRevoked(payload.userId) ? payload : null;
 
   if (!isPublicRoute && !session) {
     const loginUrl = new URL("/login", request.url);

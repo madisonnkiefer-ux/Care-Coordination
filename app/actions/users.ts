@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { revokeUserSessions, unrevokeUserSessions } from "@/lib/session-revocation";
 import type { Role } from "@/app/generated/prisma/client";
 
 const ROLES: Role[] = ["CARE_COORDINATOR", "SUPERVISOR", "ADMIN"];
@@ -152,6 +153,17 @@ export async function setUserActive(userId: string, formData: FormData) {
   if (active === target.active) return;
 
   await db.user.update({ where: { id: userId }, data: { active } });
+
+  // Kills any session this user already has open, immediately — otherwise
+  // a deactivated user's still-unexpired session cookie would keep working
+  // until it naturally expires (idle timeout or the 8-hour absolute cap),
+  // since the session JWT is never otherwise re-checked against the
+  // database. See lib/session-revocation.ts.
+  if (active) {
+    unrevokeUserSessions(userId);
+  } else {
+    revokeUserSessions(userId);
+  }
 
   await writeAuditLog({
     userId: session.userId,

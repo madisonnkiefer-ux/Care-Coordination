@@ -3,6 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import type { Permission, Role } from "@/app/generated/prisma/client";
 import { SESSION_EXPIRY_COOKIE_NAME } from "@/lib/session-shared";
+import { isUserSessionRevoked } from "@/lib/session-revocation";
 
 export { SESSION_EXPIRY_COOKIE_NAME } from "@/lib/session-shared";
 
@@ -185,7 +186,7 @@ export async function getSessionPayload(): Promise<SessionPayload | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const payload = await decrypt(token);
-  if (!payload || !isWithinAbsoluteLifetime(payload)) return null;
+  if (!payload || !isWithinAbsoluteLifetime(payload) || isUserSessionRevoked(payload.userId)) return null;
   return payload;
 }
 
