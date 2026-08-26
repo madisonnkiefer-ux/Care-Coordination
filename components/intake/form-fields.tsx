@@ -173,6 +173,45 @@ export function SelectField({
   );
 }
 
+// A native multi-select dropdown for a "check all that apply" field —
+// submits via formData.getAll(name) exactly like CheckboxGroup, just more
+// compact for a long option list. Hold Ctrl/Cmd (or drag) to select more
+// than one.
+export function MultiSelectField({
+  name,
+  options,
+  defaultValues,
+  size = 6,
+}: {
+  name: string;
+  options: string[];
+  defaultValues?: string[] | null;
+  size?: number;
+}) {
+  const override = useFieldOverride(name);
+  if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValues?.length))) return null;
+  const effectiveOptions = override?.options ?? options;
+
+  return (
+    <div>
+      <select
+        name={name}
+        multiple
+        size={Math.min(size, effectiveOptions.length)}
+        defaultValue={defaultValues ?? []}
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+      >
+        {effectiveOptions.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+      <p className="mt-1 text-xs text-stone-400">Hold Ctrl (Cmd on Mac) to select more than one.</p>
+    </div>
+  );
+}
+
 // Plain numeric select (no custom-override input) — for scored scale questions like PHQ-9.
 export function NumberScaleField({
   name,

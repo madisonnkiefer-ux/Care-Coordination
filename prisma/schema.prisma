@@ -874,13 +874,19 @@ model CarePlan {
   disasterPlanText               String?
   disasterReviewItems            String[] // check-all-that-apply: Medication/drugs, Oxygen tank, etc.
   disasterReviewItemsOther       String?
-  disasterDmeNeedsProvider       String?
-  disasterTransportationCo       String?
-  disasterMedicationPickup       String?
-  disasterHomeHealthAgency       String?
-  disasterServiceAnimalsCare     String?
-  hasEmergencyContactsList       Boolean?
-  discussedSafetyWithCoordinator Boolean?
+  disasterDmeNeedsProvider        String?
+  disasterDmeNeedsProviderChecked Boolean?
+  disasterTransportationCo        String?
+  disasterTransportationCoChecked Boolean?
+  disasterMedicationPickup        String?
+  disasterMedicationPickupChecked Boolean?
+  disasterHomeHealthAgency        String?
+  disasterHomeHealthAgencyChecked Boolean?
+  disasterServiceAnimalsCare      String?
+  disasterServiceAnimalsCareChecked Boolean?
+  hasEmergencyContactsList        Boolean?
+  hasEmergencyContactsListText    String?
+  discussedSafetyWithCoordinator  Boolean?
   disasterContacts               CarePlanDisasterContact[]
 
   // Other Services / Medicare & Dual Eligible coordination

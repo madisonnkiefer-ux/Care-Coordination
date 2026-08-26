@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui";
 import { FloatingSaveBar } from "@/components/floating-save-bar";
 import { SimpleHistoryBar } from "@/components/intake/versioning";
-import { TextArea, TextField, DateField, Checkbox, CheckboxGroup } from "@/components/intake/form-fields";
+import { TextArea, TextField, DateField, Checkbox, MultiSelectField } from "@/components/intake/form-fields";
 import { PREFERRED_CONTACT_METHOD_OPTIONS, DISASTER_REVIEW_ITEMS_OPTIONS } from "@/components/intake/options";
 import { RepeatableRows } from "@/components/care-plan/repeatable-rows";
 import { GoalCard } from "@/components/care-plan/goal-card";
@@ -267,9 +267,9 @@ export function CcpTab({
                     el: (
                       <div>
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-600">
-                          Review needed items to take (check all that apply)
+                          Review needed items to take (select all that apply)
                         </p>
-                        <CheckboxGroup
+                        <MultiSelectField
                           name="disasterReviewItems"
                           options={fields["ccp.disasterReviewItems"]?.options ?? DISASTER_REVIEW_ITEMS_OPTIONS}
                           defaultValues={plan.disasterReviewItems}
@@ -278,16 +278,56 @@ export function CcpTab({
                           <TextField name="disasterReviewItemsOther" label="Other, specify" defaultValue={plan.disasterReviewItemsOther} />
                         </div>
 
-                        <div className="mt-4 space-y-3">
-                          <TextField name="disasterDmeNeedsProvider" label="DME needs/provider" defaultValue={plan.disasterDmeNeedsProvider} />
-                          <TextField name="disasterTransportationCo" label="Transportation needs/company" defaultValue={plan.disasterTransportationCo} />
-                          <TextField name="disasterMedicationPickup" label="I can get my medication/drugs at" defaultValue={plan.disasterMedicationPickup} />
-                          <TextField name="disasterHomeHealthAgency" label="Home health care agency" defaultValue={plan.disasterHomeHealthAgency} />
-                          <TextField name="disasterServiceAnimalsCare" label="Care of service animals or pets" defaultValue={plan.disasterServiceAnimalsCare} />
+                        <div className="mt-4">
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-600">Fill out appropriately to coordinate services</p>
+                          <div className="space-y-3">
+                            <CheckedTextRow
+                              checkName="disasterDmeNeedsProviderChecked"
+                              checkDefault={plan.disasterDmeNeedsProviderChecked}
+                              textName="disasterDmeNeedsProvider"
+                              textDefault={plan.disasterDmeNeedsProvider}
+                              label="DME Needs/Provider:"
+                            />
+                            <CheckedTextRow
+                              checkName="disasterTransportationCoChecked"
+                              checkDefault={plan.disasterTransportationCoChecked}
+                              textName="disasterTransportationCo"
+                              textDefault={plan.disasterTransportationCo}
+                              label="Transportation needs/Company:"
+                            />
+                            <CheckedTextRow
+                              checkName="disasterMedicationPickupChecked"
+                              checkDefault={plan.disasterMedicationPickupChecked}
+                              textName="disasterMedicationPickup"
+                              textDefault={plan.disasterMedicationPickup}
+                              label="I can get my medications at:"
+                            />
+                            <CheckedTextRow
+                              checkName="disasterHomeHealthAgencyChecked"
+                              checkDefault={plan.disasterHomeHealthAgencyChecked}
+                              textName="disasterHomeHealthAgency"
+                              textDefault={plan.disasterHomeHealthAgency}
+                              label="Home Health Care Agency:"
+                            />
+                            <CheckedTextRow
+                              checkName="disasterServiceAnimalsCareChecked"
+                              checkDefault={plan.disasterServiceAnimalsCareChecked}
+                              textName="disasterServiceAnimalsCare"
+                              textDefault={plan.disasterServiceAnimalsCare}
+                              label="Care of Service Animals or pets:"
+                            />
+                            <CheckedTextRow
+                              checkName="hasEmergencyContactsList"
+                              checkDefault={plan.hasEmergencyContactsList}
+                              textName="hasEmergencyContactsListText"
+                              textDefault={plan.hasEmergencyContactsListText}
+                              label="Have a list of emergency contacts:"
+                              sublabel="Including care coordinator"
+                            />
+                          </div>
                         </div>
 
-                        <div className="mt-4 space-y-2">
-                          <Checkbox name="hasEmergencyContactsList" label="Have a list of emergency contacts (including my care coordinator)" defaultChecked={plan.hasEmergencyContactsList ?? false} />
+                        <div className="mt-4">
                           <Checkbox
                             name="discussedSafetyWithCoordinator"
                             label="Discussed with my care coordinator ways to stay safe in case of a fire, flood, or any other natural disaster."
@@ -378,7 +418,7 @@ export function CcpTab({
             </Card>
 
             <Card title="Member's Choice (if applicable)">
-              <div className="flex flex-wrap gap-6">
+              <div className="space-y-3">
                 <Checkbox name="agencyBasedCb" label="Agency Based Community Benefit (CB)" defaultChecked={plan.agencyBasedCb ?? false} />
                 <Checkbox name="selfDirectedCb" label="Self-Directed CB" defaultChecked={plan.selfDirectedCb ?? false} />
                 <Checkbox name="nursingFacility" label="Nursing Facility" defaultChecked={plan.nursingFacility ?? false} />
@@ -459,6 +499,42 @@ export function CcpTab({
       )}
     </div>
     </FormFieldsProvider>
+  );
+}
+
+// A checkbox + label + free-text row, e.g. "[x] DME Needs/Provider: ____".
+// The checkbox marks whether this item applies at all; the text box next to
+// it captures the actual provider/company/detail once it does.
+function CheckedTextRow({
+  checkName,
+  checkDefault,
+  textName,
+  textDefault,
+  label,
+  sublabel,
+}: {
+  checkName: string;
+  checkDefault?: boolean | null;
+  textName: string;
+  textDefault?: string | null;
+  label: string;
+  sublabel?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <label className="flex shrink-0 items-start gap-2 sm:w-64">
+        <input type="checkbox" name={checkName} defaultChecked={checkDefault ?? false} className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300" />
+        <span className="text-sm text-stone-700">
+          {label}
+          {sublabel && <span className="block text-xs text-stone-400">{sublabel}</span>}
+        </span>
+      </label>
+      <input
+        name={textName}
+        defaultValue={textDefault ?? ""}
+        className="flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+      />
+    </div>
   );
 }
 
