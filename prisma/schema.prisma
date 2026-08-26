@@ -201,9 +201,15 @@ model User {
 // ---------- Member (patient) ----------
 
 enum CclLevel {
+  CCL0
   CCL1
   CCL2
   CCL3
+  CCL4
+  CCL5
+  // CCL3 and HIGH_RISK aren't part of the real CCL scale (CCL0/1/2/4/5) —
+  // kept here only so any existing member already on one of these values
+  // doesn't lose it. Not offered on the picker for new selections.
   HIGH_RISK
 }
 

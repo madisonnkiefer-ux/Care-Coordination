@@ -257,10 +257,16 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                   className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
                 >
                   <option value="">—</option>
+                  <option value="CCL0">CCL0</option>
                   <option value="CCL1">CCL1</option>
                   <option value="CCL2">CCL2</option>
-                  <option value="CCL3">CCL3</option>
-                  <option value="HIGH_RISK">High Risk</option>
+                  <option value="CCL4">CCL4</option>
+                  <option value="CCL5">CCL5</option>
+                  {/* Retired values — only shown when a member is already on one, so
+                      saving the form without touching this field can't silently
+                      blank it out. Not offered for new selections. */}
+                  {member.cclLevel === "CCL3" && <option value="CCL3">CCL3</option>}
+                  {member.cclLevel === "HIGH_RISK" && <option value="HIGH_RISK">High Risk</option>}
                 </select>
               </div>
               <div className="flex items-end justify-end print:hidden">

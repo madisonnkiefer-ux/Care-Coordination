@@ -7,7 +7,10 @@ import { writeAuditLog } from "@/lib/audit";
 import type { CclLevel } from "@/app/generated/prisma/client";
 import { PATIENT_TYPE_OPTIONS } from "@/lib/patient-type";
 
-const CCL_LEVELS: CclLevel[] = ["CCL1", "CCL2", "CCL3", "HIGH_RISK"];
+// Includes CCL3/HIGH_RISK even though the picker no longer offers them — an
+// existing member already on one of those values still needs to be able to
+// save other Overview edits without that value getting rejected.
+const CCL_LEVELS: CclLevel[] = ["CCL0", "CCL1", "CCL2", "CCL3", "CCL4", "CCL5", "HIGH_RISK"];
 const PATIENT_TYPES = PATIENT_TYPE_OPTIONS.map((o) => o.value);
 
 // Everything collected on the "Add New Patient" form, editable afterward

@@ -87,7 +87,7 @@ type MemberRow = {
   lastName: string;
   dateOfBirth: Date;
   status: MemberStatus;
-  cclLevel: "CCL1" | "CCL2" | "CCL3" | "HIGH_RISK" | null;
+  cclLevel: "CCL0" | "CCL1" | "CCL2" | "CCL3" | "CCL4" | "CCL5" | "HIGH_RISK" | null;
   program: string | null;
   medicaidId: string | null;
   chartId: string | null;

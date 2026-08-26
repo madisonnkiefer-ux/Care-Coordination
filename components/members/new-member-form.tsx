@@ -137,10 +137,11 @@ export function NewMemberForm({
               className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
             >
               <option value="">—</option>
+              <option value="CCL0">CCL0</option>
               <option value="CCL1">CCL1</option>
               <option value="CCL2">CCL2</option>
-              <option value="CCL3">CCL3</option>
-              <option value="HIGH_RISK">High Risk</option>
+              <option value="CCL4">CCL4</option>
+              <option value="CCL5">CCL5</option>
             </select>
           </div>
           {currentUserRole !== "CARE_COORDINATOR" && (
