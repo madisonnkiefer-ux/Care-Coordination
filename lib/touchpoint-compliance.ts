@@ -81,6 +81,23 @@ export function getWindowEnd(unit: ComplianceUnit, now: Date, enrollmentDate: Da
   return getAnchoredQuarterEnd(enrollmentDate, now);
 }
 
+// A completed CNA's annual renewal due date — 1 year after the date it was
+// completed, or null if one has never been completed (never-completed is
+// always "due", handled by the caller).
+export function cnaDueDate(lastCnaDate: Date | null): Date | null {
+  if (!lastCnaDate) return null;
+  return new Date(lastCnaDate.getFullYear() + 1, lastCnaDate.getMonth(), lastCnaDate.getDate());
+}
+
+// Whether a CNA is currently outstanding: never completed, or its annual
+// renewal date has passed. Evaluated against `now` (today), not a specific
+// past reporting period — "still due" always reflects the present.
+export function isCnaStillDue(lastCnaDate: Date | null, now: Date): boolean {
+  const dueDate = cnaDueDate(lastCnaDate);
+  if (!dueDate) return true;
+  return dueDate < now;
+}
+
 export type ContactRecord = { createdAt: Date; successful: boolean | null };
 
 // A member's own ("Member Progress Updates", not "Care Coordinator") care
