@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Card, Badge, StatTile } from "@/components/ui";
 import { formatDate, titleCase } from "@/lib/format";
 import { statusBadgeColor, ALL_STATUSES } from "@/lib/member-status";
 import { getWindowStart, cnaDueDate, isCnaStillDue } from "@/lib/touchpoint-compliance";
-import { monthBounds, computeCoordinatorRow, computeFunnel } from "@/lib/team-performance";
+import { monthBounds, trailingMonths, computeCoordinatorRow, computeFunnel, computeTrend, type MemberRef } from "@/lib/team-performance";
 import { reassignMember } from "@/app/actions/member-assignment";
 import { logBulkExport } from "@/app/actions/export";
 import type { getReportsData } from "@/lib/data/reports";
@@ -14,7 +15,7 @@ import type { getReportsData } from "@/lib/data/reports";
 type ReportsData = Awaited<ReturnType<typeof getReportsData>>;
 type ReportMember = ReportsData["members"][number];
 
-type ReportId = "roster" | "caseload" | "outreach" | "cna" | "monthly-activity" | "monthly-dashboard" | "team-snapshot";
+type ReportId = "roster" | "caseload" | "outreach" | "cna" | "monthly-activity" | "monthly-dashboard" | "team-snapshot" | "monthly-trends";
 
 const REPORTS: { id: ReportId; label: string }[] = [
   { id: "roster", label: "Active Roster" },
@@ -24,7 +25,10 @@ const REPORTS: { id: ReportId; label: string }[] = [
   { id: "monthly-activity", label: "Monthly Activity" },
   { id: "monthly-dashboard", label: "Monthly Dashboard" },
   { id: "team-snapshot", label: "Team Monthly Snapshot" },
+  { id: "monthly-trends", label: "Monthly Trends" },
 ];
+
+const ALL_COORDINATORS_ID = "__all__";
 
 function currentMonthValue() {
   const now = new Date();
@@ -100,6 +104,8 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
   const [cnaMonth, setCnaMonth] = useState("");
   const [dashboardMonth, setDashboardMonth] = useState(currentMonthValue);
   const [teamMonth, setTeamMonth] = useState(currentMonthValue);
+  const [trendsMonth, setTrendsMonth] = useState(currentMonthValue);
+  const [trendsCoordinatorId, setTrendsCoordinatorId] = useState(ALL_COORDINATORS_ID);
 
   const filtered = useMemo(() => {
     return members.filter((m) => {
@@ -136,7 +142,7 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
 
       {active !== "monthly-activity" && (
       <div className="mb-4 flex flex-wrap items-end gap-3">
-        {active !== "team-snapshot" && (
+        {active !== "team-snapshot" && active !== "monthly-trends" && (
           <FilterField label="Coordinator">
             <select value={coordinatorId} onChange={(e) => setCoordinatorId(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose">
               <option value="">All coordinators</option>
@@ -223,6 +229,33 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
             />
           </FilterField>
         )}
+
+        {active === "monthly-trends" && (
+          <>
+            <FilterField label="Coordinator">
+              <select
+                value={trendsCoordinatorId}
+                onChange={(e) => setTrendsCoordinatorId(e.target.value)}
+                className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+              >
+                <option value={ALL_COORDINATORS_ID}>All coordinators (team)</option>
+                {coordinators.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
+            <FilterField label="Through Month">
+              <input
+                type="month"
+                value={trendsMonth}
+                onChange={(e) => setTrendsMonth(e.target.value)}
+                className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+              />
+            </FilterField>
+          </>
+        )}
       </div>
       )}
 
@@ -235,6 +268,9 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
       {active === "monthly-dashboard" && <MonthlyDashboardReport members={filtered} coordinators={coordinators} month={dashboardMonth} />}
       {active === "monthly-activity" && <MonthlyActivityReport />}
       {active === "team-snapshot" && <TeamMonthlySnapshotReport members={teamSnapshotMembers} coordinators={coordinators} month={teamMonth} />}
+      {active === "monthly-trends" && (
+        <MonthlyTrendsReport members={teamSnapshotMembers} coordinators={coordinators} coordinatorId={trendsCoordinatorId} month={trendsMonth} />
+      )}
     </div>
   );
 }
@@ -875,6 +911,59 @@ function MonthlyDashboardReport({
   );
 }
 
+function toPerformanceMember(m: ReportMember) {
+  return { ...m, name: `${m.firstName} ${m.lastName}` };
+}
+
+// A supervisor clicking any "missed outreach, outstanding work, or
+// incomplete requirement" number (CNAs Still Due, a funnel stage's
+// required/not-attempted count) gets this: the actual members behind it,
+// each linking straight to their chart.
+function MemberListModal({ title, members, onClose }: { title: string; members: MemberRef[]; onClose: () => void }) {
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="max-h-[80vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h2 className="font-serif text-lg font-medium text-charcoal">{title}</h2>
+          <button type="button" onClick={onClose} className="shrink-0 text-sm text-stone-400 hover:text-charcoal" aria-label="Close">
+            X
+          </button>
+        </div>
+        <p className="mb-3 text-xs text-stone-400">
+          {members.length} member{members.length === 1 ? "" : "s"}
+        </p>
+        {members.length === 0 ? (
+          <p className="py-4 text-center text-sm text-stone-400">No members.</p>
+        ) : (
+          <ul className="divide-y divide-stone-100">
+            {members.map((m) => (
+              <li key={m.id} className="py-2">
+                <Link href={`/members/${m.id}`} className="text-sm font-medium text-charcoal hover:underline">
+                  {m.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// A number rendered as a button that opens a MemberListModal listing who
+// makes it up -- used for every "missed/outstanding/incomplete" figure.
+function DrillableCount({ value, onClick }: { value: React.ReactNode; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="underline decoration-dotted underline-offset-2 hover:text-charcoal hover:decoration-solid">
+      {value}
+    </button>
+  );
+}
+
 function TeamMonthlySnapshotReport({
   members,
   coordinators,
@@ -885,6 +974,7 @@ function TeamMonthlySnapshotReport({
   month: string;
 }) {
   const [drilldownId, setDrilldownId] = useState<string | null>(null);
+  const [modal, setModal] = useState<{ title: string; members: MemberRef[] } | null>(null);
   const { monthStart, monthEnd } = useMemo(() => monthBounds(month), [month]);
   const [now] = useState(() => new Date());
 
@@ -893,7 +983,7 @@ function TeamMonthlySnapshotReport({
       computeCoordinatorRow(
         c.id,
         c.name,
-        members.filter((m) => m.coordinatorId === c.id),
+        members.filter((m) => m.coordinatorId === c.id).map(toPerformanceMember),
         monthStart,
         monthEnd,
         now
@@ -910,6 +1000,7 @@ function TeamMonthlySnapshotReport({
       totalAttempts: rows.reduce((s, r) => s + r.totalAttempts, 0),
       cnasCompleted: rows.reduce((s, r) => s + r.cnasCompleted, 0),
       cnasStillDue: rows.reduce((s, r) => s + r.cnasStillDue, 0),
+      cnasStillDueMembers: rows.flatMap((r) => r.cnasStillDueMembers),
     };
   }, [rows]);
 
@@ -930,6 +1021,7 @@ function TeamMonthlySnapshotReport({
   }
 
   return (
+    <>
     <ReportShell
       title={`Team Monthly Snapshot — ${label}`}
       count={rows.length}
@@ -989,7 +1081,12 @@ function TeamMonthlySnapshotReport({
               <td className="py-2 text-stone-600">{r.successRate === null ? "—" : `${r.successRate}%`}</td>
               <td className="py-2 text-stone-600">{r.totalAttempts}</td>
               <td className="py-2 text-stone-600">{r.cnasCompleted}</td>
-              <td className="py-2 text-stone-600">{r.cnasStillDue}</td>
+              <td className="py-2 text-stone-600">
+                <DrillableCount
+                  value={r.cnasStillDue}
+                  onClick={() => setModal({ title: `${r.name} — CNAs Still Due`, members: r.cnasStillDueMembers })}
+                />
+              </td>
             </tr>
           ))}
         </tbody>
@@ -1001,11 +1098,19 @@ function TeamMonthlySnapshotReport({
             <td className="py-2">{totals.successRateAvg === null ? "—" : `Average ${totals.successRateAvg}%`}</td>
             <td className="py-2">{totals.totalAttempts}</td>
             <td className="py-2">{totals.cnasCompleted}</td>
-            <td className="py-2">{totals.cnasStillDue}</td>
+            <td className="py-2">
+              <DrillableCount
+                value={totals.cnasStillDue}
+                onClick={() => setModal({ title: "All Coordinators — CNAs Still Due", members: totals.cnasStillDueMembers })}
+              />
+            </td>
           </tr>
         </tfoot>
       </table>
     </ReportShell>
+
+    {modal && <MemberListModal title={modal.title} members={modal.members} onClose={() => setModal(null)} />}
+    </>
   );
 }
 
@@ -1022,11 +1127,13 @@ function CoordinatorMonthlySnapshot({
 }) {
   const { monthStart, monthEnd } = useMemo(() => monthBounds(month), [month]);
   const [now] = useState(() => new Date());
+  const [modal, setModal] = useState<{ title: string; members: MemberRef[] } | null>(null);
+  const performanceCaseload = useMemo(() => caseload.map(toPerformanceMember), [caseload]);
   const row = useMemo(
-    () => computeCoordinatorRow(coordinator.id, coordinator.name, caseload, monthStart, monthEnd, now),
-    [coordinator, caseload, monthStart, monthEnd, now]
+    () => computeCoordinatorRow(coordinator.id, coordinator.name, performanceCaseload, monthStart, monthEnd, now),
+    [coordinator, performanceCaseload, monthStart, monthEnd, now]
   );
-  const funnel = useMemo(() => computeFunnel(caseload, monthStart, monthEnd), [caseload, monthStart, monthEnd]);
+  const funnel = useMemo(() => computeFunnel(performanceCaseload, monthStart, monthEnd), [performanceCaseload, monthStart, monthEnd]);
   const label = monthLabel(month);
 
   return (
@@ -1044,7 +1151,15 @@ function CoordinatorMonthlySnapshot({
         <StatTile label="% Successful" value={row.successRate === null ? "—" : `${row.successRate}%`} />
         <StatTile label="Outreach Attempts" value={row.totalAttempts} />
         <StatTile label="CNAs Completed" value={row.cnasCompleted} />
-        <StatTile label="CNAs Still Due" value={row.cnasStillDue} />
+        <StatTile
+          label="CNAs Still Due"
+          value={
+            <DrillableCount
+              value={row.cnasStillDue}
+              onClick={() => setModal({ title: `${coordinator.name} — CNAs Still Due`, members: row.cnasStillDueMembers })}
+            />
+          }
+        />
       </div>
 
       <ReportShell
@@ -1086,18 +1201,128 @@ function CoordinatorMonthlySnapshot({
             {funnel.map((f) => (
               <tr key={f.stage}>
                 <td className="py-2 font-medium text-stone-800">{f.label}</td>
-                <td className="py-2 text-stone-600">{f.required}</td>
+                <td className="py-2 text-stone-600">
+                  <DrillableCount
+                    value={f.required}
+                    onClick={() => setModal({ title: `${coordinator.name} — ${f.label} Required`, members: f.requiredMembers })}
+                  />
+                </td>
                 <td className="py-2 text-stone-600">{f.attemptsMade}</td>
                 <td className="py-2 text-stone-600">{f.percentCompleted === null ? "—" : `${f.percentCompleted}%`}</td>
                 <td className="py-2 text-stone-600">{f.successful}</td>
-                <td className="py-2 text-stone-600">{f.notAttempted}</td>
+                <td className="py-2 text-stone-600">
+                  <DrillableCount
+                    value={f.notAttempted}
+                    onClick={() => setModal({ title: `${coordinator.name} — ${f.label} Not Attempted`, members: f.notAttemptedMembers })}
+                  />
+                </td>
                 <td className="py-2 text-stone-600">{f.percentNotAttempted === null ? "—" : `${f.percentNotAttempted}%`}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </ReportShell>
+
+      {modal && <MemberListModal title={modal.title} members={modal.members} onClose={() => setModal(null)} />}
     </div>
+  );
+}
+
+const TREND_MONTHS_SHOWN = 6;
+
+function MonthlyTrendsReport({
+  members,
+  coordinators,
+  coordinatorId,
+  month,
+}: {
+  members: ReportMember[];
+  coordinators: ReportsData["coordinators"];
+  coordinatorId: string;
+  month: string;
+}) {
+  const [now] = useState(() => new Date());
+  const months = useMemo(() => trailingMonths(month, TREND_MONTHS_SHOWN), [month]);
+
+  const isTeamWide = coordinatorId === ALL_COORDINATORS_ID;
+  const name = isTeamWide ? "All Coordinators (Team)" : (coordinators.find((c) => c.id === coordinatorId)?.name ?? "");
+  const caseload = useMemo(() => {
+    const scoped = isTeamWide ? members : members.filter((m) => m.coordinatorId === coordinatorId);
+    return scoped.map(toPerformanceMember);
+  }, [members, coordinatorId, isTeamWide]);
+
+  const points = useMemo(() => computeTrend(coordinatorId, name, caseload, months, now), [coordinatorId, name, caseload, months, now]);
+
+  // 1st Attempt's % Completed for each month — a lightweight read on
+  // "attempt follow-through" (are outreach attempts actually getting made,
+  // not just whether they land) without a full 3-stage funnel per month.
+  const followThrough = useMemo(
+    () =>
+      months.map((m) => {
+        const { monthStart, monthEnd } = monthBounds(m);
+        return computeFunnel(caseload, monthStart, monthEnd)[0]?.percentCompleted ?? null;
+      }),
+    [caseload, months]
+  );
+
+  return (
+    <ReportShell
+      title={`Monthly Trends — ${name}`}
+      count={months.length}
+      unit="month"
+      onExport={() =>
+        exportCsv(
+          "MonthlyTrendsReport",
+          caseload.map((m) => m.id),
+          `monthly-trends-${isTeamWide ? "team" : name.replace(/\s+/g, "-").toLowerCase()}-through-${month}.csv`,
+          ["Month", "# of Members", "Successful Touchpoints", "% Successful", "Total Attempts", "CNAs Completed", "CNAs Still Due", "1st Attempt Follow-Through %"],
+          points.map((p, i) => [
+            monthLabel(p.month),
+            p.row.members,
+            p.row.successfulTouchpoints,
+            p.row.successRate === null ? "—" : `${p.row.successRate}%`,
+            p.row.totalAttempts,
+            p.row.cnasCompleted,
+            p.row.cnasStillDue,
+            followThrough[i] === null ? "—" : `${followThrough[i]}%`,
+          ])
+        )
+      }
+    >
+      <p className="mb-3 text-xs text-stone-400">
+        # of Members and CNAs Still Due reflect current caseload/due status, not a historical snapshot as of each
+        past month — everything else (touchpoints, attempts, CNAs completed, follow-through) is scoped to that
+        specific month.
+      </p>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-left text-xs text-stone-400">
+            <th className="pb-2 font-medium">Month</th>
+            <th className="pb-2 font-medium"># of Members</th>
+            <th className="pb-2 font-medium">Successful Touchpoints</th>
+            <th className="pb-2 font-medium">% Successful</th>
+            <th className="pb-2 font-medium">Total Attempts</th>
+            <th className="pb-2 font-medium">CNAs Completed</th>
+            <th className="pb-2 font-medium">CNAs Still Due</th>
+            <th className="pb-2 font-medium">1st Attempt Follow-Through</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-stone-100">
+          {points.map((p, i) => (
+            <tr key={p.month} className={p.month === month ? "bg-amber-50/50" : ""}>
+              <td className="py-2 font-medium text-stone-800">{monthLabel(p.month)}</td>
+              <td className="py-2 text-stone-600">{p.row.members}</td>
+              <td className="py-2 text-stone-600">{p.row.successfulTouchpoints}</td>
+              <td className="py-2 text-stone-600">{p.row.successRate === null ? "—" : `${p.row.successRate}%`}</td>
+              <td className="py-2 text-stone-600">{p.row.totalAttempts}</td>
+              <td className="py-2 text-stone-600">{p.row.cnasCompleted}</td>
+              <td className="py-2 text-stone-600">{p.row.cnasStillDue}</td>
+              <td className="py-2 text-stone-600">{followThrough[i] === null ? "—" : `${followThrough[i]}%`}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </ReportShell>
   );
 }
 

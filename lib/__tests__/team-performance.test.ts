@@ -1,15 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { computeCoordinatorRow, computeFunnel, monthBounds, type PerformanceMember } from "../team-performance";
+import { computeCoordinatorRow, computeFunnel, computeTrend, monthBounds, trailingMonths, type PerformanceMember } from "../team-performance";
 
 const { monthStart, monthEnd } = monthBounds("2026-07");
 const now = new Date("2026-07-20");
+
+let nextMemberId = 0;
 
 function memberWithContacts(successfulCount: number, unsuccessfulCount: number, extra?: Partial<PerformanceMember>): PerformanceMember {
   const contacts = [
     ...Array.from({ length: successfulCount }, (_, i) => ({ createdAt: new Date(2026, 6, 1 + i), successful: true })),
     ...Array.from({ length: unsuccessfulCount }, (_, i) => ({ createdAt: new Date(2026, 6, 15 + i), successful: false })),
   ];
+  nextMemberId += 1;
   return {
+    id: `member-${nextMemberId}`,
+    name: `Member ${nextMemberId}`,
     status: "ACTIVE",
     program: "Prenatal",
     enrollmentDate: new Date(2026, 0, 1),
@@ -70,12 +75,13 @@ describe("computeCoordinatorRow — July validation example", () => {
     expect(row.totalAttempts).toBe(5);
   });
 
-  it("CNAs Still Due reflects `now`, not the reporting month", () => {
-    const overdue = memberWithContacts(0, 0, { lastCnaDate: new Date(2024, 0, 1) }); // >1yr before `now`
-    const current = memberWithContacts(0, 0, { lastCnaDate: new Date(2026, 6, 1) }); // within the last year
-    const neverDone = memberWithContacts(0, 0, { lastCnaDate: null });
+  it("CNAs Still Due reflects `now`, not the reporting month, and reports which members", () => {
+    const overdue = memberWithContacts(0, 0, { id: "overdue", name: "Overdue", lastCnaDate: new Date(2024, 0, 1) }); // >1yr before `now`
+    const current = memberWithContacts(0, 0, { id: "current", name: "Current", lastCnaDate: new Date(2026, 6, 1) }); // within the last year
+    const neverDone = memberWithContacts(0, 0, { id: "never", name: "Never", lastCnaDate: null });
     const row = computeCoordinatorRow("c", "C", [overdue, current, neverDone], monthStart, monthEnd, now);
     expect(row.cnasStillDue).toBe(2);
+    expect(row.cnasStillDueMembers.map((m) => m.id).sort()).toEqual(["never", "overdue"]);
   });
 
   it("ignores inactive members entirely", () => {
@@ -165,10 +171,62 @@ describe("computeFunnel — worked example from the spec", () => {
   });
 
   it("a non-compliant member with zero contacts this month is 'not attempted' at every stage", () => {
-    const neverContacted = memberWithContacts(0, 0, { contacts: [] });
+    const neverContacted = memberWithContacts(0, 0, { id: "never-contacted", name: "Never Contacted", contacts: [] });
     const funnel = computeFunnel([neverContacted], monthStart, monthEnd);
     expect(funnel[0]).toMatchObject({ required: 1, attemptsMade: 0, notAttempted: 1 });
     expect(funnel[1]).toMatchObject({ required: 1, attemptsMade: 0, notAttempted: 1 });
     expect(funnel[2]).toMatchObject({ required: 1, attemptsMade: 0, notAttempted: 1 });
+    expect(funnel[0].requiredMembers).toEqual([{ id: "never-contacted", name: "Never Contacted" }]);
+    expect(funnel[0].notAttemptedMembers).toEqual([{ id: "never-contacted", name: "Never Contacted" }]);
+  });
+
+  it("requiredMembers shrinks by exactly the members who succeeded, notAttemptedMembers only lists who's missing an attempt", () => {
+    const succeeds1st = memberWithContacts(0, 0, { id: "a", name: "A", contacts: [{ createdAt: new Date(2026, 6, 2), successful: true }] });
+    const succeeds2nd = memberWithContacts(0, 0, {
+      id: "b",
+      name: "B",
+      contacts: [
+        { createdAt: new Date(2026, 6, 2), successful: false },
+        { createdAt: new Date(2026, 6, 8), successful: true },
+      ],
+    });
+    const stalls = memberWithContacts(0, 0, { id: "c", name: "C", contacts: [{ createdAt: new Date(2026, 6, 2), successful: false }] });
+    const funnel = computeFunnel([succeeds1st, succeeds2nd, stalls], monthStart, monthEnd);
+
+    expect(funnel[0].requiredMembers.map((m) => m.id).sort()).toEqual(["a", "b", "c"]);
+    expect(funnel[0].notAttemptedMembers).toEqual([]);
+
+    // a succeeded at stage 1 and drops out; b and c remain, but c never got a 2nd attempt.
+    expect(funnel[1].requiredMembers.map((m) => m.id).sort()).toEqual(["b", "c"]);
+    expect(funnel[1].notAttemptedMembers).toEqual([{ id: "c", name: "C" }]);
+
+    // b succeeded at stage 2 and drops out; only c remains, still never attempted a 2nd/3rd time.
+    expect(funnel[2].requiredMembers).toEqual([{ id: "c", name: "C" }]);
+    expect(funnel[2].notAttemptedMembers).toEqual([{ id: "c", name: "C" }]);
+  });
+});
+
+describe("trailingMonths", () => {
+  it("returns n months ending at (and including) the given month, oldest first", () => {
+    expect(trailingMonths("2026-07", 6)).toEqual(["2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07"]);
+  });
+
+  it("crosses a year boundary correctly", () => {
+    expect(trailingMonths("2026-02", 3)).toEqual(["2025-12", "2026-01", "2026-02"]);
+  });
+});
+
+describe("computeTrend", () => {
+  it("computes one row per month, scoping each month's contacts to that month's window", () => {
+    const memberJulySuccess = memberWithContacts(0, 0, {
+      id: "m1",
+      name: "M1",
+      contacts: [{ createdAt: new Date(2026, 6, 10), successful: true }], // July only
+    });
+    const points = computeTrend("c", "C", [memberJulySuccess], ["2026-06", "2026-07"], now);
+    expect(points.map((p) => p.month)).toEqual(["2026-06", "2026-07"]);
+    expect(points[0].row.successfulTouchpoints).toBe(0); // June: no contact yet
+    expect(points[1].row.successfulTouchpoints).toBe(1); // July: the contact lands here
+    expect(points[0].row.members).toBe(points[1].row.members); // caseload membership doesn't vary by month
   });
 });
