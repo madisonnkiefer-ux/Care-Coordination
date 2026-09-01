@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Card, Badge, StatTile } from "@/components/ui";
 import { formatDate, titleCase } from "@/lib/format";
 import { statusBadgeColor, ALL_STATUSES } from "@/lib/member-status";
-import { getWindowStart, cnaDueDate, isCnaStillDue } from "@/lib/touchpoint-compliance";
+import { getWindowStart, cnaDueDate } from "@/lib/touchpoint-compliance";
 import { monthBounds, trailingMonths, computeCoordinatorRow, computeFunnel, computeTrend, type MemberRef } from "@/lib/team-performance";
 import { reassignMember } from "@/app/actions/member-assignment";
 import { logBulkExport } from "@/app/actions/export";
@@ -15,17 +15,14 @@ import type { getReportsData } from "@/lib/data/reports";
 type ReportsData = Awaited<ReturnType<typeof getReportsData>>;
 type ReportMember = ReportsData["members"][number];
 
-type ReportId = "roster" | "caseload" | "outreach" | "cna" | "monthly-activity" | "monthly-dashboard" | "team-snapshot" | "monthly-trends";
+type ReportId = "roster" | "caseload" | "outreach" | "cna" | "monthly-performance";
 
 const REPORTS: { id: ReportId; label: string }[] = [
   { id: "roster", label: "Active Roster" },
   { id: "caseload", label: "Caseload Distribution" },
   { id: "outreach", label: "Outreach Completion" },
   { id: "cna", label: "Annual CNA Status" },
-  { id: "monthly-activity", label: "Monthly Activity" },
-  { id: "monthly-dashboard", label: "Monthly Dashboard" },
-  { id: "team-snapshot", label: "Team Monthly Snapshot" },
-  { id: "monthly-trends", label: "Monthly Trends" },
+  { id: "monthly-performance", label: "Monthly Performance" },
 ];
 
 const ALL_COORDINATORS_ID = "__all__";
@@ -102,10 +99,6 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
   // Empty = no filter, shows every member's current status (the original
   // behavior). Format matches <input type="month">'s value: "YYYY-MM".
   const [cnaMonth, setCnaMonth] = useState("");
-  const [dashboardMonth, setDashboardMonth] = useState(currentMonthValue);
-  const [teamMonth, setTeamMonth] = useState(currentMonthValue);
-  const [trendsMonth, setTrendsMonth] = useState(currentMonthValue);
-  const [trendsCoordinatorId, setTrendsCoordinatorId] = useState(ALL_COORDINATORS_ID);
 
   const filtered = useMemo(() => {
     return members.filter((m) => {
@@ -116,10 +109,12 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
     });
   }, [members, coordinatorId, program, status]);
 
-  // Team Monthly Snapshot always shows every coordinator side by side, so it
-  // deliberately ignores the Coordinator filter (hidden on that tab, but its
-  // state can still be set from another tab) — only Program narrows it.
-  const teamSnapshotMembers = useMemo(() => {
+  // Monthly Performance always shows every coordinator side by side (or one
+  // coordinator's own trend), so it deliberately ignores the Coordinator
+  // filter (hidden on that tab, but its state can still be set from another
+  // tab) — only Program narrows it. Month/coordinator selection for the
+  // snapshot/trends/funnel views inside it is owned by that component.
+  const performanceMembers = useMemo(() => {
     return members.filter((m) => !program || m.program === program);
   }, [members, program]);
 
@@ -140,20 +135,18 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
         ))}
       </div>
 
-      {active !== "monthly-activity" && (
+      {active !== "monthly-performance" && (
       <div className="mb-4 flex flex-wrap items-end gap-3">
-        {active !== "team-snapshot" && active !== "monthly-trends" && (
-          <FilterField label="Coordinator">
-            <select value={coordinatorId} onChange={(e) => setCoordinatorId(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose">
-              <option value="">All coordinators</option>
-              {coordinators.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </FilterField>
-        )}
+        <FilterField label="Coordinator">
+          <select value={coordinatorId} onChange={(e) => setCoordinatorId(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose">
+            <option value="">All coordinators</option>
+            {coordinators.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </FilterField>
 
         <FilterField label="Program">
           <select value={program} onChange={(e) => setProgram(e.target.value)} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose">
@@ -208,54 +201,6 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
           </FilterField>
         )}
 
-        {active === "monthly-dashboard" && (
-          <FilterField label="Month">
-            <input
-              type="month"
-              value={dashboardMonth}
-              onChange={(e) => setDashboardMonth(e.target.value)}
-              className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-            />
-          </FilterField>
-        )}
-
-        {active === "team-snapshot" && (
-          <FilterField label="Month">
-            <input
-              type="month"
-              value={teamMonth}
-              onChange={(e) => setTeamMonth(e.target.value)}
-              className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-            />
-          </FilterField>
-        )}
-
-        {active === "monthly-trends" && (
-          <>
-            <FilterField label="Coordinator">
-              <select
-                value={trendsCoordinatorId}
-                onChange={(e) => setTrendsCoordinatorId(e.target.value)}
-                className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-              >
-                <option value={ALL_COORDINATORS_ID}>All coordinators (team)</option>
-                {coordinators.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </FilterField>
-            <FilterField label="Through Month">
-              <input
-                type="month"
-                value={trendsMonth}
-                onChange={(e) => setTrendsMonth(e.target.value)}
-                className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-              />
-            </FilterField>
-          </>
-        )}
       </div>
       )}
 
@@ -265,12 +210,7 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
       )}
       {active === "outreach" && <OutreachCompletionReport members={filtered} dateFrom={dateFrom} dateTo={dateTo} />}
       {active === "cna" && <AnnualCnaStatusReport members={filtered} month={cnaMonth} />}
-      {active === "monthly-dashboard" && <MonthlyDashboardReport members={filtered} coordinators={coordinators} month={dashboardMonth} />}
-      {active === "monthly-activity" && <MonthlyActivityReport />}
-      {active === "team-snapshot" && <TeamMonthlySnapshotReport members={teamSnapshotMembers} coordinators={coordinators} month={teamMonth} />}
-      {active === "monthly-trends" && (
-        <MonthlyTrendsReport members={teamSnapshotMembers} coordinators={coordinators} coordinatorId={trendsCoordinatorId} month={trendsMonth} />
-      )}
+      {active === "monthly-performance" && <MonthlyPerformanceReport members={performanceMembers} coordinators={coordinators} />}
     </div>
   );
 }
@@ -801,116 +741,6 @@ function AnnualCnaStatusReport({ members, month }: { members: ReportMember[]; mo
   );
 }
 
-function MonthlyDashboardReport({
-  members,
-  coordinators,
-  month,
-}: {
-  members: ReportMember[];
-  coordinators: ReportsData["coordinators"];
-  month: string;
-}) {
-  const rows = useMemo(() => {
-    const now = new Date();
-    const [year, monthNum] = month.split("-").map(Number);
-    const monthStart = new Date(year, monthNum - 1, 1);
-    const monthEnd = new Date(year, monthNum, 0, 23, 59, 59, 999);
-    const inMonth = (d: Date) => d >= monthStart && d <= monthEnd;
-
-    return coordinators.map((c) => {
-      const caseload = members.filter((m) => m.coordinatorId === c.id);
-      const activePatients = caseload.filter((m) => m.status === "ACTIVE").length;
-
-      let successful = 0;
-      let attempts = 0;
-      let cnaCompletedInMonth = 0;
-      let cnaStillDue = 0;
-
-      for (const m of caseload) {
-        const contactsInMonth = m.contacts.filter((contact) => inMonth(contact.createdAt));
-        attempts += contactsInMonth.length;
-        successful += contactsInMonth.filter((contact) => contact.successful).length;
-        cnaCompletedInMonth += m.cnaCompletions.filter(inMonth).length;
-        if (isCnaStillDue(m.lastCnaDate, now)) cnaStillDue += 1;
-      }
-
-      return {
-        id: c.id,
-        name: c.name,
-        patients: activePatients,
-        successful,
-        attempts,
-        successRate: attempts > 0 ? Math.round((successful / attempts) * 100) : null,
-        cnaCompletedInMonth,
-        cnaStillDue,
-      };
-    });
-  }, [members, coordinators, month]);
-
-  const label = monthLabel(month);
-
-  return (
-    <ReportShell
-      title={`Monthly Dashboard — ${label}`}
-      count={rows.length}
-      unit="coordinator"
-      emptyMessage="No care coordinators match these filters."
-      onExport={() =>
-        exportCsv(
-          "MonthlyDashboardReport",
-          members.map((m) => m.id),
-          `monthly-dashboard-${month}.csv`,
-          [
-            "Care Coordinator",
-            "# of Patients",
-            `Total Successful (${label})`,
-            "% of Successful Touchpoints",
-            `Total Attempts (${label})`,
-            `CNAs Completed (${label})`,
-            "CNAs Still Due",
-          ],
-          rows.map((r) => [
-            r.name,
-            r.patients,
-            r.successful,
-            r.successRate === null ? "—" : `${r.successRate}%`,
-            r.attempts,
-            r.cnaCompletedInMonth,
-            r.cnaStillDue,
-          ])
-        )
-      }
-    >
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-xs text-stone-400">
-            <th className="pb-2 font-medium">Care Coordinator</th>
-            <th className="pb-2 font-medium"># of Patients</th>
-            <th className="pb-2 font-medium">Total Successful ({label})</th>
-            <th className="pb-2 font-medium">% Successful</th>
-            <th className="pb-2 font-medium">Total Attempts ({label})</th>
-            <th className="pb-2 font-medium">CNAs Completed ({label})</th>
-            <th className="pb-2 font-medium">CNAs Still Due</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-stone-100">
-          {rows.map((r) => (
-            <tr key={r.id}>
-              <td className="py-2 font-medium text-stone-800">{r.name}</td>
-              <td className="py-2 text-stone-600">{r.patients}</td>
-              <td className="py-2 text-stone-600">{r.successful}</td>
-              <td className="py-2 text-stone-600">{r.successRate === null ? "—" : `${r.successRate}%`}</td>
-              <td className="py-2 text-stone-600">{r.attempts}</td>
-              <td className="py-2 text-stone-600">{r.cnaCompletedInMonth}</td>
-              <td className="py-2 text-stone-600">{r.cnaStillDue}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </ReportShell>
-  );
-}
-
 function toPerformanceMember(m: ReportMember) {
   return { ...m, name: `${m.firstName} ${m.lastName}` };
 }
@@ -961,6 +791,92 @@ function DrillableCount({ value, onClick }: { value: React.ReactNode; onClick: (
     <button type="button" onClick={onClick} className="underline decoration-dotted underline-offset-2 hover:text-charcoal hover:decoration-solid">
       {value}
     </button>
+  );
+}
+
+type PerformanceMode = "snapshot" | "trends" | "activity";
+
+const PERFORMANCE_MODES: { id: PerformanceMode; label: string }[] = [
+  { id: "snapshot", label: "Team Snapshot" },
+  { id: "trends", label: "Monthly Trends" },
+  { id: "activity", label: "Activity Export" },
+];
+
+// Combines what used to be four separate tabs (Monthly Dashboard, Team
+// Monthly Snapshot, Monthly Trends, Monthly Activity) into one, since the
+// first three were all views of the same underlying month-by-coordinator
+// numbers and a supervisor comparing them had to keep re-picking the same
+// month on separate tabs. Monthly Dashboard is gone outright — Team
+// Snapshot replaced it with the validated definitions (floored %,
+// unsuccessful-only attempts, distinct-member touchpoints). Activity
+// Export stays its own mode since it's a date-range Excel export, not a
+// single-month on-screen table, but lives in the same place since it's
+// still "monthly reporting."
+function MonthlyPerformanceReport({
+  members,
+  coordinators,
+}: {
+  members: ReportMember[];
+  coordinators: ReportsData["coordinators"];
+}) {
+  const [mode, setMode] = useState<PerformanceMode>("snapshot");
+  const [month, setMonth] = useState(currentMonthValue);
+  const [trendsCoordinatorId, setTrendsCoordinatorId] = useState(ALL_COORDINATORS_ID);
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div className="flex gap-1 rounded-lg border border-stone-200 bg-stone-50 p-1">
+          {PERFORMANCE_MODES.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => setMode(m.id)}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                mode === m.id ? "bg-white text-charcoal shadow-sm" : "text-stone-500 hover:text-stone-700"
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+
+        {mode !== "activity" && (
+          <div className="flex flex-wrap items-end gap-3">
+            {mode === "trends" && (
+              <FilterField label="Coordinator">
+                <select
+                  value={trendsCoordinatorId}
+                  onChange={(e) => setTrendsCoordinatorId(e.target.value)}
+                  className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                >
+                  <option value={ALL_COORDINATORS_ID}>All coordinators (team)</option>
+                  {coordinators.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </FilterField>
+            )}
+            <FilterField label={mode === "trends" ? "Through Month" : "Month"}>
+              <input
+                type="month"
+                value={month}
+                onChange={(e) => setMonth(e.target.value)}
+                className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+              />
+            </FilterField>
+          </div>
+        )}
+      </div>
+
+      {mode === "snapshot" && <TeamMonthlySnapshotReport members={members} coordinators={coordinators} month={month} />}
+      {mode === "trends" && (
+        <MonthlyTrendsReport members={members} coordinators={coordinators} coordinatorId={trendsCoordinatorId} month={month} />
+      )}
+      {mode === "activity" && <MonthlyActivityReport />}
+    </div>
   );
 }
 
