@@ -65,6 +65,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 # (P1014) that a single-pass `prisma db push` can hit on this schema — the
 # migration override should run this instead of a raw `db push`.
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+# One-off read-only/admin scripts (e.g. scripts/validate-team-report.ts) run
+# via this same command-override path and import real app logic from lib/
+# using "@/..." aliases — the standalone server bundle doesn't expose lib/
+# as importable source, so both it and tsconfig.json (tsx needs it to
+# resolve those aliases outside a Next.js build) need to be here too.
+COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
+COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
 # schema.prisma's generator writes the client to app/generated/prisma (a
 # source directory, not node_modules) — prisma/seed.ts imports it directly.
 COPY --from=builder --chown=nextjs:nodejs /app/app/generated ./app/generated
