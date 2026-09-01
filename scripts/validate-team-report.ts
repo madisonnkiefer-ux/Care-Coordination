@@ -85,6 +85,35 @@ async function main() {
     }),
   ]);
 
+  if (coordinators.length === 0) {
+    const allUsers = await db.user.findMany({
+      where: { clinicId: clinic.id },
+      select: { role: true, active: true },
+    });
+    const byRoleActive = new Map<string, number>();
+    for (const u of allUsers) {
+      const key = `${u.role} / active=${u.active}`;
+      byRoleActive.set(key, (byRoleActive.get(key) ?? 0) + 1);
+    }
+    console.log(`\nNo active CARE_COORDINATOR users found for this clinic. All ${allUsers.length} users by role/active status:`);
+    for (const [key, count] of byRoleActive) console.log(`  ${key}: ${count}`);
+
+    const namesToCheck = arg("check-names")?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
+    if (namesToCheck.length > 0) {
+      const matches = await db.user.findMany({
+        where: { clinicId: clinic.id, OR: namesToCheck.map((n) => ({ name: { contains: n, mode: "insensitive" as const } })) },
+        select: { name: true, role: true, active: true },
+      });
+      console.log(`\nLooking for: ${namesToCheck.join(", ")}`);
+      if (matches.length === 0) {
+        console.log("  None of those names found in this clinic's users at all.");
+      } else {
+        for (const m of matches) console.log(`  ${m.name} — role=${m.role} active=${m.active}`);
+      }
+    }
+    console.log("");
+  }
+
   const performanceMembers = members.map((m) => {
     const lastCna = m.cnaAssessments[0] ?? null;
     return {
