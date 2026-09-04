@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Card, Badge, StatTile } from "@/components/ui";
 import { formatDate, titleCase } from "@/lib/format";
 import { statusBadgeColor, ALL_STATUSES } from "@/lib/member-status";
-import { getWindowStart, cnaDueDate } from "@/lib/touchpoint-compliance";
+import { getWindowStart, cnaDueDate, type CadenceOverrides } from "@/lib/touchpoint-compliance";
 import { monthBounds, trailingMonths, computeCoordinatorRow, computeFunnel, computeTrend, type MemberRef } from "@/lib/team-performance";
 import { reassignMember } from "@/app/actions/member-assignment";
 import { logBulkExport } from "@/app/actions/export";
@@ -89,7 +89,7 @@ async function exportCsv(resource: string, memberIds: string[], filename: string
   downloadCsv(filename, headers, rows);
 }
 
-export function ReportsClient({ members, coordinators, programs }: ReportsData) {
+export function ReportsClient({ members, coordinators, programs, cadenceOverrides }: ReportsData) {
   const [active, setActive] = useState<ReportId>("roster");
   const [coordinatorId, setCoordinatorId] = useState("");
   const [program, setProgram] = useState("");
@@ -210,7 +210,9 @@ export function ReportsClient({ members, coordinators, programs }: ReportsData) 
       )}
       {active === "outreach" && <OutreachCompletionReport members={filtered} dateFrom={dateFrom} dateTo={dateTo} />}
       {active === "cna" && <AnnualCnaStatusReport members={filtered} month={cnaMonth} />}
-      {active === "monthly-performance" && <MonthlyPerformanceReport members={performanceMembers} coordinators={coordinators} />}
+      {active === "monthly-performance" && (
+        <MonthlyPerformanceReport members={performanceMembers} coordinators={coordinators} cadenceOverrides={cadenceOverrides} />
+      )}
     </div>
   );
 }
@@ -815,9 +817,11 @@ const PERFORMANCE_MODES: { id: PerformanceMode; label: string }[] = [
 function MonthlyPerformanceReport({
   members,
   coordinators,
+  cadenceOverrides,
 }: {
   members: ReportMember[];
   coordinators: ReportsData["coordinators"];
+  cadenceOverrides: CadenceOverrides;
 }) {
   const [mode, setMode] = useState<PerformanceMode>("snapshot");
   const [month, setMonth] = useState(currentMonthValue);
@@ -871,9 +875,17 @@ function MonthlyPerformanceReport({
         )}
       </div>
 
-      {mode === "snapshot" && <TeamMonthlySnapshotReport members={members} coordinators={coordinators} month={month} />}
+      {mode === "snapshot" && (
+        <TeamMonthlySnapshotReport members={members} coordinators={coordinators} month={month} cadenceOverrides={cadenceOverrides} />
+      )}
       {mode === "trends" && (
-        <MonthlyTrendsReport members={members} coordinators={coordinators} coordinatorId={trendsCoordinatorId} month={month} />
+        <MonthlyTrendsReport
+          members={members}
+          coordinators={coordinators}
+          coordinatorId={trendsCoordinatorId}
+          month={month}
+          cadenceOverrides={cadenceOverrides}
+        />
       )}
       {mode === "activity" && <MonthlyActivityReport />}
     </div>
@@ -884,10 +896,12 @@ function TeamMonthlySnapshotReport({
   members,
   coordinators,
   month,
+  cadenceOverrides,
 }: {
   members: ReportMember[];
   coordinators: ReportsData["coordinators"];
   month: string;
+  cadenceOverrides: CadenceOverrides;
 }) {
   const [drilldownId, setDrilldownId] = useState<string | null>(null);
   const [modal, setModal] = useState<{ title: string; members: MemberRef[] } | null>(null);
@@ -930,6 +944,7 @@ function TeamMonthlySnapshotReport({
           coordinator={coordinator}
           caseload={members.filter((m) => m.coordinatorId === drilldownId)}
           month={month}
+          cadenceOverrides={cadenceOverrides}
           onBack={() => setDrilldownId(null)}
         />
       );
@@ -1034,11 +1049,13 @@ function CoordinatorMonthlySnapshot({
   coordinator,
   caseload,
   month,
+  cadenceOverrides,
   onBack,
 }: {
   coordinator: { id: string; name: string };
   caseload: ReportMember[];
   month: string;
+  cadenceOverrides: CadenceOverrides;
   onBack: () => void;
 }) {
   const { monthStart, monthEnd } = useMemo(() => monthBounds(month), [month]);
@@ -1049,7 +1066,10 @@ function CoordinatorMonthlySnapshot({
     () => computeCoordinatorRow(coordinator.id, coordinator.name, performanceCaseload, monthStart, monthEnd, now),
     [coordinator, performanceCaseload, monthStart, monthEnd, now]
   );
-  const funnel = useMemo(() => computeFunnel(performanceCaseload, monthStart, monthEnd), [performanceCaseload, monthStart, monthEnd]);
+  const funnel = useMemo(
+    () => computeFunnel(performanceCaseload, monthStart, monthEnd, cadenceOverrides),
+    [performanceCaseload, monthStart, monthEnd, cadenceOverrides]
+  );
   const label = monthLabel(month);
 
   return (
@@ -1151,11 +1171,13 @@ function MonthlyTrendsReport({
   coordinators,
   coordinatorId,
   month,
+  cadenceOverrides,
 }: {
   members: ReportMember[];
   coordinators: ReportsData["coordinators"];
   coordinatorId: string;
   month: string;
+  cadenceOverrides: CadenceOverrides;
 }) {
   const [now] = useState(() => new Date());
   const months = useMemo(() => trailingMonths(month, TREND_MONTHS_SHOWN), [month]);
@@ -1176,9 +1198,9 @@ function MonthlyTrendsReport({
     () =>
       months.map((m) => {
         const { monthStart, monthEnd } = monthBounds(m);
-        return computeFunnel(caseload, monthStart, monthEnd)[0]?.percentCompleted ?? null;
+        return computeFunnel(caseload, monthStart, monthEnd, cadenceOverrides)[0]?.percentCompleted ?? null;
       }),
-    [caseload, months]
+    [caseload, months, cadenceOverrides]
   );
 
   return (

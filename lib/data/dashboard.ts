@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { firstEnrollmentDate, isTouchpointCompliant, progressNotesToContacts } from "@/lib/touchpoint-compliance";
+import { getCadenceOverridesForClinic } from "@/lib/data/touchpoint-cadence";
 
 export async function getDashboardData() {
   const session = await verifySession();
@@ -36,6 +37,7 @@ export async function getDashboardData() {
     recentContacts,
     membersForAnnualCna,
     membersForContactCheck,
+    cadenceOverrides,
   ] = await Promise.all([
     db.member.count({ where: memberScope }),
     db.task.count({
@@ -114,6 +116,7 @@ export async function getDashboardData() {
         intakeVersions: { where: { signedAt: { not: null } }, orderBy: { signedAt: "asc" }, take: 1, select: { signedAt: true } },
       },
     }),
+    getCadenceOverridesForClinic(session.clinicId),
   ]);
 
   const goalTotals = { onTrack: 0, inProgress: 0, notStarted: 0, complete: 0 };
@@ -162,7 +165,7 @@ export async function getDashboardData() {
         lastSuccessfulContactDate: contacts
           .filter((c) => c.successful)
           .reduce<Date | null>((latest, c) => (!latest || c.createdAt > latest ? c.createdAt : latest), null),
-        compliant: isTouchpointCompliant(contacts, m.program, firstEnrollmentDate(m), now),
+        compliant: isTouchpointCompliant(contacts, m.program, firstEnrollmentDate(m), now, cadenceOverrides),
       };
     })
     .filter((m) => !m.compliant)

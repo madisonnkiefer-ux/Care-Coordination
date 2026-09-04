@@ -49,6 +49,7 @@ enum Permission {
   RESOLVE_AMENDMENT_REQUESTS
   ASSIGN_WORK_TO_OTHERS
   VIEW_SETTINGS
+  MANAGE_TOUCHPOINT_CADENCE
 }
 
 model Clinic {
@@ -70,6 +71,7 @@ model Clinic {
   vendors            Vendor[]
   rolePermissions    RolePermissions[]
   customRoles        CustomRole[]
+  touchpointCadences TouchpointCadence[]
 }
 
 // Per-clinic, per-built-in-role permission set — lets an admin edit what
@@ -90,6 +92,28 @@ model RolePermissions {
   updatedBy   User?        @relation("RolePermissionsUpdatedBy", fields: [updatedById], references: [id])
 
   @@unique([clinicId, role])
+}
+
+// Per-clinic override of a program's touchpoint compliance cadence — see
+// lib/touchpoint-compliance.ts's getComplianceCadence(), which reads these
+// rows (falling back to that file's hardcoded defaults for any program with
+// no row here yet) so every report/status calc that flags a member as
+// under-contacted can be re-tuned without a code deploy. `program` matches
+// one of PATIENT_TYPE_OPTIONS' stored values ("Prenatal", "Postpartum",
+// "GYN") or the literal "Default" bucket for members with no program set.
+model TouchpointCadence {
+  id                 String   @id @default(cuid())
+  clinicId           String
+  clinic             Clinic   @relation(fields: [clinicId], references: [id])
+  program            String
+  unit               String // "month" | "quarter"
+  requiredSuccessful Int
+  requiredAttempts   Int
+  updatedAt          DateTime @updatedAt
+  updatedById        String?
+  updatedBy          User?    @relation("TouchpointCadenceUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([clinicId, program])
 }
 
 // An admin-created named permission set, always cloned from one of the 3
@@ -191,8 +215,9 @@ model User {
   homeVisitRequestsAssigned HomeVisitRequest[] @relation("HomeVisitRequestAssignee")
   homeVisitRequestsMade     HomeVisitRequest[] @relation("HomeVisitRequestRequestedBy")
 
-  rolePermissionsUpdated RolePermissions[] @relation("RolePermissionsUpdatedBy")
-  customRolesCreated     CustomRole[]      @relation("CustomRoleCreatedBy")
+  rolePermissionsUpdated    RolePermissions[]   @relation("RolePermissionsUpdatedBy")
+  customRolesCreated        CustomRole[]        @relation("CustomRoleCreatedBy")
+  touchpointCadencesUpdated TouchpointCadence[] @relation("TouchpointCadenceUpdatedBy")
 
   @@index([clinicId])
   @@index([customRoleId])
@@ -871,23 +896,23 @@ model CarePlan {
   backupContacts CarePlanBackupContact[]
 
   // Disaster Preparedness Plan
-  disasterPlanText               String?
-  disasterReviewItems            String[] // check-all-that-apply: Medication/drugs, Oxygen tank, etc.
-  disasterReviewItemsOther       String?
-  disasterDmeNeedsProvider        String?
-  disasterDmeNeedsProviderChecked Boolean?
-  disasterTransportationCo        String?
-  disasterTransportationCoChecked Boolean?
-  disasterMedicationPickup        String?
-  disasterMedicationPickupChecked Boolean?
-  disasterHomeHealthAgency        String?
-  disasterHomeHealthAgencyChecked Boolean?
-  disasterServiceAnimalsCare      String?
+  disasterPlanText                  String?
+  disasterReviewItems               String[] // check-all-that-apply: Medication/drugs, Oxygen tank, etc.
+  disasterReviewItemsOther          String?
+  disasterDmeNeedsProvider          String?
+  disasterDmeNeedsProviderChecked   Boolean?
+  disasterTransportationCo          String?
+  disasterTransportationCoChecked   Boolean?
+  disasterMedicationPickup          String?
+  disasterMedicationPickupChecked   Boolean?
+  disasterHomeHealthAgency          String?
+  disasterHomeHealthAgencyChecked   Boolean?
+  disasterServiceAnimalsCare        String?
   disasterServiceAnimalsCareChecked Boolean?
-  hasEmergencyContactsList        Boolean?
-  hasEmergencyContactsListText    String?
-  discussedSafetyWithCoordinator  Boolean?
-  disasterContacts               CarePlanDisasterContact[]
+  hasEmergencyContactsList          Boolean?
+  hasEmergencyContactsListText      String?
+  discussedSafetyWithCoordinator    Boolean?
+  disasterContacts                  CarePlanDisasterContact[]
 
   // Other Services / Medicare & Dual Eligible coordination
   otherServicesText             String?

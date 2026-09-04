@@ -49,6 +49,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   "RESOLVE_AMENDMENT_REQUESTS",
   "ASSIGN_WORK_TO_OTHERS",
   "VIEW_SETTINGS",
+  "MANAGE_TOUCHPOINT_CADENCE",
 ];
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
@@ -72,6 +73,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   RESOLVE_AMENDMENT_REQUESTS: "View & Resolve Amendment Requests",
   ASSIGN_WORK_TO_OTHERS: "Assign Tasks & Home Visits to Other Coordinators",
   VIEW_SETTINGS: "Access the Settings Page",
+  MANAGE_TOUCHPOINT_CADENCE: "Manage Touchpoint Cadence (how often each program must be contacted)",
 };
 
 export const PERMISSION_GROUPS: { label: string; permissions: Permission[] }[] = [
@@ -89,7 +91,15 @@ export const PERMISSION_GROUPS: { label: string; permissions: Permission[] }[] =
   },
   {
     label: "Administration",
-    permissions: ["MANAGE_USERS", "MANAGE_OFFICES", "MANAGE_VENDORS", "MANAGE_FORM_CONTENT", "MANAGE_RESOURCES", "RESET_USER_MFA"],
+    permissions: [
+      "MANAGE_USERS",
+      "MANAGE_OFFICES",
+      "MANAGE_VENDORS",
+      "MANAGE_FORM_CONTENT",
+      "MANAGE_RESOURCES",
+      "RESET_USER_MFA",
+      "MANAGE_TOUCHPOINT_CADENCE",
+    ],
   },
   {
     label: "Audit & Security",

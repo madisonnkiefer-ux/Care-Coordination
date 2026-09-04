@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { getComplianceCadence, getWindowEnd, getWindowStart, isTouchpointCompliant, progressNotesToContacts } from "@/lib/touchpoint-compliance";
 import { graduationReviewStatus, daysUntilGraduationReview } from "@/lib/graduation";
+import { getCadenceOverridesForClinic } from "@/lib/data/touchpoint-cadence";
 
 // Everything here is derived from data that already exists elsewhere in the
 // app (Care Plan, General Communication, Tasks, HEDIS, CNA) — nothing new is
@@ -19,7 +20,6 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
   if (!member) return null;
 
   const now = new Date();
-  const cadence = getComplianceCadence(member.program);
   // Widest window either cadence ever needs, regardless of this member's own
   // enrollment anchor: a monthly cadence never looks back further than the
   // start of this month, and an anchored quarter is always fully contained
@@ -36,6 +36,7 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
     hedis,
     latestCna,
     pendingStatusChange,
+    cadenceOverrides,
   ] = await Promise.all([
       db.carePlan.findFirst({
         where: { memberId },
@@ -71,8 +72,10 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
         where: { memberId, requiresApproval: true, approvedAt: null, rejectedAt: null },
         select: { toStatus: true },
       }),
+      getCadenceOverridesForClinic(session.clinicId),
     ]);
 
+  const cadence = getComplianceCadence(member.program, cadenceOverrides);
   const contactsSinceFloor = [...generalCommContactsSinceFloor, ...progressNotesToContacts(progressNoteContactsSinceFloor)];
 
   const enrollmentDate = firstSignedIntake?.signedAt ?? member.createdAt;
@@ -80,7 +83,7 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
   const windowEnd = getWindowEnd(cadence.unit, now, enrollmentDate);
   const contactsInWindow = contactsSinceFloor.filter((c) => c.createdAt >= windowStart);
 
-  const touchpointCompliant = isTouchpointCompliant(contactsSinceFloor, member.program, enrollmentDate, now);
+  const touchpointCompliant = isTouchpointCompliant(contactsSinceFloor, member.program, enrollmentDate, now, cadenceOverrides);
   const successfulInWindow = contactsInWindow.filter((c) => c.successful).length;
 
   // Pregnancy/postpartum status — reuses Member.edd and the HEDIS tab's

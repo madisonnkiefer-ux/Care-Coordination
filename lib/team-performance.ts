@@ -4,7 +4,7 @@
 // "use client" file so this math is unit-testable on its own — see
 // lib/__tests__/team-performance.test.ts, which validates it against the
 // supervisor-provided July example.
-import { isCnaStillDue, isTouchpointCompliant, type ContactRecord } from "@/lib/touchpoint-compliance";
+import { isCnaStillDue, isTouchpointCompliant, type CadenceOverrides, type ContactRecord } from "@/lib/touchpoint-compliance";
 
 export type MemberRef = { id: string; name: string };
 
@@ -126,12 +126,17 @@ export type FunnelStage = {
 // stage 1. Each member's contacts within the month are then walked in
 // order: a member drops out of the funnel the moment one succeeds, so the
 // population requiring the 2nd/3rd attempt only ever shrinks.
-export function computeFunnel(caseload: PerformanceMember[], monthStart: Date, monthEnd: Date): FunnelStage[] {
+export function computeFunnel(
+  caseload: PerformanceMember[],
+  monthStart: Date,
+  monthEnd: Date,
+  cadenceOverrides?: CadenceOverrides
+): FunnelStage[] {
   const inMonth = (d: Date) => d >= monthStart && d <= monthEnd;
   const population = caseload.filter((m) => {
     if (m.status !== "ACTIVE") return false;
     const priorContacts = m.contacts.filter((c) => c.createdAt < monthStart);
-    return !isTouchpointCompliant(priorContacts, m.program, m.enrollmentDate, monthEnd);
+    return !isTouchpointCompliant(priorContacts, m.program, m.enrollmentDate, monthEnd, cadenceOverrides);
   });
 
   // Per member: their attempts this month, in order, stopping at the first

@@ -8,7 +8,7 @@ import type { GeneralCommunication } from "@/app/generated/prisma/client";
 import { SelectField, DateField } from "@/components/intake/form-fields";
 import { CONTACT_METHOD_OPTIONS, PERSON_CONTACTED_OPTIONS, UNSUCCESSFUL_REASON_OPTIONS } from "@/components/care-plan/outreach-options";
 import { formatDate, formatDateTime, toDateInputValue } from "@/lib/format";
-import { getComplianceCadence, getWindowStart, isTouchpointCompliant } from "@/lib/touchpoint-compliance";
+import { getComplianceCadence, getWindowStart, isTouchpointCompliant, type CadenceOverrides } from "@/lib/touchpoint-compliance";
 import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 import { FormFieldsProvider } from "@/lib/form-fields/context";
 import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
@@ -22,6 +22,7 @@ export function GeneralCommunicationTab({
   records,
   program,
   enrollmentDate,
+  cadenceOverrides,
   fields,
   fieldOrder,
   customQuestionDefs,
@@ -31,6 +32,7 @@ export function GeneralCommunicationTab({
   records: CommRecord[];
   program: string | null;
   enrollmentDate: Date;
+  cadenceOverrides?: CadenceOverrides;
   fields: ResolvedFormFields;
   fieldOrder: string[];
   customQuestionDefs: CustomQuestionDef[];
@@ -47,7 +49,7 @@ export function GeneralCommunicationTab({
     const lastSuccessful = successfulDates.length ? new Date(Math.max(...successfulDates.map((d) => d.getTime()))) : null;
     const days = lastSuccessful ? Math.floor((now.getTime() - lastSuccessful.getTime()) / (1000 * 60 * 60 * 24)) : null;
 
-    const windowCadence = getComplianceCadence(program);
+    const windowCadence = getComplianceCadence(program, cadenceOverrides);
     const windowStart = getWindowStart(windowCadence.unit, now, enrollmentDate);
     const inWindow = records.filter((r) => r.createdAt >= windowStart);
 
@@ -56,9 +58,9 @@ export function GeneralCommunicationTab({
       cadence: windowCadence,
       attemptsInWindow: inWindow.length,
       successfulInWindow: inWindow.filter((r) => r.successful).length,
-      compliant: isTouchpointCompliant(records, program, enrollmentDate, now),
+      compliant: isTouchpointCompliant(records, program, enrollmentDate, now, cadenceOverrides),
     };
-  }, [records, program, enrollmentDate]);
+  }, [records, program, enrollmentDate, cadenceOverrides]);
 
   async function handleNewEntry() {
     const newId = await createNewGeneralCommunication(memberId);

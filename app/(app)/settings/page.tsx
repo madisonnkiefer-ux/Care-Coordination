@@ -7,6 +7,7 @@ import { getSecurityAlerts } from "@/lib/data/security-alerts";
 import { getVendors } from "@/lib/data/vendors";
 import { getAllAmendmentRequests, getRecordExportLog } from "@/lib/data/amendment-requests";
 import { getRolesAndPermissionsData } from "@/lib/data/permissions";
+import { getTouchpointCadenceSettings } from "@/lib/data/touchpoint-cadence";
 import { PageHeader } from "@/components/ui";
 import { Tabs } from "@/components/tabs";
 import { UsersTab } from "@/components/settings/users-tab";
@@ -19,6 +20,7 @@ import { SecurityAlertsTab } from "@/components/settings/security-alerts-tab";
 import { VendorsTab } from "@/components/settings/vendors-tab";
 import { PatientRightsTab } from "@/components/settings/patient-rights-tab";
 import { RolesTab } from "@/components/settings/roles-tab";
+import { TouchpointCadenceTab } from "@/components/settings/touchpoint-cadence-tab";
 import type { Permission } from "@/app/generated/prisma/client";
 
 export default async function SettingsPage({
@@ -93,6 +95,11 @@ export default async function SettingsPage({
   if (has("MANAGE_VENDORS")) {
     const vendors = await getVendors();
     tabs.push({ id: "vendors", label: "Vendors & BAAs", content: <VendorsTab vendors={vendors} /> });
+  }
+
+  if (has("MANAGE_TOUCHPOINT_CADENCE")) {
+    const cadenceRows = await getTouchpointCadenceSettings();
+    tabs.push({ id: "touchpoint-cadence", label: "Touchpoint Cadence", content: <TouchpointCadenceTab rows={cadenceRows} /> });
   }
 
   if (has("RESOLVE_AMENDMENT_REQUESTS")) {

@@ -5,6 +5,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { TERMINAL_STATUSES } from "@/lib/member-status";
 import { firstEnrollmentDate, getComplianceCadence, getWindowStart, isTouchpointCompliant, progressNotesToContacts } from "@/lib/touchpoint-compliance";
 import { addBusinessDays, businessDaysBetween } from "@/lib/business-days";
+import { getCadenceOverridesForClinic } from "@/lib/data/touchpoint-cadence";
 
 // A member's CCP is due 14 business days after their enrollment starts
 // (their chart is created). No renewal cadence — once it's done, it's done.
@@ -46,6 +47,7 @@ export async function getSupervisorData() {
     membersNeedingAssignment,
     membersForCcpDueDates,
     membersForContactCadence,
+    cadenceOverrides,
   ] = await Promise.all([
     db.member.count({ where: { clinicId } }),
     db.member.count({ where: { clinicId, cnaAssessments: { some: { status: "COMPLETED" } } } }),
@@ -125,6 +127,7 @@ export async function getSupervisorData() {
         intakeVersions: { where: { signedAt: { not: null } }, orderBy: { signedAt: "asc" }, take: 1, select: { signedAt: true } },
       },
     }),
+    getCadenceOverridesForClinic(clinicId),
   ]);
 
   const pct = (n: number) => (totalMembers === 0 ? 0 : Math.round((n / totalMembers) * 100));
@@ -199,7 +202,7 @@ export async function getSupervisorData() {
         ...m.generalCommunications,
         ...progressNotesToContacts(m.carePlans.flatMap((cp) => cp.goals.flatMap((g) => g.progressNotes))),
       ];
-      const cadence = getComplianceCadence(m.program);
+      const cadence = getComplianceCadence(m.program, cadenceOverrides);
       const enrollmentDate = firstEnrollmentDate(m);
       const windowStart = getWindowStart(cadence.unit, now, enrollmentDate);
       const inWindow = contacts.filter((c) => c.createdAt >= windowStart);
@@ -218,7 +221,7 @@ export async function getSupervisorData() {
         attemptsInWindow: inWindow.length,
         successfulInWindow,
         lastAnyContact,
-        compliant: isTouchpointCompliant(contacts, m.program, enrollmentDate, now),
+        compliant: isTouchpointCompliant(contacts, m.program, enrollmentDate, now, cadenceOverrides),
       };
     })
     .filter((m) => !m.compliant)

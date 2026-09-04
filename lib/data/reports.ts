@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { firstEnrollmentDate, progressNotesToContacts } from "@/lib/touchpoint-compliance";
+import { getCadenceOverridesForClinic } from "@/lib/data/touchpoint-cadence";
 
 export async function getReportsData() {
   const session = await requirePermission("VIEW_REPORTS");
@@ -14,7 +15,7 @@ export async function getReportsData() {
     resource: "ReportsData",
   });
 
-  const [members, coordinators] = await Promise.all([
+  const [members, coordinators, cadenceOverrides] = await Promise.all([
     db.member.findMany({
       where: { clinicId },
       orderBy: { lastName: "asc" },
@@ -58,6 +59,7 @@ export async function getReportsData() {
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
+    getCadenceOverridesForClinic(clinicId),
   ]);
 
   const reportMembers = members.map((m) => {
@@ -87,5 +89,5 @@ export async function getReportsData() {
 
   const programs = Array.from(new Set(reportMembers.map((m) => m.program).filter((p): p is string => Boolean(p)))).sort();
 
-  return { members: reportMembers, coordinators, programs };
+  return { members: reportMembers, coordinators, programs, cadenceOverrides };
 }

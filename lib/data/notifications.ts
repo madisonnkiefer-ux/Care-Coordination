@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { firstEnrollmentDate, isTouchpointCompliant, progressNotesToContacts } from "@/lib/touchpoint-compliance";
+import { getCadenceOverridesForClinic } from "@/lib/data/touchpoint-cadence";
 
 // Counts only — this runs on every page via the persistent layout, so it
 // deliberately avoids the full dashboard query (goal totals, appointments,
@@ -24,7 +25,7 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
   // both nested includes rather than two — it ran as two separate
   // db.member.findMany calls before, doubling the cost of a query that
   // already fires on every page navigation via the persistent layout.
-  const [tasksDueCount, members] = await Promise.all([
+  const [tasksDueCount, members, cadenceOverrides] = await Promise.all([
     db.task.count({ where: { assigneeId: session.userId, status: "OPEN" } }),
     db.member.findMany({
       where: memberScope,
@@ -57,6 +58,7 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
         intakeVersions: { where: { signedAt: { not: null } }, orderBy: { signedAt: "asc" }, take: 1, select: { signedAt: true } },
       },
     }),
+    getCadenceOverridesForClinic(session.clinicId),
   ]);
 
   const annualCnaDueCount = members.filter((m) => {
@@ -73,7 +75,7 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
       ...m.generalCommunications,
       ...progressNotesToContacts(m.carePlans.flatMap((cp) => cp.goals.flatMap((g) => g.progressNotes))),
     ];
-    return !isTouchpointCompliant(contacts, m.program, firstEnrollmentDate(m), now);
+    return !isTouchpointCompliant(contacts, m.program, firstEnrollmentDate(m), now, cadenceOverrides);
   }).length;
 
   return { tasksDueCount, annualCnaDueCount, touchpointGapCount };

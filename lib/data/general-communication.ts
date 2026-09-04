@@ -3,12 +3,13 @@ import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { firstEnrollmentDate } from "@/lib/touchpoint-compliance";
+import { getCadenceOverridesForClinic } from "@/lib/data/touchpoint-cadence";
 
 export async function getGeneralCommunicationFormData(memberId: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) return null;
 
-  const [records, firstSignedIntake] = await Promise.all([
+  const [records, firstSignedIntake, cadenceOverrides] = await Promise.all([
     db.generalCommunication.findMany({
       where: { memberId },
       orderBy: { createdAt: "desc" },
@@ -19,11 +20,12 @@ export async function getGeneralCommunicationFormData(memberId: string) {
       orderBy: { signedAt: "asc" },
       select: { signedAt: true },
     }),
+    getCadenceOverridesForClinic(session.clinicId),
   ]);
 
   await writeAuditLog({ userId: session.userId, memberId, action: "VIEW", resource: "GeneralCommunication", resourceId: memberId });
 
   const enrollmentDate = firstEnrollmentDate({ createdAt: member.createdAt, intakeVersions: firstSignedIntake ? [firstSignedIntake] : [] });
 
-  return { member, records, enrollmentDate };
+  return { member, records, enrollmentDate, cadenceOverrides };
 }

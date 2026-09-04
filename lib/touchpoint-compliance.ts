@@ -17,14 +17,37 @@ export type ComplianceCadence = {
   requiredAttempts: number;
 };
 
-export function getComplianceCadence(program: string | null | undefined): ComplianceCadence {
-  if (program === "Prenatal" || program === "Postpartum") {
-    return { unit: "month", requiredSuccessful: 1, requiredAttempts: 3 };
-  }
-  if (program === "GYN") {
-    return { unit: "quarter", requiredSuccessful: 1, requiredAttempts: 1 };
-  }
-  return { unit: "quarter", requiredSuccessful: 1, requiredAttempts: 3 };
+// The programs a cadence can be keyed by — "Default" covers any member with
+// no program set (or a value outside PATIENT_TYPE_OPTIONS). Settings >
+// Touchpoint Cadence lets an admin override any of these per clinic (see
+// prisma/schema.prisma's TouchpointCadence model and
+// lib/data/touchpoint-cadence.ts); this map is just the fallback baseline —
+// the app's original hardcoded behavior — for a clinic that's never touched
+// that screen, or for a program with no override row yet.
+export const CADENCE_PROGRAM_KEYS = ["Prenatal", "Postpartum", "GYN", "Default"] as const;
+export type CadenceProgramKey = (typeof CADENCE_PROGRAM_KEYS)[number];
+
+export const DEFAULT_CADENCES: Record<CadenceProgramKey, ComplianceCadence> = {
+  Prenatal: { unit: "month", requiredSuccessful: 1, requiredAttempts: 3 },
+  Postpartum: { unit: "month", requiredSuccessful: 1, requiredAttempts: 3 },
+  GYN: { unit: "quarter", requiredSuccessful: 1, requiredAttempts: 1 },
+  Default: { unit: "quarter", requiredSuccessful: 1, requiredAttempts: 3 },
+};
+
+// A clinic's saved overrides, keyed the same way — see
+// lib/data/touchpoint-cadence.ts's getCadenceOverridesForClinic(). Optional
+// everywhere below so every existing caller (tests, one-off scripts) that
+// doesn't pass one keeps getting exactly DEFAULT_CADENCES, unchanged.
+export type CadenceOverrides = Partial<Record<CadenceProgramKey, ComplianceCadence>>;
+
+export function cadenceProgramKey(program: string | null | undefined): CadenceProgramKey {
+  if (program === "Prenatal" || program === "Postpartum" || program === "GYN") return program;
+  return "Default";
+}
+
+export function getComplianceCadence(program: string | null | undefined, overrides?: CadenceOverrides): ComplianceCadence {
+  const key = cadenceProgramKey(program);
+  return overrides?.[key] ?? DEFAULT_CADENCES[key];
 }
 
 // A member's enrollment anchor: the earliest date one of their intakes was
@@ -115,9 +138,10 @@ export function contactsInCurrentWindow<T extends ContactRecord>(
   contacts: T[],
   program: string | null | undefined,
   enrollmentDate: Date,
-  now: Date = new Date()
+  now: Date = new Date(),
+  overrides?: CadenceOverrides
 ): T[] {
-  const { unit } = getComplianceCadence(program);
+  const { unit } = getComplianceCadence(program, overrides);
   const windowStart = getWindowStart(unit, now, enrollmentDate);
   return contacts.filter((c) => c.createdAt >= windowStart);
 }
@@ -130,10 +154,11 @@ export function isTouchpointCompliant(
   contacts: ContactRecord[],
   program: string | null | undefined,
   enrollmentDate: Date,
-  now: Date = new Date()
+  now: Date = new Date(),
+  overrides?: CadenceOverrides
 ): boolean {
-  const { requiredSuccessful, requiredAttempts } = getComplianceCadence(program);
-  const inWindow = contactsInCurrentWindow(contacts, program, enrollmentDate, now);
+  const { requiredSuccessful, requiredAttempts } = getComplianceCadence(program, overrides);
+  const inWindow = contactsInCurrentWindow(contacts, program, enrollmentDate, now, overrides);
   const successfulCount = inWindow.filter((c) => c.successful).length;
   if (successfulCount >= requiredSuccessful) return true;
   return inWindow.length >= requiredAttempts;
