@@ -1211,6 +1211,7 @@ model HomeVisitRequest {
   requestedById         String
   requestedBy           User                   @relation("HomeVisitRequestRequestedBy", fields: [requestedById], references: [id])
   reason                String?
+  dueDate               DateTime?
   status                HomeVisitRequestStatus @default(OPEN)
   createdAt             DateTime               @default(now())
   resolvedAt            DateTime?

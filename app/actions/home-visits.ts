@@ -36,9 +36,10 @@ export async function requestHomeVisit(formData: FormData) {
   }
 
   const reason = str(formData, "reason");
+  const dueDateRaw = str(formData, "dueDate");
 
   const request = await db.homeVisitRequest.create({
-    data: { memberId, assignedCoordinatorId, requestedById: session.userId, reason },
+    data: { memberId, assignedCoordinatorId, requestedById: session.userId, reason, dueDate: dueDateRaw ? new Date(dueDateRaw) : null },
   });
 
   await writeAuditLog({

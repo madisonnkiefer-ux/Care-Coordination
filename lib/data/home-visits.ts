@@ -30,7 +30,10 @@ export async function getHomeVisitsPageData() {
   const [openRequests, recentVisits, members, coordinators] = await Promise.all([
     db.homeVisitRequest.findMany({
       where: { status: "OPEN", ...requestScope },
-      orderBy: { createdAt: "asc" },
+      // Overdue (past due date) first, then soonest-due, then oldest
+      // undated requests — surfaces what needs attention before what's
+      // merely been waiting longest.
+      orderBy: [{ dueDate: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
       include: {
         member: { select: { id: true, firstName: true, lastName: true } },
         assignedCoordinator: { select: { id: true, name: true } },

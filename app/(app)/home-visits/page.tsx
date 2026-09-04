@@ -8,9 +8,53 @@ import { PERSON_CONTACTED_OPTIONS } from "@/components/care-plan/outreach-option
 
 const HOME_VISIT_PERSON_CONTACTED_OPTIONS = [...PERSON_CONTACTED_OPTIONS, "No one (no answer)"];
 
+function isOverdue(r: { dueDate: Date | null }) {
+  return r.dueDate !== null && r.dueDate.getTime() < Date.now();
+}
+
+function RequestRow({ r }: { r: Awaited<ReturnType<typeof getHomeVisitsPageData>>["openRequests"][number] }) {
+  const overdue = isOverdue(r);
+  return (
+    <li className="flex items-center justify-between gap-3 py-3 text-sm">
+      <div>
+        <Link href={`/members/${r.member.id}`} className="font-medium text-stone-800 hover:underline">
+          {r.member.firstName} {r.member.lastName}
+        </Link>
+        <p className="text-xs text-stone-500">
+          Requested by {r.requestedBy.name} for {r.assignedCoordinator.name} · {formatDate(r.createdAt)}
+        </p>
+        {r.reason && <p className="mt-0.5 text-xs text-stone-600">{r.reason}</p>}
+      </div>
+      <div className="flex items-center gap-2">
+        {r.dueDate && (
+          <Badge color={overdue ? "red" : "slate"}>{overdue ? `Overdue · was due ${formatDate(r.dueDate)}` : `Due ${formatDate(r.dueDate)}`}</Badge>
+        )}
+        <form action={cancelHomeVisitRequest.bind(null, r.id)}>
+          <SubmitButton
+            pendingLabel="…"
+            className="rounded-md border border-stone-300 bg-white px-3 py-1 text-xs font-medium text-stone-600 hover:bg-stone-50 disabled:opacity-50"
+          >
+            Cancel
+          </SubmitButton>
+        </form>
+      </div>
+    </li>
+  );
+}
+
 export default async function HomeVisitsPage() {
   const { session, openRequests, recentVisits, members, coordinators } = await getHomeVisitsPageData();
   const canAssign = session.permissions.includes("ASSIGN_WORK_TO_OTHERS");
+  const overdueCount = openRequests.filter(isOverdue).length;
+
+  const requestsByCoordinator = canAssign
+    ? openRequests.reduce((groups, r) => {
+        const existing = groups.find((g) => g.coordinatorId === r.assignedCoordinator.id);
+        if (existing) existing.requests.push(r);
+        else groups.push({ coordinatorId: r.assignedCoordinator.id, coordinatorName: r.assignedCoordinator.name, requests: [r] });
+        return groups;
+      }, [] as { coordinatorId: string; coordinatorName: string; requests: typeof openRequests }[])
+    : [];
 
   return (
     <div>
@@ -20,32 +64,39 @@ export default async function HomeVisitsPage() {
         <div className="space-y-6 lg:col-span-2">
           <Card
             title="Open Requests"
-            action={openRequests.length > 0 ? <Badge color="yellow">{openRequests.length} pending</Badge> : undefined}
+            action={
+              openRequests.length > 0 ? (
+                <div className="flex items-center gap-2">
+                  {overdueCount > 0 && <Badge color="red">{overdueCount} overdue</Badge>}
+                  <Badge color="yellow">{openRequests.length} pending</Badge>
+                </div>
+              ) : undefined
+            }
           >
             {openRequests.length === 0 ? (
               <p className="py-6 text-center text-sm text-stone-400">No open home visit requests.</p>
+            ) : canAssign ? (
+              <div className="divide-y divide-stone-200">
+                {requestsByCoordinator.map((g) => (
+                  <div key={g.coordinatorId} className="py-3 first:pt-0">
+                    <p className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-stone-500">
+                      {g.coordinatorName}
+                      <span className="rounded-full bg-stone-100 px-1.5 py-0.5 text-[10px] font-normal normal-case text-stone-500">
+                        {g.requests.length}
+                      </span>
+                    </p>
+                    <ul className="divide-y divide-stone-100">
+                      {g.requests.map((r) => (
+                        <RequestRow key={r.id} r={r} />
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             ) : (
               <ul className="divide-y divide-stone-100">
                 {openRequests.map((r) => (
-                  <li key={r.id} className="flex items-center justify-between gap-3 py-3 text-sm">
-                    <div>
-                      <Link href={`/members/${r.member.id}`} className="font-medium text-stone-800 hover:underline">
-                        {r.member.firstName} {r.member.lastName}
-                      </Link>
-                      <p className="text-xs text-stone-500">
-                        Requested by {r.requestedBy.name} for {r.assignedCoordinator.name} · {formatDate(r.createdAt)}
-                      </p>
-                      {r.reason && <p className="mt-0.5 text-xs text-stone-600">{r.reason}</p>}
-                    </div>
-                    <form action={cancelHomeVisitRequest.bind(null, r.id)}>
-                      <SubmitButton
-                        pendingLabel="…"
-                        className="rounded-md border border-stone-300 bg-white px-3 py-1 text-xs font-medium text-stone-600 hover:bg-stone-50 disabled:opacity-50"
-                      >
-                        Cancel
-                      </SubmitButton>
-                    </form>
-                  </li>
+                  <RequestRow key={r.id} r={r} />
                 ))}
               </ul>
             )}
@@ -185,6 +236,10 @@ export default async function HomeVisitsPage() {
                   </select>
                 </div>
               )}
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">Due By (optional)</label>
+                <input type="date" name="dueDate" className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
+              </div>
               <div>
                 <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">Reason (optional)</label>
                 <textarea name="reason" rows={2} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
