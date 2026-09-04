@@ -115,7 +115,7 @@ export default async function SettingsPage({
     <div>
       <PageHeader title="Settings" description="Manage users, roles, offices, and the audit trail." />
       {tabs.length > 0 ? (
-        <Tabs key={tab ?? tabs[0].id} defaultTabId={tab} tabs={tabs} />
+        <Tabs key={tab ?? tabs[0].id} defaultTabId={tab} tabs={tabs} layout="vertical" />
       ) : (
         <p className="p-8 text-sm text-stone-400">Nothing to show — ask an admin to grant you access to a Settings section.</p>
       )}
