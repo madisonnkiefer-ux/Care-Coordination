@@ -9,7 +9,7 @@ export async function getGeneralCommunicationFormData(memberId: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) return null;
 
-  const [records, firstSignedIntake, cadenceOverrides] = await Promise.all([
+  const [records, firstSignedIntake, latestCna, cadenceOverrides] = await Promise.all([
     db.generalCommunication.findMany({
       where: { memberId },
       orderBy: { createdAt: "desc" },
@@ -20,6 +20,11 @@ export async function getGeneralCommunicationFormData(memberId: string) {
       orderBy: { signedAt: "asc" },
       select: { signedAt: true },
     }),
+    db.cnaAssessment.findFirst({
+      where: { memberId, status: "COMPLETED" },
+      orderBy: { assessmentDate: "desc" },
+      select: { assessmentDate: true },
+    }),
     getCadenceOverridesForClinic(session.clinicId),
   ]);
 
@@ -27,5 +32,5 @@ export async function getGeneralCommunicationFormData(memberId: string) {
 
   const enrollmentDate = firstEnrollmentDate({ createdAt: member.createdAt, intakeVersions: firstSignedIntake ? [firstSignedIntake] : [] });
 
-  return { member, records, enrollmentDate, cadenceOverrides };
+  return { member, records, enrollmentDate, cadenceOverrides, lastCnaCompletedDate: latestCna?.assessmentDate ?? null };
 }

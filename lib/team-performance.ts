@@ -5,12 +5,14 @@
 // lib/__tests__/team-performance.test.ts, which validates it against the
 // supervisor-provided July example.
 import { isCnaStillDue, isTouchpointCompliant, type CadenceOverrides, type ContactRecord } from "@/lib/touchpoint-compliance";
+import type { CclLevel } from "@/app/generated/prisma/client";
 
 export type MemberRef = { id: string; name: string };
 
 export type PerformanceMember = MemberRef & {
   status: string;
   program: string | null;
+  cclLevel: CclLevel | null;
   enrollmentDate: Date;
   contacts: ContactRecord[];
   cnaCompletions: Date[];
@@ -136,7 +138,10 @@ export function computeFunnel(
   const population = caseload.filter((m) => {
     if (m.status !== "ACTIVE") return false;
     const priorContacts = m.contacts.filter((c) => c.createdAt < monthStart);
-    return !isTouchpointCompliant(priorContacts, m.program, m.enrollmentDate, monthEnd, cadenceOverrides);
+    return !isTouchpointCompliant(priorContacts, m.program, m.enrollmentDate, monthEnd, cadenceOverrides, {
+      cclLevel: m.cclLevel,
+      lastCnaCompletedDate: m.lastCnaDate,
+    });
   });
 
   // Per member: their attempts this month, in order, stopping at the first

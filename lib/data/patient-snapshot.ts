@@ -83,7 +83,10 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
   const windowEnd = getWindowEnd(cadence.unit, now, enrollmentDate);
   const contactsInWindow = contactsSinceFloor.filter((c) => c.createdAt >= windowStart);
 
-  const touchpointCompliant = isTouchpointCompliant(contactsSinceFloor, member.program, enrollmentDate, now, cadenceOverrides);
+  const touchpointCompliant = isTouchpointCompliant(contactsSinceFloor, member.program, enrollmentDate, now, cadenceOverrides, {
+    cclLevel: member.cclLevel,
+    lastCnaCompletedDate: latestCna?.assessmentDate ?? null,
+  });
   const successfulInWindow = contactsInWindow.filter((c) => c.successful).length;
 
   // Pregnancy/postpartum status — reuses Member.edd and the HEDIS tab's

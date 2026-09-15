@@ -33,6 +33,7 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
         id: true,
         createdAt: true,
         program: true,
+        cclLevel: true,
         cnaAssessments: {
           where: { status: "COMPLETED" },
           orderBy: { assessmentDate: "desc" },
@@ -75,7 +76,10 @@ async function getNeedsAttentionCounts(session: { userId: string; clinicId: stri
       ...m.generalCommunications,
       ...progressNotesToContacts(m.carePlans.flatMap((cp) => cp.goals.flatMap((g) => g.progressNotes))),
     ];
-    return !isTouchpointCompliant(contacts, m.program, firstEnrollmentDate(m), now, cadenceOverrides);
+    return !isTouchpointCompliant(contacts, m.program, firstEnrollmentDate(m), now, cadenceOverrides, {
+      cclLevel: m.cclLevel,
+      lastCnaCompletedDate: m.cnaAssessments[0]?.assessmentDate ?? null,
+    });
   }).length;
 
   return { tasksDueCount, annualCnaDueCount, touchpointGapCount };

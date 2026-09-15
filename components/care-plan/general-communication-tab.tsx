@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/ui";
 import { FloatingSaveBar } from "@/components/floating-save-bar";
 import { saveGeneralCommunication, createNewGeneralCommunication } from "@/app/actions/general-communication";
-import type { GeneralCommunication } from "@/app/generated/prisma/client";
+import type { CclLevel, GeneralCommunication } from "@/app/generated/prisma/client";
 import { SelectField, DateField } from "@/components/intake/form-fields";
 import { CONTACT_METHOD_OPTIONS, PERSON_CONTACTED_OPTIONS, UNSUCCESSFUL_REASON_OPTIONS } from "@/components/care-plan/outreach-options";
 import { formatDate, formatDateTime, toDateInputValue } from "@/lib/format";
@@ -21,6 +21,8 @@ export function GeneralCommunicationTab({
   memberId,
   records,
   program,
+  cclLevel,
+  lastCnaCompletedDate,
   enrollmentDate,
   cadenceOverrides,
   fields,
@@ -31,6 +33,8 @@ export function GeneralCommunicationTab({
   memberId: string;
   records: CommRecord[];
   program: string | null;
+  cclLevel?: CclLevel | null;
+  lastCnaCompletedDate?: Date | null;
   enrollmentDate: Date;
   cadenceOverrides?: CadenceOverrides;
   fields: ResolvedFormFields;
@@ -58,9 +62,12 @@ export function GeneralCommunicationTab({
       cadence: windowCadence,
       attemptsInWindow: inWindow.length,
       successfulInWindow: inWindow.filter((r) => r.successful).length,
-      compliant: isTouchpointCompliant(records, program, enrollmentDate, now, cadenceOverrides),
+      compliant: isTouchpointCompliant(records, program, enrollmentDate, now, cadenceOverrides, {
+        cclLevel,
+        lastCnaCompletedDate: lastCnaCompletedDate ?? null,
+      }),
     };
-  }, [records, program, enrollmentDate, cadenceOverrides]);
+  }, [records, program, enrollmentDate, cadenceOverrides, cclLevel, lastCnaCompletedDate]);
 
   async function handleNewEntry() {
     const newId = await createNewGeneralCommunication(memberId);

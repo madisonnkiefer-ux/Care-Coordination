@@ -58,6 +58,7 @@ async function main() {
         lastName: true,
         status: true,
         program: true,
+        cclLevel: true,
         assignedCoordinatorId: true,
         createdAt: true,
         cnaAssessments: {
@@ -121,6 +122,7 @@ async function main() {
       name: `${m.firstName} ${m.lastName}`,
       status: m.status,
       program: m.program,
+      cclLevel: m.cclLevel,
       enrollmentDate: firstEnrollmentDate(m),
       contacts: [
         ...m.generalCommunications,

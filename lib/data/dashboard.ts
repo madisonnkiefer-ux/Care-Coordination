@@ -97,6 +97,13 @@ export async function getDashboardData() {
         lastName: true,
         createdAt: true,
         program: true,
+        cclLevel: true,
+        cnaAssessments: {
+          where: { status: "COMPLETED" },
+          orderBy: { assessmentDate: "desc" },
+          take: 1,
+          select: { assessmentDate: true },
+        },
         generalCommunications: {
           where: { createdAt: { gte: contactFetchFloor } },
           select: { createdAt: true, successful: true },
@@ -165,7 +172,10 @@ export async function getDashboardData() {
         lastSuccessfulContactDate: contacts
           .filter((c) => c.successful)
           .reduce<Date | null>((latest, c) => (!latest || c.createdAt > latest ? c.createdAt : latest), null),
-        compliant: isTouchpointCompliant(contacts, m.program, firstEnrollmentDate(m), now, cadenceOverrides),
+        compliant: isTouchpointCompliant(contacts, m.program, firstEnrollmentDate(m), now, cadenceOverrides, {
+          cclLevel: m.cclLevel,
+          lastCnaCompletedDate: m.cnaAssessments[0]?.assessmentDate ?? null,
+        }),
       };
     })
     .filter((m) => !m.compliant)

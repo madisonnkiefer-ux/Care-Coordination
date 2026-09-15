@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getCarePlanFormData } from "@/lib/data/care-plan";
 import { getGeneralCommunicationFormData } from "@/lib/data/general-communication";
 import { getHedisFormData } from "@/lib/data/hedis";
+import { getCclScheduleData } from "@/lib/data/ccl-schedule";
 import { verifySession } from "@/lib/dal";
 import { getFormFieldOverrides, getResolvedFieldOrder } from "@/lib/data/form-fields";
 import { CCP_FIELD_KEYS } from "@/lib/form-fields/registry";
@@ -11,6 +12,7 @@ import { Tabs } from "@/components/tabs";
 import { CcpTab } from "@/components/care-plan/ccp-tab";
 import { HedisTab } from "@/components/care-plan/hedis-tab";
 import { GeneralCommunicationTab } from "@/components/care-plan/general-communication-tab";
+import { CclScheduleTab } from "@/components/care-plan/ccl-schedule-tab";
 import { PrintButton } from "@/components/print-button";
 
 export default async function CarePlanPage({
@@ -24,10 +26,11 @@ export default async function CarePlanPage({
   const { tab, version } = await searchParams;
 
   const session = await verifySession();
-  const [carePlanData, commData, hedisData, fields, fieldOrder] = await Promise.all([
+  const [carePlanData, commData, hedisData, cclScheduleData, fields, fieldOrder] = await Promise.all([
     getCarePlanFormData(id),
     getGeneralCommunicationFormData(id),
     getHedisFormData(id),
+    getCclScheduleData(id),
     getFormFieldOverrides(session.clinicId),
     getResolvedFieldOrder(session.clinicId, "ccp", CCP_FIELD_KEYS),
   ]);
@@ -44,6 +47,53 @@ export default async function CarePlanPage({
     getCustomAnswersByRecord(commData.records.map((r) => r.id)),
   ]);
 
+  const carePlanTabs = [
+    {
+      id: "ccp",
+      label: "CCP",
+      content: (
+        <CcpTab
+          memberId={id}
+          records={carePlans}
+          defaultVersionId={version}
+          currentUserIsAdmin={canDelete}
+          fields={fields}
+          fieldOrder={fieldOrder}
+          customQuestionDefs={ccpQuestionDefs}
+          customAnswersByRecord={ccpAnswers}
+        />
+      ),
+    },
+    { id: "hedis", label: "HEDIS Measures", content: <HedisTab memberId={id} record={hedisData.record} /> },
+    {
+      id: "general-communication",
+      label: "General Communication",
+      content: (
+        <GeneralCommunicationTab
+          memberId={id}
+          records={commData.records}
+          program={member.program}
+          cclLevel={member.cclLevel}
+          lastCnaCompletedDate={commData.lastCnaCompletedDate}
+          enrollmentDate={commData.enrollmentDate}
+          cadenceOverrides={commData.cadenceOverrides}
+          fields={fields}
+          fieldOrder={fieldOrder}
+          customQuestionDefs={generalCommQuestionDefs}
+          customAnswersByRecord={generalCommAnswers}
+        />
+      ),
+    },
+  ];
+
+  if (cclScheduleData) {
+    carePlanTabs.push({
+      id: "ccl-schedule",
+      label: `${cclScheduleData.cclLevel} Schedule`,
+      content: <CclScheduleTab data={cclScheduleData} />,
+    });
+  }
+
   return (
     <div>
       <PageHeader
@@ -52,45 +102,7 @@ export default async function CarePlanPage({
         backHref={`/members/${id}`}
         action={<PrintButton label="Print This Form" memberId={id} resource="CarePlan" />}
       />
-      <Tabs
-        defaultTabId={tab}
-        tabs={[
-          {
-            id: "ccp",
-            label: "CCP",
-            content: (
-              <CcpTab
-                memberId={id}
-                records={carePlans}
-                defaultVersionId={version}
-                currentUserIsAdmin={canDelete}
-                fields={fields}
-                fieldOrder={fieldOrder}
-                customQuestionDefs={ccpQuestionDefs}
-                customAnswersByRecord={ccpAnswers}
-              />
-            ),
-          },
-          { id: "hedis", label: "HEDIS Measures", content: <HedisTab memberId={id} record={hedisData.record} /> },
-          {
-            id: "general-communication",
-            label: "General Communication",
-            content: (
-              <GeneralCommunicationTab
-                memberId={id}
-                records={commData.records}
-                program={member.program}
-                enrollmentDate={commData.enrollmentDate}
-                cadenceOverrides={commData.cadenceOverrides}
-                fields={fields}
-                fieldOrder={fieldOrder}
-                customQuestionDefs={generalCommQuestionDefs}
-                customAnswersByRecord={generalCommAnswers}
-              />
-            ),
-          },
-        ]}
-      />
+      <Tabs defaultTabId={tab} tabs={carePlanTabs} />
     </div>
   );
 }

@@ -110,6 +110,13 @@ export async function getSupervisorData() {
         lastName: true,
         createdAt: true,
         program: true,
+        cclLevel: true,
+        cnaAssessments: {
+          where: { status: "COMPLETED" },
+          orderBy: { assessmentDate: "desc" },
+          take: 1,
+          select: { assessmentDate: true },
+        },
         assignedCoordinator: { select: { name: true } },
         generalCommunications: { where: { createdAt: { gte: contactFetchFloor } }, select: { createdAt: true, successful: true } },
         carePlans: {
@@ -221,7 +228,10 @@ export async function getSupervisorData() {
         attemptsInWindow: inWindow.length,
         successfulInWindow,
         lastAnyContact,
-        compliant: isTouchpointCompliant(contacts, m.program, enrollmentDate, now, cadenceOverrides),
+        compliant: isTouchpointCompliant(contacts, m.program, enrollmentDate, now, cadenceOverrides, {
+          cclLevel: m.cclLevel,
+          lastCnaCompletedDate: m.cnaAssessments[0]?.assessmentDate ?? null,
+        }),
       };
     })
     .filter((m) => !m.compliant)

@@ -9,6 +9,9 @@
 // none has been signed yet) rather than calendar-year quarters — GYN only
 // needs 1 attempt (successful or not) per cycle, where the default bucket
 // needs 3.
+import { isCclCompliant, hasCclSchedule } from "@/lib/ccl-cadence";
+import type { CclLevel } from "@/app/generated/prisma/client";
+
 export type ComplianceUnit = "month" | "quarter";
 
 export type ComplianceCadence = {
@@ -146,17 +149,34 @@ export function contactsInCurrentWindow<T extends ContactRecord>(
   return contacts.filter((c) => c.createdAt >= windowStart);
 }
 
-// Whether a member has met their program's touchpoint cadence for the
-// window containing `now` (defaults to today). `contacts` only needs to
-// include records from a bit over 3 months back — that's the widest window
-// either cadence (monthly, or a member's own anchored quarter) ever needs.
+// A CCL1/CCL2 member's compliance is governed entirely by the BCBSNM
+// day-offset schedule in lib/ccl-cadence.ts (anchored to their most
+// recently completed CNA) instead of this file's program-based cadence —
+// see isTouchpointCompliant below. `lastCnaCompletedDate` is that anchor;
+// pass it (with the member's cclLevel) as isTouchpointCompliant's optional
+// 6th argument wherever a member's own CNA history is already on hand.
+export type CclComplianceContext = { cclLevel: CclLevel | null | undefined; lastCnaCompletedDate: Date | null };
+
+// Whether a member has met their touchpoint cadence for the window
+// containing `now` (defaults to today). `contacts` only needs to include
+// records from a bit over 3 months back — that's the widest window either
+// program-based cadence (monthly, or a member's own anchored quarter) ever
+// needs; a CCL1/CCL2 member's schedule can span a full year, so callers
+// passing `cclContext` should include contacts back to that member's own
+// CNA anchor date instead (see lib/data/ccl-schedule.ts).
 export function isTouchpointCompliant(
   contacts: ContactRecord[],
   program: string | null | undefined,
   enrollmentDate: Date,
   now: Date = new Date(),
-  overrides?: CadenceOverrides
+  overrides?: CadenceOverrides,
+  cclContext?: CclComplianceContext
 ): boolean {
+  if (cclContext && hasCclSchedule(cclContext.cclLevel)) {
+    const cclResult = isCclCompliant(cclContext.cclLevel, cclContext.lastCnaCompletedDate, now, contacts);
+    if (cclResult !== null) return cclResult;
+  }
+
   const { requiredSuccessful, requiredAttempts } = getComplianceCadence(program, overrides);
   const inWindow = contactsInCurrentWindow(contacts, program, enrollmentDate, now, overrides);
   const successfulCount = inWindow.filter((c) => c.successful).length;
