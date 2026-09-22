@@ -2,6 +2,7 @@
 
 import { Card } from "@/components/ui";
 import { FloatingSaveBar } from "@/components/floating-save-bar";
+import { useDraftRecovery, DraftRestoredBanner } from "@/components/intake/draft-recovery";
 import { saveDemographics } from "@/app/actions/demographics";
 import { toDateInputValue } from "@/lib/format";
 import type { Demographics } from "@/app/generated/prisma/client";
@@ -34,14 +35,18 @@ export function DemographicsTab({
   fieldOrder: string[];
   customQuestions: CustomQuestionForRecord[];
 }) {
+  const { formRef, restoredAt } = useDraftRecovery(`demographics-draft:${selected.id}`, selected.updatedAt.getTime());
+
   return (
     <FormFieldsProvider form="demographics" fields={fields}>
     <div className="p-8">
       <form
         key={`${selected.id}-${selected.updatedAt.getTime()}`}
+        ref={formRef}
         action={saveDemographics.bind(null, memberId, selected.id)}
         className="max-w-3xl space-y-6"
       >
+        <DraftRestoredBanner restoredAt={restoredAt} />
         <fieldset disabled={locked} className="contents">
           <Card>
             <OrderedGrid

@@ -2,6 +2,7 @@
 
 import { Card, Badge } from "@/components/ui";
 import { FloatingSaveBar } from "@/components/floating-save-bar";
+import { useDraftRecovery, DraftRestoredBanner } from "@/components/intake/draft-recovery";
 import { saveHra } from "@/app/actions/hra";
 import { toDateInputValue } from "@/lib/format";
 import { getCnaRequiredReasons } from "@/lib/hra-cna-required";
@@ -49,15 +50,18 @@ export function HraTab({
   customQuestions: CustomQuestionForRecord[];
 }) {
   const cnaReasons = getCnaRequiredReasons(draft);
+  const { formRef, restoredAt } = useDraftRecovery(`hra-draft:${draft.id}`, draft.updatedAt.getTime());
 
   return (
     <FormFieldsProvider form="hra" fields={fields}>
     <div className="p-8">
       <form
         key={`${draft.id}-${draft.updatedAt.getTime()}`}
+        ref={formRef}
         action={saveHra.bind(null, memberId, draft.id)}
         className="max-w-3xl space-y-6"
       >
+      <DraftRestoredBanner restoredAt={restoredAt} />
       {cnaReasons.length > 0 && (
         <Card className="border-red-200 bg-red-50">
           <div className="flex items-start gap-2">

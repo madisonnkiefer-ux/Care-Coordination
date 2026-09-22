@@ -2,6 +2,7 @@
 
 import { Card, Badge } from "@/components/ui";
 import { FloatingSaveBar } from "@/components/floating-save-bar";
+import { useDraftRecovery, DraftRestoredBanner } from "@/components/intake/draft-recovery";
 import { saveCna } from "@/app/actions/cna";
 import { toDateInputValue } from "@/lib/format";
 import { computeBmi, computePhq2Total, computePhq9Total, computeCageTotal, getSafetyConcernReasons } from "@/lib/cna-computed";
@@ -55,15 +56,18 @@ export function CnaTab({
   const phq2Total = computePhq2Total(draft);
   const phq9Total = computePhq9Total(draft);
   const cageTotal = computeCageTotal(draft);
+  const { formRef, restoredAt } = useDraftRecovery(`cna-draft:${draft.id}`, draft.updatedAt.getTime());
 
   return (
     <FormFieldsProvider form="cna" fields={fields}>
     <div className="p-8">
       <form
         key={`${draft.id}-${draft.updatedAt.getTime()}`}
+        ref={formRef}
         action={saveCna.bind(null, memberId, draft.id)}
         className="max-w-3xl space-y-6"
       >
+      <DraftRestoredBanner restoredAt={restoredAt} />
       {safetyReasons.length > 0 && (
         <Card className="border-red-300 bg-red-50">
           <Badge color="red">Safety Concern</Badge>

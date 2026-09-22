@@ -2,6 +2,7 @@
 
 import { Card } from "@/components/ui";
 import { FloatingSaveBar } from "@/components/floating-save-bar";
+import { useDraftRecovery, DraftRestoredBanner } from "@/components/intake/draft-recovery";
 import { saveCareCoordinationNote } from "@/app/actions/care-coordination-notes";
 import type { CareCoordinationNote } from "@/app/generated/prisma/client";
 import { TextArea, SelectField, YesNoField, YesNoNaField, CheckboxGroup, TextField } from "@/components/intake/form-fields";
@@ -34,14 +35,18 @@ export function CareCoordinationNotesTab({
   fieldOrder: string[];
   customQuestions: CustomQuestionForRecord[];
 }) {
+  const { formRef, restoredAt } = useDraftRecovery(`ccn-draft:${draft.id}`, draft.updatedAt.getTime());
+
   return (
     <FormFieldsProvider form="ccn" fields={fields}>
     <div className="p-8">
       <form
         key={`${draft.id}-${draft.updatedAt.getTime()}`}
+        ref={formRef}
         action={saveCareCoordinationNote.bind(null, memberId, draft.id)}
         className="max-w-3xl space-y-6"
       >
+      <DraftRestoredBanner restoredAt={restoredAt} />
       <fieldset disabled={locked} className="contents">
       <Card title="Summary">
         <OrderedStack
