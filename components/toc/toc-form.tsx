@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui";
 import { FloatingSaveBar } from "@/components/floating-save-bar";
+import { SubmitButton } from "@/components/submit-button";
 import { HistoryBar, SignedBanner, SignButton, type HistoryItem } from "@/components/intake/versioning";
 import { TextField, TextArea, DateField, SelectField } from "@/components/intake/form-fields";
 import { NeedsSection } from "@/components/toc/needs-section";
@@ -206,17 +207,22 @@ export function TocForm({
 
             {!locked && (
               <FloatingSaveBar>
-                <button
-                  type="submit"
+                <SubmitButton
                   name="intent"
                   value="draft"
-                  className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
+                  pendingLabel="Saving…"
+                  className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
                 >
                   Save Draft
-                </button>
-                <button type="submit" name="intent" value="complete" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
+                </SubmitButton>
+                <SubmitButton
+                  name="intent"
+                  value="complete"
+                  pendingLabel="Saving…"
+                  className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50"
+                >
                   Complete
-                </button>
+                </SubmitButton>
               </FloatingSaveBar>
             )}
           </form>

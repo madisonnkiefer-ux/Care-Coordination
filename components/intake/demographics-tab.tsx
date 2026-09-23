@@ -1,7 +1,8 @@
 "use client";
 
 import { Card } from "@/components/ui";
-import { FloatingSaveBar } from "@/components/floating-save-bar";
+import { FloatingSaveBar, useSavedConfirmation } from "@/components/floating-save-bar";
+import { SubmitButton } from "@/components/submit-button";
 import { useDraftRecovery, DraftRestoredBanner } from "@/components/intake/draft-recovery";
 import { saveDemographics } from "@/app/actions/demographics";
 import { toDateInputValue } from "@/lib/format";
@@ -36,6 +37,7 @@ export function DemographicsTab({
   customQuestions: CustomQuestionForRecord[];
 }) {
   const { formRef, restoredAt } = useDraftRecovery(`demographics-draft:${selected.id}`, selected.updatedAt.getTime());
+  const justSaved = useSavedConfirmation(selected.updatedAt);
 
   return (
     <FormFieldsProvider form="demographics" fields={fields}>
@@ -331,18 +333,23 @@ export function DemographicsTab({
         </fieldset>
 
         {!locked && (
-          <FloatingSaveBar>
-            <button
-              type="submit"
+          <FloatingSaveBar savedConfirmation={justSaved}>
+            <SubmitButton
               name="intent"
               value="draft"
-              className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
+              pendingLabel="Saving…"
+              className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
             >
               Save Draft
-            </button>
-            <button type="submit" name="intent" value="complete" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
+            </SubmitButton>
+            <SubmitButton
+              name="intent"
+              value="complete"
+              pendingLabel="Saving…"
+              className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50"
+            >
               Complete
-            </button>
+            </SubmitButton>
           </FloatingSaveBar>
         )}
       </form>

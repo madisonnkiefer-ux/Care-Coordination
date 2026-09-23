@@ -63,6 +63,7 @@ export const HEALTH_CONDITIONS_OPTIONS = [
   "Other acute or terminal disease",
   "Other chronic condition",
   "None",
+  "Other",
 ];
 
 // CNA required for any selection here.
