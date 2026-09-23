@@ -21,6 +21,8 @@ import { AlertBanner } from "@/components/alert-banner";
 import { getPatientSnapshot } from "@/lib/data/patient-snapshot";
 import { getMemberGraduationInfo } from "@/lib/data/graduation";
 import { GraduationAlertCard } from "@/components/graduation-alert-card";
+import { getCclScheduleData } from "@/lib/data/ccl-schedule";
+import { CclScheduleWidget } from "@/components/ccl-schedule-widget";
 import { PrintButton } from "@/components/print-button";
 import { DeleteMemberButton } from "@/components/delete-member-button";
 import { SaveButton } from "@/components/save-button";
@@ -38,6 +40,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
     tocHistory,
     graduationInfo,
     amendmentRequests,
+    cclScheduleData,
   ] = await Promise.all([
     getMemberChart(id),
     getStatusHistory(id),
@@ -47,6 +50,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
     getTocHistorySummary(id),
     getMemberGraduationInfo(id),
     getAmendmentRequestsForMember(id),
+    getCclScheduleData(id),
   ]);
 
   const returnPath = `/members/${id}`;
@@ -276,6 +280,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
           </Card>
 
           {graduationInfo && <GraduationAlertCard info={graduationInfo} />}
+
+          {cclScheduleData && <CclScheduleWidget memberId={id} data={cclScheduleData} />}
 
           <MemberStatusCard
             memberId={id}

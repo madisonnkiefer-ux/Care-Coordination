@@ -118,6 +118,19 @@ export function evaluateCclSchedule(
 // successful contact land inside it. Returns null when this schedule
 // doesn't apply (not CCL1/CCL2, or no CNA on file yet to anchor from) so
 // callers know to fall back to the program-based rule instead.
+// The next thing on a CCL1/CCL2 member's schedule that isn't done yet — an
+// overdue task takes priority over a merely-upcoming one, and within each
+// group the earliest deadline goes first, so this is always "what should
+// this member's coordinator look at next," not just "what's chronologically
+// first." Returns null once every task in the schedule is complete.
+export function nextCclTask(tasks: CclScheduleTask[]): CclScheduleTask | null {
+  const outstanding = tasks.filter((t) => t.status !== "completed");
+  if (outstanding.length === 0) return null;
+  const overdue = outstanding.filter((t) => t.status === "overdue");
+  const pool = overdue.length > 0 ? overdue : outstanding;
+  return pool.reduce((soonest, t) => (t.completeNoLaterThan < soonest.completeNoLaterThan ? t : soonest));
+}
+
 export function isCclCompliant(
   cclLevel: CclLevel | null | undefined,
   anchor: Date | null,

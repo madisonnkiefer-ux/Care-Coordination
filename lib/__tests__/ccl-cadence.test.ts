@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeCcl1Schedule, computeCcl2Schedule, evaluateCclSchedule, isCclCompliant } from "../ccl-cadence";
+import { computeCcl1Schedule, computeCcl2Schedule, evaluateCclSchedule, isCclCompliant, nextCclTask } from "../ccl-cadence";
 
 // Validated against the BCBSNM DCCE Tasking Tool's own computed output
 // (CCL1 tab, "ENTER Date of Annual CNA" = 2025-03-01).
@@ -126,5 +126,42 @@ describe("isCclCompliant", () => {
   it("returns null when not CCL1/CCL2, or no anchor CNA date exists", () => {
     expect(isCclCompliant("CCL0", anchor, new Date(), [])).toBeNull();
     expect(isCclCompliant("CCL1", null, new Date(), [])).toBeNull();
+  });
+});
+
+describe("nextCclTask", () => {
+  const anchor = new Date(2025, 2, 1);
+
+  it("picks the outstanding task with the soonest deadline", () => {
+    const now = new Date(2025, 2, 15); // early in Q1 — nothing overdue yet
+    const tasks = evaluateCclSchedule("CCL1", anchor, now, [], [])!;
+    expect(nextCclTask(tasks)?.key).toBe("q1");
+  });
+
+  it("prefers an overdue task over a merely-upcoming one, even if its own deadline is later", () => {
+    // Q1's deadline (May 30) has passed with nothing logged, so it's
+    // overdue — Q2 (deadline Aug 28) is only upcoming, and later besides.
+    const now = new Date(2025, 6, 1);
+    const tasks = evaluateCclSchedule("CCL1", anchor, now, [], [])!;
+    expect(nextCclTask(tasks)?.key).toBe("q1");
+    expect(nextCclTask(tasks)?.status).toBe("overdue");
+  });
+
+  it("returns null once every task in the schedule is completed", () => {
+    const now = new Date(2026, 3, 1); // past the whole CCL1 cycle
+    // One successful in-person contact every 20 days comfortably covers
+    // every quarterly-call and bi-annual-visit window (all fall within
+    // anchor+1..anchor+365).
+    const allContacts = Array.from({ length: 20 }, (_, i) => ({
+      createdAt: new Date(anchor.getTime() + i * 20 * 24 * 60 * 60 * 1000),
+      successful: true,
+      inPerson: true,
+    }));
+    const allCna = [
+      { assessmentDate: new Date(2026, 0, 5), status: "DRAFT" as const }, // within Schedule Annual CNA (Dec31'25-Jan14'26)
+      { assessmentDate: new Date(2026, 1, 15), status: "COMPLETED" as const }, // within Complete Annual CNA (Jan30-Mar1'26)
+    ];
+    const tasks = evaluateCclSchedule("CCL1", anchor, now, allContacts, allCna)!;
+    expect(nextCclTask(tasks)).toBeNull();
   });
 });
