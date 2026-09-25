@@ -48,3 +48,29 @@ resource "aws_route53_record" "app" {
     evaluate_target_health = true
   }
 }
+
+# This domain has no mail server (no MX record) and sends no email of its
+# own — these two records exist purely to stop someone else from spoofing
+# it. SPF's "-all" says no host is authorized to send as this domain;
+# DMARC's "p=reject" (with strict alignment, since there's no legitimate
+# mail to accidentally break) tells receiving servers to reject anything
+# claiming to be from this domain that fails that check, rather than
+# silently accepting or quarantining it. Added in response to a pentest
+# finding ("No DMARC Policy Supplied in Web Application DNS Records").
+resource "aws_route53_record" "spf" {
+  count   = var.domain_name != "" && var.route53_zone_id != "" ? 1 : 0
+  zone_id = var.route53_zone_id
+  name    = var.domain_name
+  type    = "TXT"
+  ttl     = 3600
+  records = ["v=spf1 -all"]
+}
+
+resource "aws_route53_record" "dmarc" {
+  count   = var.domain_name != "" && var.route53_zone_id != "" ? 1 : 0
+  zone_id = var.route53_zone_id
+  name    = "_dmarc.${var.domain_name}"
+  type    = "TXT"
+  ttl     = 3600
+  records = ["v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s"]
+}
