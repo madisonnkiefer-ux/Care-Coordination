@@ -28,6 +28,7 @@ import { DeleteMemberButton } from "@/components/delete-member-button";
 import { SaveButton } from "@/components/save-button";
 import { getAmendmentRequestsForMember } from "@/lib/data/amendment-requests";
 import { AmendmentRequestsCard } from "@/components/amendment-requests-card";
+import { ChartHistoryList, type ChartHistoryEntry } from "@/components/chart-history-list";
 
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -55,11 +56,13 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
 
   const returnPath = `/members/${id}`;
 
-  const chartEntries = [
+  const chartEntries: ChartHistoryEntry[] = [
     ...chartHistory.map((v) => {
       const allComplete = [v.demographics, v.hra, v.cna, v.note].every((s) => s?.status === "COMPLETED");
       return {
         key: `enrollment-${v.id}`,
+        id: v.id,
+        kind: "intake" as const,
         type: "internal" as const,
         date: v.createdAt,
         href: `/members/${id}/intake?version=${v.id}`,
@@ -73,6 +76,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
     }),
     ...carePlanHistory.map((cp) => ({
       key: `careplan-${cp.id}`,
+      id: cp.id,
+      kind: "careplan" as const,
       type: "internal" as const,
       date: cp.createdAt,
       href: `/members/${id}/care-plan?tab=ccp&version=${cp.id}`,
@@ -82,6 +87,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
     })),
     ...tocHistory.map((t) => ({
       key: `toc-${t.id}`,
+      id: t.id,
+      kind: "toc" as const,
       type: "internal" as const,
       date: t.createdAt,
       href: `/members/${id}/toc?version=${t.id}`,
@@ -94,6 +101,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
     })),
     ...documents.map((doc) => ({
       key: `document-${doc.id}`,
+      id: doc.id,
+      kind: "document" as const,
       type: "external" as const,
       date: doc.createdAt,
       href: `/api/documents/${doc.id}`,
@@ -314,39 +323,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
             {chartEntries.length === 0 ? (
               <EmptyState label="No charts yet." />
             ) : (
-              <ul className="divide-y divide-stone-100">
-                {chartEntries.map((entry) =>
-                  entry.type === "external" ? (
-                    <li key={entry.key}>
-                      <a
-                        href={entry.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-between gap-3 py-2 text-sm text-stone-700 hover:text-charcoal"
-                      >
-                        <span className="min-w-0 truncate">
-                          <span className="text-stone-400">{formatDate(entry.date)}</span>
-                          <span className="ml-2 font-medium">{entry.name}</span>
-                        </span>
-                        <Badge color={entry.badge.color}>{entry.badge.label}</Badge>
-                      </a>
-                    </li>
-                  ) : (
-                    <li key={entry.key}>
-                      <Link
-                        href={entry.href}
-                        className="flex items-center justify-between gap-3 py-2 text-sm text-stone-700 hover:text-charcoal"
-                      >
-                        <span className="min-w-0 truncate">
-                          <span className="text-stone-400">{formatDate(entry.date)}</span>
-                          <span className="ml-2 font-medium">{entry.name}</span>
-                        </span>
-                        <Badge color={entry.badge.color}>{entry.badge.label}</Badge>
-                      </Link>
-                    </li>
-                  )
-                )}
-              </ul>
+              <ChartHistoryList entries={chartEntries} memberId={id} isAdmin={session.role === "ADMIN"} />
             )}
           </Card>
 

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui";
 // that reveals a date input in place, instead of a separate settings
 // screen — this is the actual "date that populates on the enrollment
 // when it's saved" admins asked to be able to correct.
-function EditDateChipButton({ currentDate, onConfirm }: { currentDate: Date; onConfirm: (newDate: string) => Promise<void> }) {
+export function EditDateChipButton({ currentDate, onConfirm }: { currentDate: Date; onConfirm: (newDate: string) => Promise<void> }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(() => toDateInputValue(currentDate));
   const [pending, setPending] = useState(false);
