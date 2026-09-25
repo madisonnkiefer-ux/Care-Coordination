@@ -26,6 +26,22 @@ resource "aws_wafv2_web_acl" "main" {
       managed_rule_group_statement {
         name        = "AWSManagedRulesCommonRuleSet"
         vendor_name = "AWS"
+
+        # The Core Rule Set blocks any request body over 8KB by default —
+        # fine for a typical form, but the CNA and HRA intake forms (150+
+        # fields each) legitimately exceed that, so every "Complete
+        # Assessment"/"Save" on either was getting silently 403'd by the
+        # WAF before it ever reached the app (surfaced to the user as a
+        # generic "Something went wrong"). Downgraded to COUNT rather than
+        # disabling the whole managed rule group, so its other protections
+        # (bad bots, restricted extensions, LFI probes — all still visible
+        # in this WAF's sampled requests) stay enforced.
+        rule_action_override {
+          name = "SizeRestrictions_BODY"
+          action_to_use {
+            count {}
+          }
+        }
       }
     }
 
