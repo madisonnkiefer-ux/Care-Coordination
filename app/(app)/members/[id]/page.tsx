@@ -9,12 +9,11 @@ import { PageHeader, Card, Badge } from "@/components/ui";
 import { GoalDonut } from "@/components/goal-donut";
 import { DocumentUpload } from "@/components/document-upload";
 import { MemberStatusCard } from "@/components/member-status-card";
-import { formatDate, formatDateTime, titleCase, toDateInputValue } from "@/lib/format";
+import { MemberInfoCard } from "@/components/member-info-card";
+import { formatDate, formatDateTime, titleCase } from "@/lib/format";
 import { toggleTask, createTask } from "@/app/actions/tasks";
 import { saveQuickNote } from "@/app/actions/notes";
 import { createAppointment } from "@/app/actions/appointments";
-import { updateMemberOverview } from "@/app/actions/member-details";
-import { PATIENT_TYPE_OPTIONS } from "@/lib/patient-type";
 import { statusBadgeColor } from "@/lib/member-status";
 import { QuickActionsBar } from "@/components/quick-actions-bar";
 import { AlertBanner } from "@/components/alert-banner";
@@ -25,7 +24,6 @@ import { getCclScheduleData } from "@/lib/data/ccl-schedule";
 import { CclScheduleWidget } from "@/components/ccl-schedule-widget";
 import { PrintButton } from "@/components/print-button";
 import { DeleteMemberButton } from "@/components/delete-member-button";
-import { SaveButton } from "@/components/save-button";
 import { getAmendmentRequestsForMember } from "@/lib/data/amendment-requests";
 import { AmendmentRequestsCard } from "@/components/amendment-requests-card";
 import { ChartHistoryList, type ChartHistoryEntry } from "@/components/chart-history-list";
@@ -114,6 +112,8 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
   return (
     <div>
       <PageHeader
+        backHref="/members"
+        backLabel="Member Chart"
         title={`${member.firstName} ${member.lastName}`}
         description={`Medicaid ID: ${member.medicaidId ?? "—"} · Assigned CC: ${
           member.assignedCoordinator?.name ?? "Unassigned"
@@ -144,149 +144,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
 
       <div className="grid grid-cols-1 gap-6 p-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <Card title="Overview">
-            <form
-              key={member.updatedAt.getTime()}
-              action={updateMemberOverview.bind(null, id)}
-              className="grid grid-cols-1 gap-4 sm:grid-cols-3"
-            >
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
-                  First Name
-                </label>
-                <input
-                  name="firstName"
-                  required
-                  defaultValue={member.firstName}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
-                  Last Name
-                </label>
-                <input
-                  name="lastName"
-                  required
-                  defaultValue={member.lastName}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
-                  Date of Birth
-                </label>
-                <input
-                  type="date"
-                  name="dateOfBirth"
-                  required
-                  defaultValue={toDateInputValue(member.dateOfBirth)}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Phone</label>
-                <input
-                  name="phone"
-                  defaultValue={member.phone ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
-                  Medicaid ID
-                </label>
-                <input
-                  name="medicaidId"
-                  defaultValue={member.medicaidId ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
-                  Chart ID
-                </label>
-                <input
-                  name="memberIdExternal"
-                  defaultValue={member.memberIdExternal ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
-                  Subscriber ID
-                </label>
-                <input
-                  name="subscriberId"
-                  defaultValue={member.subscriberId ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
-                  Type of Patient
-                </label>
-                <select
-                  name="program"
-                  defaultValue={member.program ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                >
-                  <option value="">—</option>
-                  {PATIENT_TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
-                  Language
-                </label>
-                <input
-                  name="language"
-                  defaultValue={member.language ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
-                  Due Date (if prenatal)
-                </label>
-                <input
-                  type="date"
-                  name="edd"
-                  defaultValue={toDateInputValue(member.edd)}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
-                  CCL Level
-                </label>
-                <select
-                  name="cclLevel"
-                  defaultValue={member.cclLevel ?? ""}
-                  className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                >
-                  <option value="">—</option>
-                  <option value="CCL0">CCL0</option>
-                  <option value="CCL1">CCL1</option>
-                  <option value="CCL2">CCL2</option>
-                  <option value="CCL4">CCL4</option>
-                  <option value="CCL5">CCL5</option>
-                  {/* Retired values — only shown when a member is already on one, so
-                      saving the form without touching this field can't silently
-                      blank it out. Not offered for new selections. */}
-                  {member.cclLevel === "CCL3" && <option value="CCL3">CCL3</option>}
-                  {member.cclLevel === "HIGH_RISK" && <option value="HIGH_RISK">High Risk</option>}
-                </select>
-              </div>
-              <div className="flex items-end justify-end print:hidden">
-                <SaveButton />
-              </div>
-            </form>
-          </Card>
+          <MemberInfoCard key={member.updatedAt.getTime()} memberId={id} member={member} />
 
           {graduationInfo && <GraduationAlertCard info={graduationInfo} />}
 
@@ -404,7 +262,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               />
               <button
                 type="submit"
-                className="rounded-md bg-charcoal px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
+                className="rounded-md bg-deep-rose px-3 py-1.5 text-xs font-medium text-white hover:bg-deep-rose-dark"
               >
                 Add
               </button>
@@ -422,7 +280,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               />
               <button
                 type="submit"
-                className="rounded-md bg-charcoal px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
+                className="rounded-md bg-deep-rose px-3 py-1.5 text-xs font-medium text-white hover:bg-deep-rose-dark"
               >
                 Save Note
               </button>
@@ -484,7 +342,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
               </label>
               <button
                 type="submit"
-                className="w-full rounded-md bg-charcoal px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800"
+                className="w-full rounded-md bg-deep-rose px-3 py-1.5 text-xs font-medium text-white hover:bg-deep-rose-dark"
               >
                 Add Appointment
               </button>

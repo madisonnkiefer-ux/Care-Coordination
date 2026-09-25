@@ -6,7 +6,7 @@ import { Card, Badge } from "@/components/ui";
 import { formatDate } from "@/lib/format";
 import { nextCclTask } from "@/lib/ccl-cadence";
 import type { CclScheduleData } from "@/lib/data/ccl-schedule";
-import type { CclTaskStatus } from "@/lib/ccl-cadence";
+import type { CclScheduleTask, CclTaskStatus } from "@/lib/ccl-cadence";
 
 const STATUS_BADGE: Record<CclTaskStatus, { label: string; color: "green" | "red" | "slate" }> = {
   completed: { label: "Completed", color: "green" },
@@ -20,6 +20,61 @@ const TYPE_LABELS: Record<string, string> = {
   cna_schedule: "CNA Scheduling",
   cna_complete: "CNA Completion",
 };
+
+function shortLabel(task: CclScheduleTask) {
+  if (task.type === "quarterly_call") {
+    const match = task.label.match(/Quarter (\d)/);
+    return match ? `Q${match[1]}` : task.label;
+  }
+  if (task.type === "biannual_visit") return "Visit";
+  if (task.type === "cna_schedule") return "Schedule CNA";
+  return "Complete CNA";
+}
+
+// The mockup's horizontal timeline treatment, built from the member's own
+// actual task list (not calendar quarters — this schedule is anchored to
+// the CNA date, not the calendar) so it stays true to the underlying data.
+function TimelineStepper({ tasks, nextKey }: { tasks: CclScheduleTask[]; nextKey: string | undefined }) {
+  return (
+    <div className="mb-4 flex items-start">
+      {tasks.map((task, i) => {
+        const isNext = task.key === nextKey;
+        const lineColor = task.status === "completed" ? "bg-emerald-400" : "bg-stone-200";
+        return (
+          <div key={task.key} className="flex flex-1 flex-col items-center">
+            <div className="flex w-full items-center">
+              <div className={`h-0.5 flex-1 ${i === 0 ? "invisible" : lineColor}`} />
+              <div
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[10px] font-bold ${
+                  task.status === "completed"
+                    ? "border-emerald-500 bg-emerald-500 text-white"
+                    : isNext
+                      ? task.status === "overdue"
+                        ? "border-red-500 bg-red-500 text-white"
+                        : "border-deep-rose bg-deep-rose text-white"
+                      : "border-stone-300 bg-white text-stone-300"
+                }`}
+              >
+                {task.status === "completed" ? "✓" : isNext ? "●" : ""}
+              </div>
+              <div className={`h-0.5 flex-1 ${i === tasks.length - 1 ? "invisible" : lineColor}`} />
+            </div>
+            <p className="mt-1.5 text-center text-[11px] font-medium text-stone-600">{shortLabel(task)}</p>
+            <p className="text-center text-[10px] text-stone-400">
+              {task.status === "completed"
+                ? "Completed"
+                : isNext
+                  ? task.status === "overdue"
+                    ? "Overdue"
+                    : `Due ${formatDate(task.completeNoLaterThan)}`
+                  : "Upcoming"}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 // Compact "what's next" summary for a CCL1/CCL2 member's BCBSNM tasking
 // schedule, shown on the main chart. This is the ONLY place the tasking
@@ -46,7 +101,7 @@ export function CclScheduleWidget({ data }: { data: CclScheduleData }) {
     ? { border: "border-emerald-300", bg: "bg-emerald-50", iconBg: "bg-emerald-500", text: "text-emerald-800", strong: "text-emerald-900", link: "text-emerald-700" }
     : overdue
       ? { border: "border-red-300", bg: "bg-red-50", iconBg: "bg-red-500", text: "text-red-700", strong: "text-red-800", link: "text-red-700" }
-      : { border: "border-amber-300", bg: "bg-amber-50", iconBg: "bg-amber-500", text: "text-amber-800", strong: "text-amber-900", link: "text-amber-800" };
+      : { border: "border-rose-200", bg: "bg-rose-50/40", iconBg: "bg-deep-rose", text: "text-deep-rose-dark", strong: "text-deep-rose-dark", link: "text-deep-rose" };
 
   return (
     <Card
@@ -70,6 +125,8 @@ export function CclScheduleWidget({ data }: { data: CclScheduleData }) {
         )
       }
     >
+      <TimelineStepper tasks={data.tasks} nextKey={next?.key} />
+
       <p className={`mb-2 text-sm font-medium ${theme.strong}`}>
         {next ? (
           <>

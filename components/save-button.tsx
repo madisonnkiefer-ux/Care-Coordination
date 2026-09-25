@@ -33,7 +33,7 @@ export function SaveButton({ label = "Save" }: { label?: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-charcoal px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800 disabled:opacity-50"
+        className="rounded-md bg-deep-rose px-3 py-1.5 text-xs font-medium text-white hover:bg-deep-rose-dark disabled:opacity-50"
       >
         {pending ? "Saving…" : label}
       </button>

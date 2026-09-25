@@ -98,7 +98,7 @@ export function Sidebar({
                 href={item.href}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-charcoal text-white"
+                    ? "bg-deep-rose text-white"
                     : "text-stone-600 hover:bg-stone-100 hover:text-charcoal"
                 }`}
               >
@@ -123,7 +123,7 @@ export function Sidebar({
             href={SETTINGS_ITEM.href}
             className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
               pathname.startsWith(SETTINGS_ITEM.href)
-                ? "bg-charcoal text-white"
+                ? "bg-deep-rose text-white"
                 : "text-stone-500 hover:bg-stone-100 hover:text-charcoal"
             }`}
           >
@@ -135,7 +135,7 @@ export function Sidebar({
           href="/account"
           className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
             pathname.startsWith("/account")
-              ? "bg-charcoal text-white"
+              ? "bg-deep-rose text-white"
               : "text-stone-500 hover:bg-stone-100 hover:text-charcoal"
           }`}
         >

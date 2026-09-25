@@ -20,7 +20,7 @@ export function QuickActionsBar({ memberId }: { memberId: string }) {
 
   return (
     <div className="flex flex-wrap gap-2 border-b border-stone-200 bg-white px-8 py-3">
-      {actions.map(({ label, href, icon: Icon, disabled }) =>
+      {actions.map(({ label, href, icon: Icon, disabled }, i) =>
         disabled ? (
           <span
             key={label}
@@ -29,6 +29,15 @@ export function QuickActionsBar({ memberId }: { memberId: string }) {
             <Icon className="h-3.5 w-3.5" />
             {label}
           </span>
+        ) : i === 0 ? (
+          <Link
+            key={label}
+            href={href}
+            className="flex items-center gap-1.5 rounded-md bg-deep-rose px-3 py-1.5 text-xs font-medium text-white hover:bg-deep-rose-dark"
+          >
+            <Icon className="h-3.5 w-3.5" />
+            {label}
+          </Link>
         ) : (
           <Link
             key={label}
