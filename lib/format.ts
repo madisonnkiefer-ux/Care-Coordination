@@ -1,7 +1,13 @@
+// Calendar-date fields (DOB, assessment/anchor dates, eligibility dates,
+// etc.) are stored and parsed as UTC midnight (see toDateInputValue and
+// every save action's date() helper) — timeZone: "UTC" here keeps display
+// consistent with that, regardless of the server's or browser's own
+// timezone. Without it, any client component rendering in a timezone
+// behind UTC (e.g. US Mountain) shows these a day early.
 export function formatDate(date: Date | string | null | undefined) {
   if (!date) return "—";
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+  return d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric", timeZone: "UTC" });
 }
 
 export function formatDateTime(date: Date | string | null | undefined) {
