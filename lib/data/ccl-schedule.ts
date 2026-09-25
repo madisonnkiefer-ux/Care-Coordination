@@ -11,11 +11,12 @@ export type CclScheduleData = {
   tasks: CclScheduleTask[] | null;
 };
 
-// Settings > Care Plan's read-only "CCL Schedule" tab — surfaces the
-// BCBSNM DCCE Tasking Tool's day-offset schedule (see lib/ccl-cadence.ts)
-// computed live from this member's own data, instead of a spreadsheet a
-// coordinator has to maintain by hand. Returns null for any member not on
-// CCL1 or CCL2 — that tool has no schedule defined for other levels.
+// Feeds the read-only CCL Schedule widget on the member's main chart —
+// surfaces the BCBSNM DCCE Tasking Tool's day-offset schedule (see
+// lib/ccl-cadence.ts) computed live from this member's own data, instead
+// of a spreadsheet a coordinator has to maintain by hand. Returns null for
+// any member not on CCL1 or CCL2 — that tool has no schedule defined for
+// other levels.
 export async function getCclScheduleData(memberId: string): Promise<CclScheduleData | null> {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member || !hasCclSchedule(member.cclLevel)) return null;

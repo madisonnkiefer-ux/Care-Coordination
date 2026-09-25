@@ -281,7 +281,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
 
           {graduationInfo && <GraduationAlertCard info={graduationInfo} />}
 
-          {cclScheduleData && <CclScheduleWidget memberId={id} data={cclScheduleData} />}
+          {cclScheduleData && <CclScheduleWidget data={cclScheduleData} />}
 
           <MemberStatusCard
             memberId={id}

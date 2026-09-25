@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { getCarePlanFormData } from "@/lib/data/care-plan";
 import { getGeneralCommunicationFormData } from "@/lib/data/general-communication";
 import { getHedisFormData } from "@/lib/data/hedis";
-import { getCclScheduleData } from "@/lib/data/ccl-schedule";
 import { verifySession } from "@/lib/dal";
 import { getFormFieldOverrides, getResolvedFieldOrder } from "@/lib/data/form-fields";
 import { CCP_FIELD_KEYS } from "@/lib/form-fields/registry";
@@ -12,7 +11,6 @@ import { Tabs } from "@/components/tabs";
 import { CcpTab } from "@/components/care-plan/ccp-tab";
 import { HedisTab } from "@/components/care-plan/hedis-tab";
 import { GeneralCommunicationTab } from "@/components/care-plan/general-communication-tab";
-import { CclScheduleTab } from "@/components/care-plan/ccl-schedule-tab";
 import { PrintButton } from "@/components/print-button";
 
 export default async function CarePlanPage({
@@ -26,11 +24,10 @@ export default async function CarePlanPage({
   const { tab, version } = await searchParams;
 
   const session = await verifySession();
-  const [carePlanData, commData, hedisData, cclScheduleData, fields, fieldOrder] = await Promise.all([
+  const [carePlanData, commData, hedisData, fields, fieldOrder] = await Promise.all([
     getCarePlanFormData(id),
     getGeneralCommunicationFormData(id),
     getHedisFormData(id),
-    getCclScheduleData(id),
     getFormFieldOverrides(session.clinicId),
     getResolvedFieldOrder(session.clinicId, "ccp", CCP_FIELD_KEYS),
   ]);
@@ -85,14 +82,6 @@ export default async function CarePlanPage({
       ),
     },
   ];
-
-  if (cclScheduleData) {
-    carePlanTabs.push({
-      id: "ccl-schedule",
-      label: `${cclScheduleData.cclLevel} Schedule`,
-      content: <CclScheduleTab data={cclScheduleData} />,
-    });
-  }
 
   return (
     <div>
