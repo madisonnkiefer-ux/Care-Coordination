@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { s3, DOCUMENTS_BUCKET } from "@/lib/s3";
 import { requirePermission } from "@/lib/dal";
+import { isPdfFilename } from "@/lib/uploads";
 
 // Same presigned-POST pattern as /api/documents/upload — the file goes
 // straight from the browser to the private bucket, never through this
@@ -22,6 +23,9 @@ export async function POST(request: Request) {
 
   if (!fileName) {
     return NextResponse.json({ error: "Missing fileName" }, { status: 400 });
+  }
+  if (!isPdfFilename(fileName)) {
+    return NextResponse.json({ error: "Only PDF files can be uploaded." }, { status: 400 });
   }
 
   const key = `resources/${session.clinicId}/${randomUUID()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;

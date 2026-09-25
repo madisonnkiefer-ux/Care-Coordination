@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { s3, DOCUMENTS_BUCKET } from "@/lib/s3";
 import { authorizeMemberAccess } from "@/lib/dal";
+import { isPdfFilename } from "@/lib/uploads";
 
 // Issues a presigned S3 POST policy so the browser can upload straight to
 // the private documents bucket (bypasses the serverless function body size
@@ -20,6 +21,9 @@ export async function POST(request: Request) {
 
   if (!memberId || !fileName) {
     return NextResponse.json({ error: "Missing memberId or fileName" }, { status: 400 });
+  }
+  if (!isPdfFilename(fileName)) {
+    return NextResponse.json({ error: "Only PDF files can be uploaded." }, { status: 400 });
   }
 
   const { session, member } = await authorizeMemberAccess(memberId);

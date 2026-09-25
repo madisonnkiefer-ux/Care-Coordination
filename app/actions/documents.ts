@@ -5,11 +5,14 @@ import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
+import { sanitizePdfFilename } from "@/lib/uploads";
 import type { DocumentCategory } from "@/app/generated/prisma/client";
 
 export async function saveDocument(memberId: string, params: { name: string; category: DocumentCategory; key: string }) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
+
+  const name = sanitizePdfFilename(params.name);
 
   // The presigned-upload flow always issues a key scoped to this member
   // (app/api/documents/upload/route.ts), but this action is a directly
@@ -23,7 +26,7 @@ export async function saveDocument(memberId: string, params: { name: string; cat
     data: {
       memberId,
       uploadedById: session.userId,
-      name: params.name,
+      name,
       category: params.category,
       storageKey: params.key,
     },
@@ -35,7 +38,7 @@ export async function saveDocument(memberId: string, params: { name: string; cat
     action: "CREATE",
     resource: "Document",
     resourceId: document.id,
-    metadata: { name: params.name, category: params.category },
+    metadata: { name, category: params.category },
   });
 
   if (member.assignedCoordinatorId) {
@@ -45,7 +48,7 @@ export async function saveDocument(memberId: string, params: { name: string; cat
       actorId: session.userId,
       priority: "STANDARD",
       title: `New document uploaded for ${member.firstName} ${member.lastName}`,
-      body: params.name,
+      body: name,
       memberId,
     });
   }

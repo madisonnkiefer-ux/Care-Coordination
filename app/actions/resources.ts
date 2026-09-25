@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { sanitizePdfFilename } from "@/lib/uploads";
 
 function str(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -19,7 +20,8 @@ function requireOwnDocumentKey(formData: FormData, clinicId: string) {
   const key = str(formData, "documentKey");
   if (!key) return { documentKey: null, documentName: null };
   if (!key.startsWith(`resources/${clinicId}/`)) throw new Error("Forbidden");
-  return { documentKey: key, documentName: str(formData, "documentName") };
+  const rawName = str(formData, "documentName");
+  return { documentKey: key, documentName: rawName ? sanitizePdfFilename(rawName) : null };
 }
 
 export async function createResource(formData: FormData) {
