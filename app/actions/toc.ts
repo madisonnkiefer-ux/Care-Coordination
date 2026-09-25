@@ -64,6 +64,38 @@ export async function createNewTocRecord(memberId: string) {
   redirect(`/members/${memberId}/toc`);
 }
 
+// Admin-only correction of the TOC record's own createdAt — the date shown
+// on its history chip, separate from any date field inside the form itself.
+export async function updateTocRecordDate(memberId: string, tocId: string, newDate: string) {
+  const { session, member } = await authorizeMemberAccess(memberId);
+  if (!member) throw new Error("Forbidden");
+  if (session.role !== "ADMIN") throw new Error("Forbidden: only admins can edit this date");
+
+  const existing = await db.tocRecord.findUnique({ where: { id: tocId } });
+  if (!existing || existing.memberId !== memberId) throw new Error("Not found");
+
+  const parsed = new Date(newDate);
+  if (Number.isNaN(parsed.getTime())) throw new Error("Invalid date");
+  if (parsed.getTime() === existing.createdAt.getTime()) return;
+
+  await db.tocRecord.update({ where: { id: tocId }, data: { createdAt: parsed } });
+
+  await writeAuditLog({
+    userId: session.userId,
+    memberId,
+    action: "UPDATE",
+    resource: "TocRecord",
+    resourceId: tocId,
+    metadata: {
+      adminDateCorrection: true,
+      changes: [{ field: "createdAt", oldValue: existing.createdAt.toISOString(), newValue: parsed.toISOString() }],
+    },
+  });
+
+  revalidatePath(`/members/${memberId}/toc`);
+  revalidatePath(`/members/${memberId}`);
+}
+
 export async function signTocRecord(memberId: string, tocId: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");

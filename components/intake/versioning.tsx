@@ -1,8 +1,76 @@
 "use client";
 
 import { useState } from "react";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime, toDateInputValue } from "@/lib/format";
 import { Badge } from "@/components/ui";
+
+// Admin-only, deliberately subtle: a small pencil next to the date chip
+// that reveals a date input in place, instead of a separate settings
+// screen — this is the actual "date that populates on the enrollment
+// when it's saved" admins asked to be able to correct.
+function EditDateChipButton({ currentDate, onConfirm }: { currentDate: Date; onConfirm: (newDate: string) => Promise<void> }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(() => toDateInputValue(currentDate));
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState(false);
+
+  async function handleConfirm() {
+    setPending(true);
+    setError(false);
+    try {
+      await onConfirm(value);
+      setEditing(false);
+    } catch {
+      setError(true);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <span className="flex items-center gap-1 pl-1" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="date"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          className="rounded border border-stone-300 px-1 py-0.5 text-xs"
+        />
+        <button
+          type="button"
+          disabled={pending}
+          onClick={handleConfirm}
+          className="rounded-full bg-charcoal px-1.5 py-0.5 font-semibold text-white hover:bg-stone-800 disabled:opacity-50"
+        >
+          {pending ? "…" : "Save"}
+        </button>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => setEditing(false)}
+          className="rounded-full px-1.5 py-0.5 text-stone-400 hover:text-stone-600"
+        >
+          Cancel
+        </button>
+        {error && <span className="text-red-600">Failed</span>}
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      title="Edit this date (admin only)"
+      onClick={(e) => {
+        e.stopPropagation();
+        setEditing(true);
+      }}
+      className="rounded-full px-1 py-0.5 text-stone-300 hover:bg-stone-100 hover:text-stone-500"
+    >
+      ✎
+    </button>
+  );
+}
 
 // Deliberately not window.confirm(): some embedded/webview browser contexts
 // silently block or auto-dismiss native confirm()/alert() dialogs, which
@@ -78,6 +146,7 @@ export function HistoryBar({
   newAction,
   newLabel = "+ New",
   onDelete,
+  onEditDate,
 }: {
   items: HistoryItem[];
   selectedId: string | null;
@@ -87,6 +156,10 @@ export function HistoryBar({
   // Admin-only: parent passes this to enable the delete affordance on each
   // chip. Soft delete — the record is hidden and recoverable, not erased.
   onDelete?: (id: string) => Promise<void>;
+  // Admin-only: parent passes this to enable correcting the date this chip
+  // was created/saved on (the record's own createdAt), separate from any
+  // date field inside the form itself.
+  onEditDate?: (id: string, newDate: string) => Promise<void>;
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-stone-200 pb-4 print:hidden">
@@ -110,6 +183,7 @@ export function HistoryBar({
                 <span className="text-stone-400">·{item.status === "COMPLETED" ? "Completed" : "Draft"}</span>
               )}
             </button>
+            {onEditDate && <EditDateChipButton currentDate={item.dateLabel} onConfirm={(newDate) => onEditDate(item.id, newDate)} />}
             {onDelete && <DeleteChipButton warnSigned={Boolean(item.signedAt)} onConfirm={() => onDelete(item.id)} />}
           </div>
         );

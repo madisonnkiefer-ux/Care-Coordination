@@ -7,7 +7,7 @@ import { DemographicsTab } from "@/components/intake/demographics-tab";
 import { HraTab } from "@/components/intake/hra-tab";
 import { CnaTab } from "@/components/intake/cna-tab";
 import { CareCoordinationNotesTab } from "@/components/intake/care-coordination-notes-tab";
-import { createNewIntakeVersion, signIntakeVersion } from "@/app/actions/intake";
+import { createNewIntakeVersion, signIntakeVersion, updateIntakeVersionDate } from "@/app/actions/intake";
 import { deleteIntakeVersion } from "@/app/actions/delete";
 import type { Demographics, CnaAssessment, HraAssessment, CareCoordinationNote } from "@/app/generated/prisma/client";
 import type { ResolvedFormFields } from "@/lib/form-fields/registry";
@@ -77,6 +77,7 @@ export function IntakeShell({
           newAction={createNewIntakeVersion.bind(null, memberId)}
           newLabel="+ New Enrollment"
           onDelete={canDelete ? deleteIntakeVersion.bind(null, memberId) : undefined}
+          onEditDate={currentUserIsAdmin ? (versionId, newDate) => updateIntakeVersionDate(memberId, versionId, newDate) : undefined}
         />
 
         {version && <SignPanel memberId={memberId} version={version} currentUserIsAdmin={currentUserIsAdmin} />}
