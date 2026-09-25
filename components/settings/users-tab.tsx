@@ -50,8 +50,8 @@ export function UsersTab({
       </Card>
 
       <Card title="All Users">
-        <div className="overflow-hidden rounded-xl border border-stone-200">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-xl border border-stone-200">
+          <table className="w-full min-w-[900px] text-sm">
             <thead className="bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">
               <tr>
                 <th className="px-4 py-3 font-medium">Name</th>
