@@ -14,7 +14,12 @@ export async function saveCareCoordinationNote(memberId: string, noteId: string,
 
   const existing = await db.careCoordinationNote.findUnique({ where: { id: noteId }, include: { intakeVersion: true } });
   if (!existing || existing.memberId !== memberId) throw new Error("Not found");
-  if (existing.intakeVersion?.signedAt) throw new Error("This record is signed and locked");
+
+  if (existing.intakeVersion?.signedAt) {
+    if (session.role !== "ADMIN") throw new Error("This record is signed and locked");
+    // No date fields on this form — nothing for an admin correction to change.
+    redirect(`/members/${memberId}/intake?tab=notes`);
+  }
 
   const str = (key: string) => {
     const value = formData.get(key);

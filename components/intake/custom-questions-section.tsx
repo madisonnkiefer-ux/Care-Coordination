@@ -1,4 +1,7 @@
+"use client";
+
 import { Card } from "@/components/ui";
+import { useFormLock } from "@/lib/form-fields/context";
 import type { CustomQuestionForRecord } from "@/lib/custom-questions-shared";
 
 // Renders admin-defined questions (Settings → Form Content → Additional
@@ -23,35 +26,40 @@ function CustomQuestionField({ question }: { question: CustomQuestionForRecord }
   const name = `custom_${question.id}`;
   const labelClass = "mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500";
   const inputClass =
-    "w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose";
+    "w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose disabled:bg-stone-50 disabled:text-stone-500";
+  // Admin-defined custom questions don't get the same admin-can-still-edit-
+  // the-date carve-out as the form's own built-in date fields (see
+  // DateField in form-fields.tsx) — a signed record locks these exactly as
+  // before, custom DATE questions included.
+  const { locked } = useFormLock();
 
   switch (question.type) {
     case "TEXT":
       return (
         <div>
           <label className={labelClass}>{question.label}</label>
-          <input name={name} defaultValue={(question.value as string) ?? ""} className={inputClass} />
+          <input name={name} defaultValue={(question.value as string) ?? ""} disabled={locked} className={inputClass} />
         </div>
       );
     case "TEXTAREA":
       return (
         <div>
           <label className={labelClass}>{question.label}</label>
-          <textarea name={name} rows={3} defaultValue={(question.value as string) ?? ""} className={inputClass} />
+          <textarea name={name} rows={3} defaultValue={(question.value as string) ?? ""} disabled={locked} className={inputClass} />
         </div>
       );
     case "DATE":
       return (
         <div>
           <label className={labelClass}>{question.label}</label>
-          <input type="date" name={name} defaultValue={(question.value as string) ?? ""} className={inputClass} />
+          <input type="date" name={name} defaultValue={(question.value as string) ?? ""} disabled={locked} className={inputClass} />
         </div>
       );
     case "SELECT":
       return (
         <div>
           <label className={labelClass}>{question.label}</label>
-          <select name={name} defaultValue={(question.value as string) ?? ""} className={inputClass}>
+          <select name={name} defaultValue={(question.value as string) ?? ""} disabled={locked} className={inputClass}>
             <option value="">—</option>
             {question.options.map((opt) => (
               <option key={opt} value={opt}>
@@ -68,11 +76,11 @@ function CustomQuestionField({ question }: { question: CustomQuestionForRecord }
           <p className="mb-1 text-sm font-medium text-stone-700">{question.label}</p>
           <div className="flex gap-6">
             <label className="flex items-center gap-2 text-sm text-stone-600">
-              <input type="radio" name={name} value="yes" defaultChecked={value === true} className="h-4 w-4" />
+              <input type="radio" name={name} value="yes" defaultChecked={value === true} disabled={locked} className="h-4 w-4" />
               Yes
             </label>
             <label className="flex items-center gap-2 text-sm text-stone-600">
-              <input type="radio" name={name} value="no" defaultChecked={value === false} className="h-4 w-4" />
+              <input type="radio" name={name} value="no" defaultChecked={value === false} disabled={locked} className="h-4 w-4" />
               No
             </label>
           </div>
@@ -92,6 +100,7 @@ function CustomQuestionField({ question }: { question: CustomQuestionForRecord }
                   name={name}
                   value={opt}
                   defaultChecked={values.includes(opt)}
+                  disabled={locked}
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300"
                 />
                 {opt}

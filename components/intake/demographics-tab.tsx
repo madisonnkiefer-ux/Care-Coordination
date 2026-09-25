@@ -25,6 +25,7 @@ export function DemographicsTab({
   memberId,
   record: selected,
   locked,
+  isAdmin,
   fields,
   fieldOrder,
   customQuestions,
@@ -32,6 +33,7 @@ export function DemographicsTab({
   memberId: string;
   record: Demographics;
   locked: boolean;
+  isAdmin: boolean;
   fields: ResolvedFormFields;
   fieldOrder: string[];
   customQuestions: CustomQuestionForRecord[];
@@ -40,7 +42,7 @@ export function DemographicsTab({
   const justSaved = useSavedConfirmation(selected.updatedAt);
 
   return (
-    <FormFieldsProvider form="demographics" fields={fields}>
+    <FormFieldsProvider form="demographics" fields={fields} locked={locked} isAdmin={isAdmin}>
     <div className="p-8">
       <form
         key={`${selected.id}-${selected.updatedAt.getTime()}`}
@@ -49,7 +51,7 @@ export function DemographicsTab({
         className="max-w-3xl space-y-6"
       >
         <DraftRestoredBanner restoredAt={restoredAt} />
-        <fieldset disabled={locked} className="contents">
+        <fieldset className="contents">
           <Card>
             <OrderedGrid
               order={fieldOrder}
@@ -332,7 +334,7 @@ export function DemographicsTab({
           <CustomQuestionsSection questions={customQuestions} />
         </fieldset>
 
-        {!locked && (
+        {(!locked || isAdmin) && (
           <FloatingSaveBar savedConfirmation={justSaved}>
             <SubmitButton
               name="intent"

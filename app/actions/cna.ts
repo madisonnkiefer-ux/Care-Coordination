@@ -6,7 +6,10 @@ import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { saveCustomAnswers } from "@/lib/custom-questions-save";
+import { resolveAdminDateEdit } from "@/lib/admin-date-edit";
 import type { AssessmentStatus } from "@/app/generated/prisma/client";
+
+const CNA_DATE_FIELDS = ["assessmentDate", "pregnancyDueDate", "wellChildVisitDate"] as const;
 
 export async function saveCna(memberId: string, cnaId: string, formData: FormData) {
   const { session, member } = await authorizeMemberAccess(memberId);
@@ -14,7 +17,31 @@ export async function saveCna(memberId: string, cnaId: string, formData: FormDat
 
   const existing = await db.cnaAssessment.findUnique({ where: { id: cnaId }, include: { intakeVersion: true } });
   if (!existing || existing.memberId !== memberId) throw new Error("Not found");
-  if (existing.intakeVersion?.signedAt) throw new Error("This record is signed and locked");
+
+  if (existing.intakeVersion?.signedAt) {
+    if (session.role !== "ADMIN") throw new Error("This record is signed and locked");
+
+    const { data, changes } = resolveAdminDateEdit(formData, CNA_DATE_FIELDS, existing);
+
+    if (changes.length > 0) {
+      await db.cnaAssessment.update({ where: { id: cnaId }, data });
+
+      await writeAuditLog({
+        userId: session.userId,
+        memberId,
+        action: "UPDATE",
+        resource: "CnaAssessment",
+        resourceId: cnaId,
+        metadata: { adminDateCorrection: true, changes },
+      });
+
+      revalidatePath(`/members/${memberId}/intake`);
+      revalidatePath("/members");
+      revalidatePath("/");
+    }
+
+    redirect(`/members/${memberId}/intake?tab=cna`);
+  }
 
   const str = (key: string) => {
     const value = formData.get(key);

@@ -6,7 +6,10 @@ import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { saveCustomAnswers } from "@/lib/custom-questions-save";
+import { resolveAdminDateEdit } from "@/lib/admin-date-edit";
 import type { AssessmentStatus } from "@/app/generated/prisma/client";
+
+const HRA_DATE_FIELDS = ["assessmentDate"] as const;
 
 export async function saveHra(memberId: string, hraId: string, formData: FormData) {
   const { session, member } = await authorizeMemberAccess(memberId);
@@ -14,7 +17,29 @@ export async function saveHra(memberId: string, hraId: string, formData: FormDat
 
   const existing = await db.hraAssessment.findUnique({ where: { id: hraId }, include: { intakeVersion: true } });
   if (!existing || existing.memberId !== memberId) throw new Error("Not found");
-  if (existing.intakeVersion?.signedAt) throw new Error("This record is signed and locked");
+
+  if (existing.intakeVersion?.signedAt) {
+    if (session.role !== "ADMIN") throw new Error("This record is signed and locked");
+
+    const { data, changes } = resolveAdminDateEdit(formData, HRA_DATE_FIELDS, existing);
+
+    if (changes.length > 0) {
+      await db.hraAssessment.update({ where: { id: hraId }, data });
+
+      await writeAuditLog({
+        userId: session.userId,
+        memberId,
+        action: "UPDATE",
+        resource: "HraAssessment",
+        resourceId: hraId,
+        metadata: { adminDateCorrection: true, changes },
+      });
+
+      revalidatePath(`/members/${memberId}/intake`);
+    }
+
+    redirect(`/members/${memberId}/intake?tab=hra`);
+  }
 
   const str = (key: string) => {
     const value = formData.get(key);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useFieldOverride } from "@/lib/form-fields/context";
+import { useFieldOverride, useFormLock } from "@/lib/form-fields/context";
 
 // A hidden (retired) field only disappears once it's blank — if the record
 // already has an answer on file, it always keeps showing, so an admin
@@ -24,6 +24,7 @@ export function TextField({
   id?: string;
 }) {
   const override = useFieldOverride(name);
+  const { locked } = useFormLock();
   if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
   const effectiveLabel = override?.label || label;
   const fieldId = id ?? name;
@@ -37,7 +38,8 @@ export function TextField({
         id={fieldId}
         name={name}
         defaultValue={defaultValue ?? ""}
-        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+        disabled={locked}
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose disabled:bg-stone-50 disabled:text-stone-500"
       />
     </div>
   );
@@ -63,6 +65,7 @@ export function TextArea({
   required?: boolean;
 }) {
   const override = useFieldOverride(name);
+  const { locked } = useFormLock();
   if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
   const effectiveLabel = override?.label || label;
   const fieldId = id ?? name;
@@ -79,12 +82,19 @@ export function TextArea({
         rows={rows}
         required={required}
         defaultValue={defaultValue ?? ""}
-        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+        disabled={locked}
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose disabled:bg-stone-50 disabled:text-stone-500"
       />
     </div>
   );
 }
 
+// The one field type a record's own `locked` state doesn't disable — an
+// admin can still correct a date after signing (see lib/form-fields/context.tsx's
+// useFormLock). Every save action enforces this independently server-side
+// (only date fields are ever applied to an already-signed record, and only
+// for an actual admin caller), so this client-side toggle is a usability
+// convenience, not the real boundary.
 export function DateField({
   name,
   label,
@@ -99,6 +109,7 @@ export function DateField({
   id?: string;
 }) {
   const override = useFieldOverride(name);
+  const { locked, isAdmin } = useFormLock();
   if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
   const effectiveLabel = override?.label || label;
   const fieldId = id ?? name;
@@ -114,7 +125,8 @@ export function DateField({
         name={name}
         form={form}
         defaultValue={defaultValue ?? ""}
-        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+        disabled={locked && !isAdmin}
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose disabled:bg-stone-50 disabled:text-stone-500"
       />
     </div>
   );
@@ -139,6 +151,7 @@ export function SelectField({
   id?: string;
 }) {
   const override = useFieldOverride(name);
+  const { locked } = useFormLock();
   if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
   const effectiveLabel = override?.label || label;
   const effectiveOptions = override?.options ?? options;
@@ -154,7 +167,8 @@ export function SelectField({
         id={fieldId}
         name={name}
         defaultValue={isCustom ? "" : defaultValue ?? ""}
-        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+        disabled={locked}
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose disabled:bg-stone-50 disabled:text-stone-500"
       >
         <option value="">—</option>
         {effectiveOptions.map((opt) => (
@@ -167,7 +181,8 @@ export function SelectField({
         name={`${name}Custom`}
         defaultValue={isCustom ? (defaultValue as string) : ""}
         placeholder="Not listed? Type it here instead"
-        className="mt-1 w-full rounded-md border border-stone-200 px-3 py-1.5 text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-deep-rose"
+        disabled={locked}
+        className="mt-1 w-full rounded-md border border-stone-200 px-3 py-1.5 text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-deep-rose disabled:bg-stone-50"
       />
     </div>
   );
@@ -189,6 +204,7 @@ export function MultiSelectField({
   size?: number;
 }) {
   const override = useFieldOverride(name);
+  const { locked } = useFormLock();
   if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValues?.length))) return null;
   const effectiveOptions = override?.options ?? options;
 
@@ -199,7 +215,8 @@ export function MultiSelectField({
         multiple
         size={Math.min(size, effectiveOptions.length)}
         defaultValue={defaultValues ?? []}
-        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+        disabled={locked}
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose disabled:bg-stone-50 disabled:text-stone-500"
       >
         {effectiveOptions.map((opt) => (
           <option key={opt} value={opt}>
@@ -222,12 +239,14 @@ export function NumberScaleField({
   options: { value: number; label: string }[];
   defaultValue?: number | null;
 }) {
+  const { locked } = useFormLock();
   return (
     <select
       id={name}
       name={name}
       defaultValue={defaultValue ?? ""}
-      className="w-full max-w-sm rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+      disabled={locked}
+      className="w-full max-w-sm rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose disabled:bg-stone-50 disabled:text-stone-500"
     >
       <option value="">—</option>
       {options.map((opt) => (
@@ -241,12 +260,19 @@ export function NumberScaleField({
 
 export function Checkbox({ name, label, defaultChecked }: { name: string; label: string; defaultChecked?: boolean }) {
   const override = useFieldOverride(name);
+  const { locked } = useFormLock();
   if (isHiddenAndEmpty(override?.hidden, Boolean(defaultChecked))) return null;
   const effectiveLabel = override?.label || label;
 
   return (
     <label className="flex items-center gap-2 text-sm text-stone-700">
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 rounded border-stone-300" />
+      <input
+        type="checkbox"
+        name={name}
+        defaultChecked={defaultChecked}
+        disabled={locked}
+        className="h-4 w-4 rounded border-stone-300"
+      />
       {effectiveLabel}
     </label>
   );
@@ -264,6 +290,7 @@ export function CheckboxGroup({
   defaultValues?: string[] | null;
 }) {
   const override = useFieldOverride(name);
+  const { locked } = useFormLock();
   if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValues?.length))) return null;
   const effectiveOptions = override?.options ?? options;
 
@@ -276,6 +303,7 @@ export function CheckboxGroup({
             name={name}
             value={opt}
             defaultChecked={defaultValues?.includes(opt) ?? false}
+            disabled={locked}
             className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300"
           />
           {opt}
@@ -287,6 +315,7 @@ export function CheckboxGroup({
 
 export function YesNoField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: boolean | null }) {
   const override = useFieldOverride(name);
+  const { locked } = useFormLock();
   if (isHiddenAndEmpty(override?.hidden, defaultValue !== null && defaultValue !== undefined)) return null;
   const effectiveLabel = override?.label || label;
 
@@ -295,11 +324,11 @@ export function YesNoField({ name, label, defaultValue }: { name: string; label:
       <p className="mb-1 text-sm font-medium text-stone-700">{effectiveLabel}</p>
       <div className="flex gap-6">
         <label className="flex items-center gap-2 text-sm text-stone-600">
-          <input type="radio" name={name} value="yes" defaultChecked={defaultValue === true} className="h-4 w-4" />
+          <input type="radio" name={name} value="yes" defaultChecked={defaultValue === true} disabled={locked} className="h-4 w-4" />
           Yes
         </label>
         <label className="flex items-center gap-2 text-sm text-stone-600">
-          <input type="radio" name={name} value="no" defaultChecked={defaultValue === false} className="h-4 w-4" />
+          <input type="radio" name={name} value="no" defaultChecked={defaultValue === false} disabled={locked} className="h-4 w-4" />
           No
         </label>
       </div>
@@ -311,6 +340,7 @@ export function YesNoField({ name, label, defaultValue }: { name: string; label:
 // from an unanswered field, unlike a two-state boolean).
 export function YesNoNaField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: string | null }) {
   const override = useFieldOverride(name);
+  const { locked } = useFormLock();
   if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValue))) return null;
   const effectiveLabel = override?.label || label;
 
@@ -319,15 +349,15 @@ export function YesNoNaField({ name, label, defaultValue }: { name: string; labe
       <p className="mb-1 text-sm font-medium text-stone-700">{effectiveLabel}</p>
       <div className="flex gap-6">
         <label className="flex items-center gap-2 text-sm text-stone-600">
-          <input type="radio" name={name} value="yes" defaultChecked={defaultValue === "yes"} className="h-4 w-4" />
+          <input type="radio" name={name} value="yes" defaultChecked={defaultValue === "yes"} disabled={locked} className="h-4 w-4" />
           Yes
         </label>
         <label className="flex items-center gap-2 text-sm text-stone-600">
-          <input type="radio" name={name} value="no" defaultChecked={defaultValue === "no"} className="h-4 w-4" />
+          <input type="radio" name={name} value="no" defaultChecked={defaultValue === "no"} disabled={locked} className="h-4 w-4" />
           No
         </label>
         <label className="flex items-center gap-2 text-sm text-stone-600">
-          <input type="radio" name={name} value="na" defaultChecked={defaultValue === "na"} className="h-4 w-4" />
+          <input type="radio" name={name} value="na" defaultChecked={defaultValue === "na"} disabled={locked} className="h-4 w-4" />
           N/A
         </label>
       </div>
@@ -351,6 +381,7 @@ export function YesNoWithDetail({
   detailLabel?: string;
 }) {
   const override = useFieldOverride(name);
+  const { locked } = useFormLock();
   const hasValue = (defaultValue !== null && defaultValue !== undefined) || Boolean(detailDefault);
   if (isHiddenAndEmpty(override?.hidden, hasValue)) return null;
   const effectiveLabel = override?.label || label;
@@ -361,11 +392,11 @@ export function YesNoWithDetail({
       <div className="flex flex-wrap items-center gap-6">
         <div className="flex gap-6">
           <label className="flex items-center gap-2 text-sm text-stone-600">
-            <input type="radio" name={name} value="yes" defaultChecked={defaultValue === true} className="h-4 w-4" />
+            <input type="radio" name={name} value="yes" defaultChecked={defaultValue === true} disabled={locked} className="h-4 w-4" />
             Yes
           </label>
           <label className="flex items-center gap-2 text-sm text-stone-600">
-            <input type="radio" name={name} value="no" defaultChecked={defaultValue === false} className="h-4 w-4" />
+            <input type="radio" name={name} value="no" defaultChecked={defaultValue === false} disabled={locked} className="h-4 w-4" />
             No
           </label>
         </div>
@@ -374,7 +405,8 @@ export function YesNoWithDetail({
           <input
             name={detailName}
             defaultValue={detailDefault ?? ""}
-            className="flex-1 rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+            disabled={locked}
+            className="flex-1 rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose disabled:bg-stone-50"
           />
         </div>
       </div>

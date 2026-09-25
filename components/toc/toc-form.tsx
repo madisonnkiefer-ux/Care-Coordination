@@ -55,7 +55,7 @@ export function TocForm({
   }));
 
   return (
-    <FormFieldsProvider form="toc" fields={fields}>
+    <FormFieldsProvider form="toc" fields={fields} locked={locked} isAdmin={currentUserIsAdmin}>
     <div className="p-8">
       <HistoryBar
         items={historyItems}
@@ -77,7 +77,7 @@ export function TocForm({
           >
             {locked && <SignedBanner signedByName={draft.signedBy?.name ?? null} signedAt={draft.signedAt as Date} />}
 
-            <fieldset disabled={locked} className="contents">
+            <fieldset className="contents">
               <Card title="1. Demographic Information">
                 <p className="mb-3 text-xs text-stone-400">
                   Member name, date of birth, Medicaid ID, contact info, and emergency contact are already on file under
@@ -205,7 +205,7 @@ export function TocForm({
               <CustomQuestionsSection questions={customQuestions} />
             </fieldset>
 
-            {!locked && (
+            {(!locked || currentUserIsAdmin) && (
               <FloatingSaveBar>
                 <SubmitButton
                   name="intent"

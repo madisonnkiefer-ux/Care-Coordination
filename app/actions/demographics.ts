@@ -6,6 +6,14 @@ import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { saveCustomAnswers } from "@/lib/custom-questions-save";
+import { resolveAdminDateEdit } from "@/lib/admin-date-edit";
+
+const DEMOGRAPHICS_DATE_FIELDS = [
+  "dateOfBirth",
+  "mcoEnrollmentDate",
+  "medicaidEligibilityBeginDate",
+  "medicaidEligibilityRenewalDate",
+] as const;
 
 export async function saveDemographics(memberId: string, demographicsId: string, formData: FormData) {
   const { session, member } = await authorizeMemberAccess(memberId);
@@ -13,7 +21,34 @@ export async function saveDemographics(memberId: string, demographicsId: string,
 
   const existing = await db.demographics.findUnique({ where: { id: demographicsId }, include: { intakeVersion: true } });
   if (!existing || existing.memberId !== memberId) throw new Error("Not found");
-  if (existing.intakeVersion?.signedAt) throw new Error("This record is signed and locked");
+
+  if (existing.intakeVersion?.signedAt) {
+    if (session.role !== "ADMIN") throw new Error("This record is signed and locked");
+
+    const { data, changes } = resolveAdminDateEdit(formData, DEMOGRAPHICS_DATE_FIELDS, existing);
+
+    if (changes.length > 0) {
+      await db.$transaction([
+        db.member.update({ where: { id: memberId }, data: data.dateOfBirth ? { dateOfBirth: data.dateOfBirth } : {} }),
+        db.demographics.update({ where: { id: demographicsId }, data }),
+      ]);
+
+      await writeAuditLog({
+        userId: session.userId,
+        memberId,
+        action: "UPDATE",
+        resource: "Demographics",
+        resourceId: demographicsId,
+        metadata: { adminDateCorrection: true, changes },
+      });
+
+      revalidatePath(`/members/${memberId}/intake`);
+      revalidatePath(`/members/${memberId}`);
+      revalidatePath("/members");
+    }
+
+    redirect(`/members/${memberId}/intake?tab=demographics`);
+  }
 
   const str = (key: string) => {
     const value = formData.get(key);

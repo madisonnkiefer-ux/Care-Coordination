@@ -25,6 +25,7 @@ export function CareCoordinationNotesTab({
   memberId,
   record: draft,
   locked,
+  isAdmin,
   fields,
   fieldOrder,
   customQuestions,
@@ -32,6 +33,7 @@ export function CareCoordinationNotesTab({
   memberId: string;
   record: CareCoordinationNote;
   locked: boolean;
+  isAdmin: boolean;
   fields: ResolvedFormFields;
   fieldOrder: string[];
   customQuestions: CustomQuestionForRecord[];
@@ -40,7 +42,7 @@ export function CareCoordinationNotesTab({
   const justSaved = useSavedConfirmation(draft.updatedAt);
 
   return (
-    <FormFieldsProvider form="ccn" fields={fields}>
+    <FormFieldsProvider form="ccn" fields={fields} locked={locked} isAdmin={isAdmin}>
     <div className="p-8">
       <form
         key={`${draft.id}-${draft.updatedAt.getTime()}`}
@@ -49,7 +51,7 @@ export function CareCoordinationNotesTab({
         className="max-w-3xl space-y-6"
       >
       <DraftRestoredBanner restoredAt={restoredAt} />
-      <fieldset disabled={locked} className="contents">
+      <fieldset className="contents">
       <Card title="Summary">
         <OrderedStack
           order={fieldOrder}
@@ -298,7 +300,7 @@ export function CareCoordinationNotesTab({
       <CustomQuestionsSection questions={customQuestions} />
       </fieldset>
 
-      {!locked && (
+      {(!locked || isAdmin) && (
         <FloatingSaveBar savedConfirmation={justSaved}>
           <SubmitButton
             name="intent"

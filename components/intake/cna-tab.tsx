@@ -41,6 +41,7 @@ export function CnaTab({
   memberId,
   record: draft,
   locked,
+  isAdmin,
   fields,
   fieldOrder,
   customQuestions,
@@ -48,6 +49,7 @@ export function CnaTab({
   memberId: string;
   record: CnaAssessment;
   locked: boolean;
+  isAdmin: boolean;
   fields: ResolvedFormFields;
   fieldOrder: string[];
   customQuestions: CustomQuestionForRecord[];
@@ -61,7 +63,7 @@ export function CnaTab({
   const justSaved = useSavedConfirmation(draft.updatedAt);
 
   return (
-    <FormFieldsProvider form="cna" fields={fields}>
+    <FormFieldsProvider form="cna" fields={fields} locked={locked} isAdmin={isAdmin}>
     <div className="p-8">
       <form
         key={`${draft.id}-${draft.updatedAt.getTime()}`}
@@ -81,7 +83,7 @@ export function CnaTab({
         </Card>
       )}
 
-      <fieldset disabled={locked} className="contents">
+      <fieldset className="contents">
       <Card title="Assessment">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <DateField name="assessmentDate" label="Assessment Date" defaultValue={toDateInputValue(draft?.assessmentDate)} />
@@ -1264,7 +1266,7 @@ export function CnaTab({
       <CustomQuestionsSection questions={customQuestions} />
       </fieldset>
 
-      {!locked && (
+      {(!locked || isAdmin) && (
         <FloatingSaveBar savedConfirmation={justSaved}>
           <SubmitButton
             name="intent"

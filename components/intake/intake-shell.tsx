@@ -96,6 +96,7 @@ export function IntakeShell({
                   memberId={memberId}
                   record={version.demographics}
                   locked={locked}
+                  isAdmin={currentUserIsAdmin}
                   fields={fields}
                   fieldOrder={demographicsFieldOrder}
                   customQuestions={mergeCustomQuestions(customQuestions.demographics, customAnswersByRecord[version.demographics.id])}
@@ -112,6 +113,7 @@ export function IntakeShell({
                   memberId={memberId}
                   record={version.hra}
                   locked={locked}
+                  isAdmin={currentUserIsAdmin}
                   fields={fields}
                   fieldOrder={hraFieldOrder}
                   customQuestions={mergeCustomQuestions(customQuestions.hra, customAnswersByRecord[version.hra.id])}
@@ -128,6 +130,7 @@ export function IntakeShell({
                   memberId={memberId}
                   record={version.cna}
                   locked={locked}
+                  isAdmin={currentUserIsAdmin}
                   fields={fields}
                   fieldOrder={cnaFieldOrder}
                   customQuestions={mergeCustomQuestions(customQuestions.cna, customAnswersByRecord[version.cna.id])}
@@ -144,6 +147,7 @@ export function IntakeShell({
                   memberId={memberId}
                   record={version.note}
                   locked={locked}
+                  isAdmin={currentUserIsAdmin}
                   fields={fields}
                   fieldOrder={ccnFieldOrder}
                   customQuestions={mergeCustomQuestions(customQuestions.ccn, customAnswersByRecord[version.note.id])}

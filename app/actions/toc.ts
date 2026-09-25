@@ -7,8 +7,18 @@ import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import { saveCustomAnswers } from "@/lib/custom-questions-save";
+import { resolveAdminDateEdit } from "@/lib/admin-date-edit";
 import { TOC_NEEDS_SECTIONS, needFieldName } from "@/components/toc/needs-config";
 import type { AssessmentStatus, NoneOrYes } from "@/app/generated/prisma/client";
+
+const TOC_DATE_FIELDS = [
+  "mcoNotificationDate",
+  "tocPlanStartDate",
+  "tocPlanCompletionDate",
+  "followUp1Date",
+  "followUp2Date",
+  "followUp3Date",
+] as const;
 
 function str(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -96,7 +106,29 @@ export async function saveTocRecord(memberId: string, tocId: string, formData: F
 
   const existing = await db.tocRecord.findUnique({ where: { id: tocId } });
   if (!existing || existing.memberId !== memberId) throw new Error("Not found");
-  if (existing.signedAt) throw new Error("This record is signed and locked");
+
+  if (existing.signedAt) {
+    if (session.role !== "ADMIN") throw new Error("This record is signed and locked");
+
+    const { data, changes } = resolveAdminDateEdit(formData, TOC_DATE_FIELDS, existing);
+
+    if (changes.length > 0) {
+      await db.tocRecord.update({ where: { id: tocId }, data });
+
+      await writeAuditLog({
+        userId: session.userId,
+        memberId,
+        action: "UPDATE",
+        resource: "TocRecord",
+        resourceId: tocId,
+        metadata: { adminDateCorrection: true, changes },
+      });
+
+      revalidatePath(`/members/${memberId}/toc`);
+    }
+
+    redirect(`/members/${memberId}/toc`);
+  }
 
   const intent = String(formData.get("intent") ?? "draft");
   const status: AssessmentStatus = intent === "complete" ? "COMPLETED" : "DRAFT";

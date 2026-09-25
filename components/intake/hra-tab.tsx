@@ -39,6 +39,7 @@ export function HraTab({
   memberId,
   record: draft,
   locked,
+  isAdmin,
   fields,
   fieldOrder,
   customQuestions,
@@ -46,6 +47,7 @@ export function HraTab({
   memberId: string;
   record: HraAssessment;
   locked: boolean;
+  isAdmin: boolean;
   fields: ResolvedFormFields;
   fieldOrder: string[];
   customQuestions: CustomQuestionForRecord[];
@@ -55,7 +57,7 @@ export function HraTab({
   const justSaved = useSavedConfirmation(draft.updatedAt);
 
   return (
-    <FormFieldsProvider form="hra" fields={fields}>
+    <FormFieldsProvider form="hra" fields={fields} locked={locked} isAdmin={isAdmin}>
     <div className="p-8">
       <form
         key={`${draft.id}-${draft.updatedAt.getTime()}`}
@@ -77,7 +79,7 @@ export function HraTab({
         </Card>
       )}
 
-      <fieldset disabled={locked} className="contents">
+      <fieldset className="contents">
       <Card title="Assessment">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <DateField name="assessmentDate" label="Assessment Date" defaultValue={toDateInputValue(draft?.assessmentDate)} />
@@ -393,7 +395,7 @@ export function HraTab({
       <CustomQuestionsSection questions={customQuestions} />
       </fieldset>
 
-      {!locked && (
+      {(!locked || isAdmin) && (
         <FloatingSaveBar savedConfirmation={justSaved}>
           <SubmitButton
             name="intent"
