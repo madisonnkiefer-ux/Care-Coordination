@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { nameField } from "@/lib/validation";
 
 function toDateOrNull(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || !value) return null;
@@ -13,7 +14,7 @@ function toDateOrNull(value: FormDataEntryValue | null) {
 }
 
 const VendorSchema = z.object({
-  name: z.string().min(1, { error: "Vendor name is required." }),
+  name: nameField("Vendor name is required."),
   purpose: z.string().optional(),
   hasBaa: z.boolean(),
   baaSignedDate: z.date().nullable(),

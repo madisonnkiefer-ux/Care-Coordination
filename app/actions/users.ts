@@ -8,12 +8,13 @@ import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { revokeUserSessions, unrevokeUserSessions } from "@/lib/session-revocation";
+import { nameField } from "@/lib/validation";
 import type { Role } from "@/app/generated/prisma/client";
 
 const ROLES: Role[] = ["CARE_COORDINATOR", "SUPERVISOR", "ADMIN"];
 
 const CreateUserSchema = z.object({
-  name: z.string().min(1, { error: "Name is required." }),
+  name: nameField("Name is required."),
   email: z.email({ error: "Enter a valid email." }),
   password: z.string().min(8, { error: "Password must be at least 8 characters." }),
   role: z.enum(ROLES, { error: "Choose a role." }),

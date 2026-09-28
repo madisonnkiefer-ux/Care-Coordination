@@ -6,18 +6,19 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
+import { nameField } from "@/lib/validation";
 
 const OFFICE_CODE_REGEX = /^[A-Z0-9-]+$/;
 
 const CreateOfficeSchema = z.object({
-  officeName: z.string().min(1, { error: "Office name is required." }),
+  officeName: nameField("Office name is required."),
   officeCode: z
     .string()
     .trim()
     .toUpperCase()
     .min(3, { error: "Office code must be at least 3 characters." })
     .regex(OFFICE_CODE_REGEX, { error: "Office code can only contain letters, numbers, and hyphens." }),
-  adminName: z.string().min(1, { error: "Admin name is required." }),
+  adminName: nameField("Admin name is required."),
   adminEmail: z.email({ error: "Enter a valid admin email." }),
   adminPassword: z.string().min(8, { error: "Admin password must be at least 8 characters." }),
 });
@@ -78,7 +79,7 @@ export async function createOffice(_state: CreateOfficeState, formData: FormData
 }
 
 const UpdateOfficeSchema = z.object({
-  officeName: z.string().min(1, { error: "Office name is required." }),
+  officeName: nameField("Office name is required."),
   officeCode: z
     .string()
     .trim()
