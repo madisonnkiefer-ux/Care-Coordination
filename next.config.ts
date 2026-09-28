@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   // the normal .next layout and fails its build-output tracing step
   // (missing next-server.js.nft.json) when standalone output is forced on.
   ...(process.env.DOCKER_BUILD === "1" ? { output: "standalone" as const } : {}),
+  // Drops the "X-Powered-By: Next.js" response header (a pentest flagged
+  // this as unnecessary server-stack fingerprinting, CWE-200).
+  poweredByHeader: false,
 };
 
 export default nextConfig;

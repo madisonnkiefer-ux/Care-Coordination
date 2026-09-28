@@ -128,6 +128,13 @@ export async function resetUserPassword(
     return { error: validated.error.issues[0]?.message ?? "Check the password and try again." };
   }
 
+  // A "reset" that silently accepts the account's current password isn't a
+  // real credential rotation — matters most for the case this exists for
+  // (an admin rotating a suspected-compromised account's password).
+  if (await bcrypt.compare(validated.data.password, target.passwordHash)) {
+    return { error: "That's this account's current password — choose a different one." };
+  }
+
   const passwordHash = await bcrypt.hash(validated.data.password, 10);
   await db.user.update({ where: { id: userId }, data: { passwordHash } });
 

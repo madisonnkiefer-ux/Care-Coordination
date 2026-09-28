@@ -83,7 +83,12 @@ resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.main.arn
   port              = 443
   protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  # "Res" (restrictive): drops the CBC-mode cipher suites the default
+  # TLS13-1-2-2021-06 policy still offers for legacy compatibility (flagged
+  # by a pentest as Lucky13-exploitable, CVE-2013-0169) — keeps TLS 1.2 and
+  # 1.3 fully available, just GCM/AEAD-only. No real compatibility cost:
+  # any TLS 1.2 client from the last decade-plus supports GCM.
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-Res-2021-06"
   certificate_arn   = aws_acm_certificate.app[0].arn
 
   default_action {
