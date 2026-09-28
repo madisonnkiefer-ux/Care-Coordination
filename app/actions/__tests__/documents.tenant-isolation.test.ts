@@ -10,6 +10,14 @@ vi.mock("@/lib/dal", () => ({ authorizeMemberAccess }));
 vi.mock("@/lib/audit", () => ({ writeAuditLog: vi.fn() }));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn() }));
 
+// This suite is about the key-ownership check, not upload-content
+// validation (see lib/__tests__/uploads.test.ts for that) — stub the S3
+// magic-byte check so it doesn't need a real bucket to resolve.
+vi.mock("@/lib/uploads", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/uploads")>()),
+  verifyIsPdfObject: vi.fn(async () => true),
+}));
+
 const SESSION = { userId: "user-a", clinicId: "clinic-a" };
 const OWN_MEMBER_ID = "member-a";
 

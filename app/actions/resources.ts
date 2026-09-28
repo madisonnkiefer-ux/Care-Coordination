@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
-import { sanitizePdfFilename } from "@/lib/uploads";
+import { sanitizePdfFilename, verifyIsPdfObject } from "@/lib/uploads";
 
 function str(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -16,10 +16,11 @@ function str(formData: FormData, key: string) {
 // before linking, the same defense used in app/actions/documents.ts, so a
 // tampered key can't attach another clinic's uploaded file to this one's
 // resource directory.
-function requireOwnDocumentKey(formData: FormData, clinicId: string) {
+async function requireOwnDocumentKey(formData: FormData, clinicId: string) {
   const key = str(formData, "documentKey");
   if (!key) return { documentKey: null, documentName: null };
   if (!key.startsWith(`resources/${clinicId}/`)) throw new Error("Forbidden");
+  if (!(await verifyIsPdfObject(key))) throw new Error("That file isn't a valid PDF.");
   const rawName = str(formData, "documentName");
   return { documentKey: key, documentName: rawName ? sanitizePdfFilename(rawName) : null };
 }
@@ -30,7 +31,7 @@ export async function createResource(formData: FormData) {
   const name = str(formData, "name");
   if (!name) return;
 
-  const { documentKey, documentName } = requireOwnDocumentKey(formData, session.clinicId);
+  const { documentKey, documentName } = await requireOwnDocumentKey(formData, session.clinicId);
 
   const resource = await db.resourceEntry.create({
     data: {
@@ -71,7 +72,7 @@ export async function updateResource(resourceId: string, formData: FormData) {
   // Three states for the attachment: a new key means replace it, the
   // "removeDocument" flag means clear it, otherwise leave whatever's
   // already on the record untouched.
-  const uploaded = requireOwnDocumentKey(formData, session.clinicId);
+  const uploaded = await requireOwnDocumentKey(formData, session.clinicId);
   const removeDocument = formData.get("removeDocument") === "true";
   const documentFields = uploaded.documentKey
     ? uploaded

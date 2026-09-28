@@ -1,3 +1,7 @@
+import "server-only";
+import { GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { s3, DOCUMENTS_BUCKET } from "@/lib/s3";
+
 // The app's only two file-upload paths (member Documents, Resource
 // Directory attachments) both accept PDFs only. The real security
 // boundary is already the S3 presigned POST's own hard Content-Type
@@ -31,4 +35,34 @@ export function isPdfFilename(fileName: string): boolean {
 export function sanitizePdfFilename(fileName: string): string {
   const base = fileName.trim().split(".")[0].trim();
   return `${base || "document"}.pdf`;
+}
+
+const PDF_MAGIC_BYTES = "%PDF-";
+
+// Closes the actual gap a pentest flagged (3.1.4): the presigned POST's
+// Content-Type condition only checks what the uploader *declared* in the
+// multipart form, never the bytes that actually land in the bucket — a
+// caller can upload anything (an .exe, a script, real malware) and just
+// claim Content-Type: application/pdf, and S3 has no opinion on whether
+// that's true. This fetches the first few bytes of the object actually
+// stored at `key` and checks for the real PDF magic number. A mismatch
+// deletes the object outright — a bad upload never lingers in the bucket
+// even though the save action it was headed for will now reject it.
+export async function verifyIsPdfObject(key: string): Promise<boolean> {
+  let isPdf: boolean;
+  try {
+    const obj = await s3.send(
+      new GetObjectCommand({ Bucket: DOCUMENTS_BUCKET, Key: key, Range: `bytes=0-${PDF_MAGIC_BYTES.length - 1}` })
+    );
+    const bytes = await obj.Body?.transformToByteArray();
+    isPdf = bytes ? Buffer.from(bytes).toString("latin1").startsWith(PDF_MAGIC_BYTES) : false;
+  } catch {
+    isPdf = false;
+  }
+
+  if (!isPdf) {
+    await s3.send(new DeleteObjectCommand({ Bucket: DOCUMENTS_BUCKET, Key: key })).catch(() => {});
+  }
+
+  return isPdf;
 }

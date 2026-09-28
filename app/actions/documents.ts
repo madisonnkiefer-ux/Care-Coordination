@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
-import { sanitizePdfFilename } from "@/lib/uploads";
+import { sanitizePdfFilename, verifyIsPdfObject } from "@/lib/uploads";
 import type { DocumentCategory } from "@/app/generated/prisma/client";
 
 export async function saveDocument(memberId: string, params: { name: string; category: DocumentCategory; key: string }) {
@@ -21,6 +21,10 @@ export async function saveDocument(memberId: string, params: { name: string; cat
   // member's real uploaded file into a different member's chart just by
   // supplying its key here.
   if (!params.key.startsWith(`${memberId}/`)) throw new Error("Forbidden");
+
+  if (!(await verifyIsPdfObject(params.key))) {
+    throw new Error("That file isn't a valid PDF.");
+  }
 
   const document = await db.document.create({
     data: {
