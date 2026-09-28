@@ -9,6 +9,7 @@ import { createNotification } from "@/lib/notifications";
 import { isTerminalStatus } from "@/lib/member-status";
 import type { CclLevel, MemberStatus } from "@/app/generated/prisma/client";
 import { PATIENT_TYPE_OPTIONS } from "@/lib/patient-type";
+import { NAME_INVALID_CHARS, NAME_INVALID_MESSAGE } from "@/lib/validation";
 
 const PATIENT_TYPES = PATIENT_TYPE_OPTIONS.map((o) => o.value);
 
@@ -27,6 +28,9 @@ export async function createMember(_state: CreateMemberState, formData: FormData
   const dateOfBirthRaw = str("dateOfBirth");
   if (!firstName || !lastName || !dateOfBirthRaw) {
     return { error: "First name, last name, and date of birth are required." };
+  }
+  if (NAME_INVALID_CHARS.test(firstName) || NAME_INVALID_CHARS.test(lastName)) {
+    return { error: NAME_INVALID_MESSAGE };
   }
 
   const requestedStatus = (str("status") as MemberStatus | null) ?? "PENDING_ENROLLMENT";

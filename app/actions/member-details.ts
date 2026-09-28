@@ -6,6 +6,7 @@ import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import type { CclLevel } from "@/app/generated/prisma/client";
 import { PATIENT_TYPE_OPTIONS } from "@/lib/patient-type";
+import { NAME_INVALID_CHARS, NAME_INVALID_MESSAGE } from "@/lib/validation";
 
 // Includes CCL3/HIGH_RISK even though the picker no longer offers them — an
 // existing member already on one of those values still needs to be able to
@@ -38,6 +39,9 @@ export async function updateMemberOverview(memberId: string, formData: FormData)
   const dateOfBirth = date("dateOfBirth");
   if (!firstName || !lastName || !dateOfBirth) {
     throw new Error("First name, last name, and date of birth are required.");
+  }
+  if (NAME_INVALID_CHARS.test(firstName) || NAME_INVALID_CHARS.test(lastName)) {
+    throw new Error(NAME_INVALID_MESSAGE);
   }
 
   const cclLevelRaw = str("cclLevel");
