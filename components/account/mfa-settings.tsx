@@ -1,15 +1,9 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
 import { Card } from "@/components/ui";
-import {
-  startMfaEnrollment,
-  cancelMfaEnrollment,
-  confirmMfaEnrollment,
-  disableMfa,
-  type DisableMfaState,
-} from "@/app/actions/mfa";
+import { startMfaEnrollment, cancelMfaEnrollment, confirmMfaEnrollment } from "@/app/actions/mfa";
 import type { getAccountSecuritySettings } from "@/lib/data/account";
 
 type Mfa = Awaited<ReturnType<typeof getAccountSecuritySettings>>;
@@ -167,10 +161,12 @@ function BackupCodesReveal({ codes, onDone }: { codes: string[]; onDone: () => v
   );
 }
 
+// No self-disable option, deliberately: MFA is mandatory for every account
+// (see proxy.ts's enforcement redirect), so there's no in-app path to turn
+// it back off. Only an admin can clear it (adminResetMfa, for lost-device
+// recovery), which lands the account back at mandatory re-enrollment on
+// its next login rather than leaving it MFA-off indefinitely.
 function EnabledView({ backupCodesRemaining }: { backupCodesRemaining: number }) {
-  const [confirming, setConfirming] = useState(false);
-  const [state, formAction, pending] = useActionState<DisableMfaState, FormData>(disableMfa, undefined);
-
   return (
     <Card title="Two-Factor Authentication">
       <div className="flex items-start gap-3">
@@ -180,51 +176,9 @@ function EnabledView({ backupCodesRemaining }: { backupCodesRemaining: number })
           <p className="text-sm text-stone-600">
             {backupCodesRemaining} backup {backupCodesRemaining === 1 ? "code" : "codes"} remaining.
           </p>
-
-          {!confirming ? (
-            <button
-              type="button"
-              onClick={() => setConfirming(true)}
-              className="mt-2 text-xs font-medium text-stone-500 hover:text-charcoal hover:underline"
-            >
-              Disable two-factor authentication
-            </button>
-          ) : (
-            <form action={formAction} className="mt-3 flex items-end gap-2">
-              <div className="flex-1">
-                <label htmlFor="password" className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">
-                  Confirm your password to disable
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={pending}
-                className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
-              >
-                {pending ? "Disabling..." : "Disable"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirming(false)}
-                className="text-xs text-stone-400 hover:text-stone-600"
-              >
-                Cancel
-              </button>
-            </form>
-          )}
-          {state?.error && (
-            <p className="text-sm text-red-600" role="alert">
-              {state.error}
-            </p>
-          )}
+          <p className="text-xs text-stone-400">
+            Lost your device? Ask an admin to reset two-factor authentication for your account.
+          </p>
         </div>
       </div>
     </Card>

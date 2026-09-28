@@ -1,6 +1,5 @@
 "use server";
 
-import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { verifySession, requirePermission } from "@/lib/dal";
@@ -87,37 +86,6 @@ export async function confirmMfaEnrollment(_state: ConfirmMfaState, formData: Fo
   // MfaSettings' onDone -> router.refresh()).
 
   return { backupCodes };
-}
-
-export type DisableMfaState = { error?: string } | undefined;
-
-export async function disableMfa(_state: DisableMfaState, formData: FormData): Promise<DisableMfaState> {
-  const session = await verifySession();
-  const password = String(formData.get("password") ?? "");
-
-  const user = await db.user.findUniqueOrThrow({
-    where: { id: session.userId },
-    select: { passwordHash: true, mfaEnabled: true },
-  });
-  if (!user.mfaEnabled) return;
-
-  const passwordValid = await bcrypt.compare(password, user.passwordHash);
-  if (!passwordValid) {
-    return { error: "Incorrect password." };
-  }
-
-  await db.user.update({
-    where: { id: session.userId },
-    data: { mfaEnabled: false, mfaSecret: null, mfaBackupCodeHashes: [] },
-  });
-  await writeAuditLog({
-    userId: session.userId,
-    action: "UPDATE",
-    resource: "User",
-    resourceId: session.userId,
-    metadata: { mfaEnabled: false },
-  });
-  revalidatePath("/account");
 }
 
 // Lost-device recovery: an admin clears a user's MFA entirely (they land
