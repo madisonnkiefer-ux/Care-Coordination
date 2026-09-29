@@ -1,0 +1,20 @@
+# Used by infra/ci.tf's persistent CodeBuild project. Builds whatever
+# commit codebuild:StartBuild was called with (via sourceVersion) and
+# pushes it to ECR tagged with that commit's short SHA — the same tag
+# scheme infra/README.md's manual deploy steps use, so either path
+# produces an image the same `aws ecs register-task-definition` /
+# `update-service` commands can deploy.
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$ECR_REPOSITORY_URL"
+      - SHORT_SHA="${CODEBUILD_RESOLVED_SOURCE_VERSION:0:7}"
+  build:
+    commands:
+      - docker build -t "$ECR_REPOSITORY_URL:$SHORT_SHA" .
+  post_build:
+    commands:
+      - docker push "$ECR_REPOSITORY_URL:$SHORT_SHA"
+      - echo "Pushed $ECR_REPOSITORY_URL:$SHORT_SHA"

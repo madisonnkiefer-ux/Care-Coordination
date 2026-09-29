@@ -112,6 +112,12 @@ variable "route53_zone_id" {
   default     = ""
 }
 
+variable "github_repo_url" {
+  description = "HTTPS URL of this repo (e.g. https://github.com/org/repo.git) — enables infra/ci.tf's persistent CodeBuild deploy pipeline. Leave empty to skip it; deploys then stay manual (see infra/README.md)."
+  type        = string
+  default     = ""
+}
+
 variable "app_timezone" {
   description = "IANA timezone the app container runs in (e.g. \"America/Denver\") — every compliance-window date calculation (touchpoint cadence, CCP grace period, CNA/graduation due dates) runs in this timezone. Leave empty to run in UTC, which is almost certainly not what you want for a clinic in any US timezone."
   type        = string

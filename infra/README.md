@@ -69,6 +69,48 @@ aws ecs update-service --cluster <ecs_cluster_name> --service <name_prefix>-app 
 (The `Dockerfile` at the repo root already does this — standard Next.js
 standalone-output multi-stage build.)
 
+## CI/CD (persistent deploy pipeline) and scoped AI-agent access
+
+`infra/ci.tf` and `infra/ai-agent-iam.tf` set up a narrower alternative to
+the manual steps above — useful once something other than a human with
+full Terraform-apply credentials (e.g. an AI coding agent) needs to be able
+to deploy on an ongoing basis, without holding IAM/WAF/ALB-modify/S3-bucket
+credentials.
+
+**Setup (one time):**
+
+1. Set `github_repo_url` in `terraform.tfvars` (e.g.
+   `https://github.com/org/repo.git`), then `terraform apply`. This creates
+   a persistent CodeBuild project (`infra/ci.tf`), its own scoped service
+   role (build/push only — no `ecs:*`), and an `aws_codestarconnections_connection`
+   resource in `PENDING` status.
+2. In the AWS Console: CodeBuild → Settings → Connections → open the new
+   connection → "Update pending connection" → authorize it against GitHub.
+   This step can't be done via Terraform or the CLI — it's a real OAuth
+   login, on purpose.
+3. Create a **new, dedicated IAM user or role** for agent sessions (don't
+   reuse whatever credentials ran `terraform apply`) and attach the
+   `aws_iam_policy.ai_agent_deploy` policy from `infra/ai-agent-iam.tf` to
+   it. That attachment is deliberately not automated — review who/what
+   gets this credential before it's handed out.
+4. Give that identity's credentials to whatever runs agent sessions against
+   this environment (however your Claude Code environment/CI is
+   configured to inject AWS credentials — outside this repo).
+
+**Using it, once set up** — an agent (or anyone holding that narrower
+credential) deploys a specific commit with:
+
+```bash
+aws codebuild start-build --project-name <name_prefix>-deploy --source-version <commit-sha>
+# poll: aws codebuild batch-get-builds --ids <build-id>
+# then register a new task-definition revision pointing at
+# <ecr_repository_url>:<short-sha> and force a new deployment, same as
+# the manual steps above — the narrower policy can do both.
+```
+
+No S3 scratch bucket, no per-deploy IAM role creation — the build source
+comes straight from GitHub via the persistent connection.
+
 ## Adding HTTPS
 
 Once you have a domain and hosted zone:
