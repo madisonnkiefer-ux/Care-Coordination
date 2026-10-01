@@ -178,6 +178,7 @@ function GeneralCommunicationEntryForm({
       onSubmit={onCollapse}
       className="space-y-4"
     >
+      <input type="hidden" name="_expectedUpdatedAt" value={record.updatedAt.getTime()} />
       <Card title="Outreach Details">
         <p className="mb-3 text-xs text-stone-400">
           Started {formatDateTime(record.createdAt)} by {record.author?.name ?? "unknown"}

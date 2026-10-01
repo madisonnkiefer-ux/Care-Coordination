@@ -12,6 +12,7 @@ type MemberOverview = {
   firstName: string;
   lastName: string;
   dateOfBirth: Date;
+  updatedAt: Date;
   phone: string | null;
   medicaidId: string | null;
   memberIdExternal: string | null;
@@ -77,6 +78,7 @@ export function MemberInfoCard({ memberId, member }: { memberId: string; member:
   return (
     <Card title="Member Information">
       <form action={updateMemberOverview.bind(null, memberId)} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <input type="hidden" name="_expectedUpdatedAt" value={member.updatedAt.getTime()} />
         <div>
           <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">First Name</label>
           <input

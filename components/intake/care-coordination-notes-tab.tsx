@@ -50,6 +50,7 @@ export function CareCoordinationNotesTab({
         action={saveCareCoordinationNote.bind(null, memberId, draft.id)}
         className="max-w-3xl space-y-6"
       >
+      <input type="hidden" name="_expectedUpdatedAt" value={draft.updatedAt.getTime()} />
       <DraftRestoredBanner restoredAt={restoredAt} />
       <fieldset className="contents">
       <Card title="Summary">

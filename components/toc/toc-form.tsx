@@ -76,6 +76,7 @@ export function TocForm({
             action={saveTocRecord.bind(null, memberId, draft.id)}
             className="max-w-3xl space-y-6"
           >
+            <input type="hidden" name="_expectedUpdatedAt" value={draft.updatedAt.getTime()} />
             {locked && <SignedBanner signedByName={draft.signedBy?.name ?? null} signedAt={draft.signedAt as Date} />}
 
             <fieldset className="contents">

@@ -7,6 +7,7 @@ import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { saveCustomAnswers } from "@/lib/custom-questions-save";
 import { resolveAdminDateEdit } from "@/lib/admin-date-edit";
+import { assertNotStale } from "@/lib/concurrency";
 
 const DEMOGRAPHICS_DATE_FIELDS = [
   "dateOfBirth",
@@ -49,6 +50,8 @@ export async function saveDemographics(memberId: string, demographicsId: string,
 
     redirect(`/members/${memberId}/intake?tab=demographics`);
   }
+
+  assertNotStale(formData, existing.updatedAt);
 
   const str = (key: string) => {
     const value = formData.get(key);

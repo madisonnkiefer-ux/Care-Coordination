@@ -7,6 +7,7 @@ import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { saveCustomAnswers } from "@/lib/custom-questions-save";
 import { resolveAdminDateEdit } from "@/lib/admin-date-edit";
+import { assertNotStale } from "@/lib/concurrency";
 import type { AssessmentStatus } from "@/app/generated/prisma/client";
 
 const HRA_DATE_FIELDS = ["assessmentDate"] as const;
@@ -40,6 +41,8 @@ export async function saveHra(memberId: string, hraId: string, formData: FormDat
 
     redirect(`/members/${memberId}/intake?tab=hra`);
   }
+
+  assertNotStale(formData, existing.updatedAt);
 
   const str = (key: string) => {
     const value = formData.get(key);

@@ -6,6 +6,7 @@ import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import { saveCustomAnswers } from "@/lib/custom-questions-save";
+import { assertNotStale } from "@/lib/concurrency";
 
 function str(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -43,6 +44,7 @@ export async function saveGeneralCommunication(memberId: string, commId: string,
 
   const existing = await db.generalCommunication.findUnique({ where: { id: commId } });
   if (!existing || existing.memberId !== memberId) throw new Error("Not found");
+  assertNotStale(formData, existing.updatedAt);
 
   const successfulRaw = formData.get("successful");
   const successful = successfulRaw === "yes" ? true : successfulRaw === "no" ? false : null;

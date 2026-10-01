@@ -7,6 +7,7 @@ import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { saveCustomAnswers } from "@/lib/custom-questions-save";
 import { resolveAdminDateEdit } from "@/lib/admin-date-edit";
+import { assertNotStale } from "@/lib/concurrency";
 import type { AssessmentStatus } from "@/app/generated/prisma/client";
 
 const CNA_DATE_FIELDS = ["assessmentDate", "pregnancyDueDate", "wellChildVisitDate"] as const;
@@ -42,6 +43,8 @@ export async function saveCna(memberId: string, cnaId: string, formData: FormDat
 
     redirect(`/members/${memberId}/intake?tab=cna`);
   }
+
+  assertNotStale(formData, existing.updatedAt);
 
   const str = (key: string) => {
     const value = formData.get(key);

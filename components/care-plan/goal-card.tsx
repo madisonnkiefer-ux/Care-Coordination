@@ -63,6 +63,7 @@ export function GoalCard({
             action={saveGoal.bind(null, memberId, carePlanId, goal.id)}
             className="space-y-5"
           >
+            <input type="hidden" name="_expectedUpdatedAt" value={goal.updatedAt.getTime()} />
             <OrderedStack
               order={fieldOrder}
               gap="space-y-5"

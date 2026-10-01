@@ -85,6 +85,7 @@ export function CcpTab({
             action={saveCarePlan.bind(null, memberId, plan.id)}
             className="space-y-6"
           >
+            <input type="hidden" name="_expectedUpdatedAt" value={plan.updatedAt.getTime()} />
             <Card title="Demographic Information">
               <OrderedStack
                 order={fieldOrder}

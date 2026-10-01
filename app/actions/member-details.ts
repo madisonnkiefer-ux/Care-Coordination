@@ -7,6 +7,7 @@ import { writeAuditLog } from "@/lib/audit";
 import type { CclLevel } from "@/app/generated/prisma/client";
 import { PATIENT_TYPE_OPTIONS } from "@/lib/patient-type";
 import { NAME_INVALID_CHARS, NAME_INVALID_MESSAGE } from "@/lib/validation";
+import { assertNotStale } from "@/lib/concurrency";
 
 // Includes CCL3/HIGH_RISK even though the picker no longer offers them — an
 // existing member already on one of those values still needs to be able to
@@ -23,6 +24,7 @@ const PATIENT_TYPES = PATIENT_TYPE_OPTIONS.map((o) => o.value);
 export async function updateMemberOverview(memberId: string, formData: FormData) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
+  assertNotStale(formData, member.updatedAt);
 
   const str = (key: string) => {
     const value = formData.get(key);

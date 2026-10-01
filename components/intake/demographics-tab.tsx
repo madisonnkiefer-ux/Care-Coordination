@@ -50,6 +50,7 @@ export function DemographicsTab({
         action={saveDemographics.bind(null, memberId, selected.id)}
         className="max-w-3xl space-y-6"
       >
+        <input type="hidden" name="_expectedUpdatedAt" value={selected.updatedAt.getTime()} />
         <DraftRestoredBanner restoredAt={restoredAt} />
         <fieldset className="contents">
           <Card>

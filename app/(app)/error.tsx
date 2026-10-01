@@ -21,6 +21,10 @@ import Link from "next/link";
 // user stuck on a broken retry loop.
 export default function AppError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const isStaleDeploy = error.message?.includes("Failed to find Server Action");
+  // lib/concurrency.ts's assertNotStale throws with this exact message —
+  // matched by prefix since the Server Actions error-forwarding path can
+  // append a digest-only suffix in production.
+  const isStaleWrite = error.message?.startsWith("Someone else saved changes to this record");
 
   useEffect(() => {
     console.error(error);
@@ -37,6 +41,28 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
           This page was open before the app was last updated. Reloading it now — any unsaved answers on this form will
           be restored automatically.
         </p>
+      </div>
+    );
+  }
+
+  // Deliberately NOT an auto-reload like the stale-deploy case above: that
+  // would silently wipe the user's view of what they were about to save
+  // before they ever read why. They choose when to reload here.
+  if (isStaleWrite) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-8 text-center">
+        <h1 className="text-lg font-medium text-charcoal">Someone else saved changes first</h1>
+        <p className="max-w-sm text-sm text-stone-500">
+          Another user saved this record while you had it open, so your save was not applied — nothing was
+          overwritten. Reload to see the latest version before making your changes again.
+        </p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-2 rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
+        >
+          Reload
+        </button>
       </div>
     );
   }

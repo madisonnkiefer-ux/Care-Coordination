@@ -71,6 +71,7 @@ export function CnaTab({
         action={saveCna.bind(null, memberId, draft.id)}
         className="max-w-3xl space-y-6"
       >
+      <input type="hidden" name="_expectedUpdatedAt" value={draft.updatedAt.getTime()} />
       <DraftRestoredBanner restoredAt={restoredAt} />
       {safetyReasons.length > 0 && (
         <Card className="border-red-300 bg-red-50">

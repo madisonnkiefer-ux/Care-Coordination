@@ -7,6 +7,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { zipRows } from "@/lib/form-rows";
 import { saveCustomAnswers } from "@/lib/custom-questions-save";
 import { isGoalReadyForCompletion, GOAL_COMPLETION_REQUIREMENTS_MESSAGE } from "@/lib/care-plan-goal";
+import { assertNotStale } from "@/lib/concurrency";
 import type { GoalStatus } from "@/app/generated/prisma/client";
 
 function str(formData: FormData, key: string) {
@@ -68,7 +69,8 @@ export async function createNewCarePlan(memberId: string) {
 export async function saveCarePlan(memberId: string, carePlanId: string, formData: FormData) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
-  await requireOwnCarePlan(carePlanId, memberId);
+  const existing = await requireOwnCarePlan(carePlanId, memberId);
+  assertNotStale(formData, existing.updatedAt);
 
   const teamMembers = zipRows(formData, TEAM_MEMBER_FIELDS);
   const medications = zipRows(formData, MEDICATION_FIELDS);
@@ -200,6 +202,7 @@ export async function saveGoal(memberId: string, carePlanId: string, goalId: str
   if (!member) throw new Error("Forbidden");
   const goal = await requireOwnCarePlanGoal(goalId, memberId);
   if (goal.carePlanId !== carePlanId) throw new Error("Forbidden");
+  assertNotStale(formData, goal.updatedAt);
 
   const opportunity = str(formData, "opportunity");
   const goalText = str(formData, "goalText");

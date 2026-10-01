@@ -65,6 +65,7 @@ export function HraTab({
         action={saveHra.bind(null, memberId, draft.id)}
         className="max-w-3xl space-y-6"
       >
+      <input type="hidden" name="_expectedUpdatedAt" value={draft.updatedAt.getTime()} />
       <DraftRestoredBanner restoredAt={restoredAt} />
       {cnaReasons.length > 0 && (
         <Card className="border-red-200 bg-red-50">

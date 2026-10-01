@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { saveCustomAnswers } from "@/lib/custom-questions-save";
+import { assertNotStale } from "@/lib/concurrency";
 import type { AssessmentStatus } from "@/app/generated/prisma/client";
 
 export async function saveCareCoordinationNote(memberId: string, noteId: string, formData: FormData) {
@@ -20,6 +21,8 @@ export async function saveCareCoordinationNote(memberId: string, noteId: string,
     // No date fields on this form — nothing for an admin correction to change.
     redirect(`/members/${memberId}/intake?tab=notes`);
   }
+
+  assertNotStale(formData, existing.updatedAt);
 
   const str = (key: string) => {
     const value = formData.get(key);
