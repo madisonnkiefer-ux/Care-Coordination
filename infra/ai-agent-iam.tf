@@ -1,84 +1,48 @@
-# A deliberately narrow policy for an AI coding agent's ongoing AWS access
-# (e.g. a Claude Code session), covering exactly what "find a bug, fix it,
-# deploy it, check the logs" needs and nothing else — as opposed to the
-# credentials used to build this infrastructure in the first place, which
-# could create/delete IAM roles, modify the WAF and ALB, and create/delete
-# S3 buckets (everything Terraform itself needs, appropriate for a human
-# doing infra work, not for a standing agent credential).
+# Zero standing production access, on purpose: this account decided to keep
+# AI-agent sessions out of production entirely (no Anthropic BAA covering
+# PHI, instead of narrowing prod access) rather than relying on a scoped-
+# but-still-prod-touching credential. An earlier version of this file
+# granted read-only prod log access and the ability to register task-def
+# revisions and call ecs:UpdateService (push a deployment) — all removed.
 #
-# Deliberately NOT included, on purpose:
-#   - Any iam:* action (can't create/modify/delete roles or policies,
-#     including its own)
-#   - Any wafv2:* or elasticloadbalancing:Modify*/CreateListener action
-#     (can't touch the WAF or TLS/listener config)
-#   - s3:CreateBucket / s3:DeleteBucket (can't stand up or tear down
-#     infrastructure, only read the one log group and describe the one ALB)
-#   - secretsmanager:GetSecretValue on database_url or session_secret (no
-#     standing production database or session-signing credential)
-#   - rds:* (no direct database access at all — schema/data changes go
-#     through a reviewed migration file a human or the CI pipeline applies)
+# What this means in practice:
+#   - No ecs:UpdateService / ecs:RegisterTaskDefinition — an agent session
+#     cannot push a deployment to the production service, automatically or
+#     otherwise. That's a manual, human-triggered action now (see
+#     infra/README.md's "Deploying the app" steps), same as a direct
+#     `aws ecs update-service --force-new-deployment` run by a person.
+#   - No logs:* on the production log group, no ecs:Describe* on the
+#     production service/cluster, no elasticloadbalancing:Describe* — an
+#     agent session has no read visibility into production either, not
+#     just no write/deploy access.
+#   - codebuild:StartBuild against infra/ci.tf's deploy project is also
+#     excluded here, since that project builds and pushes images to the
+#     *production* ECR repository — triggering it is still "pushing toward
+#     production" even without the final ecs:UpdateService step.
 #
-# This resource only creates the policy; it is NOT attached to anything
-# here on purpose. Attaching it to a real IAM identity (a new, dedicated
-# user or role created specifically for agent sessions — not the broader
-# credentials used for the rest of this Terraform config) is a deliberate,
-# separate step for whoever administers this AWS account.
+# The actual build/test loop for agent sessions should instead target a
+# separate dev/clone environment (own cluster, own database seeded with
+# synthetic data, own CodeBuild project) — not yet scaffolded in this repo.
+# Once it exists, a policy scoped to *that* environment's resources is the
+# right place for an agent credential to have deploy access again.
+#
+# This resource intentionally has nothing to attach to any identity at all
+# right now — it exists as a placeholder/reference until the dev
+# environment is built, documenting the decision rather than granting
+# anything.
 resource "aws_iam_policy" "ai_agent_deploy" {
   name        = "${local.name_prefix}-ai-agent-deploy"
-  description = "Narrow build/deploy/read-logs access for an AI coding agent — see infra/ai-agent-iam.tf for what's deliberately excluded."
+  description = "Deliberately empty of production access — see infra/ai-agent-iam.tf. Scope this to a dev/clone environment once one exists."
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = concat(
-      local.has_ci ? [
-        {
-          Sid      = "TriggerAndReadDeployBuilds"
-          Effect   = "Allow"
-          Action   = ["codebuild:StartBuild", "codebuild:BatchGetBuilds"]
-          Resource = [aws_codebuild_project.deploy[0].arn]
-        },
-      ] : [],
-      [
-        {
-          # RegisterTaskDefinition has no resource-level permissions in
-          # IAM (the task def ARN doesn't exist until after the call) —
-          # AWS requires Resource: "*" for this action specifically.
-          Sid      = "RegisterTaskDefinitionRevisions"
-          Effect   = "Allow"
-          Action   = ["ecs:RegisterTaskDefinition"]
-          Resource = ["*"]
-        },
-        {
-          Sid      = "ReadTaskDefinitions"
-          Effect   = "Allow"
-          Action   = ["ecs:DescribeTaskDefinition"]
-          Resource = ["arn:aws:ecs:${var.aws_region}:*:task-definition/${aws_ecs_task_definition.app.family}:*"]
-        },
-        {
-          Sid      = "DeployToTheOneKnownService"
-          Effect   = "Allow"
-          Action   = ["ecs:UpdateService", "ecs:DescribeServices"]
-          Resource = [aws_ecs_service.app.arn]
-        },
-        {
-          Sid      = "ReadAppLogs"
-          Effect   = "Allow"
-          Action = [
-            "logs:GetLogEvents",
-            "logs:DescribeLogStreams",
-            "logs:StartQuery",
-            "logs:GetQueryResults",
-            "logs:StopQuery",
-          ]
-          Resource = ["${aws_cloudwatch_log_group.app.arn}:*"]
-        },
-        {
-          Sid      = "ReadLoadBalancerConfigForVerification"
-          Effect   = "Allow"
-          Action   = ["elasticloadbalancing:DescribeLoadBalancers", "elasticloadbalancing:DescribeListeners"]
-          Resource = ["*"] # these Describe actions don't support resource-level restriction
-        },
-      ]
-    )
+    Statement = [
+      {
+        Sid      = "NoProductionAccessPlaceholder"
+        Effect   = "Deny"
+        Action   = ["*"]
+        Resource = ["*"]
+      }
+    ]
   })
 }

@@ -69,47 +69,50 @@ aws ecs update-service --cluster <ecs_cluster_name> --service <name_prefix>-app 
 (The `Dockerfile` at the repo root already does this — standard Next.js
 standalone-output multi-stage build.)
 
-## CI/CD (persistent deploy pipeline) and scoped AI-agent access
+## CI/CD (persistent deploy pipeline) — human-triggered, no AI-agent prod access
 
-`infra/ci.tf` and `infra/ai-agent-iam.tf` set up a narrower alternative to
-the manual steps above — useful once something other than a human with
-full Terraform-apply credentials (e.g. an AI coding agent) needs to be able
-to deploy on an ongoing basis, without holding IAM/WAF/ALB-modify/S3-bucket
-credentials.
+`infra/ci.tf` is a durable, reviewable replacement for the manual
+build/push steps above — a persistent CodeBuild project instead of hand-run
+`docker build`/`docker push` commands. It is **not** meant to be triggered
+by an AI-agent credential: this account decided to keep AI-agent sessions
+out of production entirely (no PHI exposure, no BAA needed for that usage)
+rather than grant any scoped production access. `infra/ai-agent-iam.tf`
+documents that decision explicitly — it's a deliberately empty (deny-all)
+placeholder, not attached to anything.
+
+If you build a separate dev/clone environment (own cluster, own database
+seeded with synthetic data — see the "independent dev copy" discussion)
+for AI-agent sessions to work in, scope a *new* policy to that
+environment's resources — this project, and this policy file, should stay
+production-only and human-triggered.
 
 **Setup (one time):**
 
 1. Set `github_repo_url` in `terraform.tfvars` (e.g.
    `https://github.com/org/repo.git`), then `terraform apply`. This creates
-   a persistent CodeBuild project (`infra/ci.tf`), its own scoped service
-   role (build/push only — no `ecs:*`), and an `aws_codestarconnections_connection`
+   the persistent CodeBuild project, its own scoped service role
+   (build/push only — no `ecs:*`), and an `aws_codestarconnections_connection`
    resource in `PENDING` status.
 2. In the AWS Console: CodeBuild → Settings → Connections → open the new
    connection → "Update pending connection" → authorize it against GitHub.
    This step can't be done via Terraform or the CLI — it's a real OAuth
    login, on purpose.
-3. Create a **new, dedicated IAM user or role** for agent sessions (don't
-   reuse whatever credentials ran `terraform apply`) and attach the
-   `aws_iam_policy.ai_agent_deploy` policy from `infra/ai-agent-iam.tf` to
-   it. That attachment is deliberately not automated — review who/what
-   gets this credential before it's handed out.
-4. Give that identity's credentials to whatever runs agent sessions against
-   this environment (however your Claude Code environment/CI is
-   configured to inject AWS credentials — outside this repo).
 
-**Using it, once set up** — an agent (or anyone holding that narrower
-credential) deploys a specific commit with:
+**Deploying, once set up** — a human, from their own AWS credentials:
 
 ```bash
 aws codebuild start-build --project-name <name_prefix>-deploy --source-version <commit-sha>
 # poll: aws codebuild batch-get-builds --ids <build-id>
 # then register a new task-definition revision pointing at
-# <ecr_repository_url>:<short-sha> and force a new deployment, same as
-# the manual steps above — the narrower policy can do both.
+# <ecr_repository_url>:<short-sha> and force a new deployment — the same
+# `aws ecs register-task-definition` / `update-service --force-new-deployment`
+# calls as the fully-manual steps above, just with the image already built
+# and pushed by CodeBuild instead of a local `docker build`.
 ```
 
 No S3 scratch bucket, no per-deploy IAM role creation — the build source
-comes straight from GitHub via the persistent connection.
+comes straight from GitHub via the persistent connection. But no AI-agent
+credential has permission to call any of the above — that's the point.
 
 ## Adding HTTPS
 
