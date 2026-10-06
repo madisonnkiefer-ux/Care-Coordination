@@ -72,10 +72,10 @@ export async function saveCarePlan(memberId: string, carePlanId: string, formDat
   const existing = await requireOwnCarePlan(carePlanId, memberId);
   assertNotStale(formData, existing.updatedAt);
 
-  const teamMembers = zipRows(formData, TEAM_MEMBER_FIELDS);
-  const medications = zipRows(formData, MEDICATION_FIELDS);
-  const backupContacts = zipRows(formData, BACKUP_CONTACT_FIELDS);
-  const disasterContacts = zipRows(formData, DISASTER_CONTACT_FIELDS);
+  const teamMembers = zipRows(formData, TEAM_MEMBER_FIELDS, "teamMember");
+  const medications = zipRows(formData, MEDICATION_FIELDS, "medication");
+  const backupContacts = zipRows(formData, BACKUP_CONTACT_FIELDS, "backupContact");
+  const disasterContacts = zipRows(formData, DISASTER_CONTACT_FIELDS, "disasterContact");
 
   await db.$transaction(async (tx) => {
     await tx.carePlan.update({

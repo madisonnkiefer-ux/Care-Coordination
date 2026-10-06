@@ -3,8 +3,20 @@
 // formData.getAll(name) returns one array per field, in row order. Zip them
 // back into row objects, keyed by field name. Rows where every field is
 // empty are dropped.
-export function zipRows<K extends string>(formData: FormData, fields: readonly K[]): Record<K, string | null>[] {
-  const columns = fields.map((f) => formData.getAll(f).map((v) => (typeof v === "string" ? v.trim() : "")));
+//
+// `prefix` namespaces the actual input name (e.g. "teamMember.name") —
+// required because the CCP form has several of these repeatable sections
+// (team members, medications, backup contacts, disaster contacts) inside
+// one single <form>, and more than one of them uses the same field names
+// ("name", "phone"). Without a prefix, formData.getAll("name") on save
+// would collect every section's "name" inputs mixed together in DOM
+// order, silently cross-wiring rows between unrelated sections.
+export function zipRows<K extends string>(
+  formData: FormData,
+  fields: readonly K[],
+  prefix: string
+): Record<K, string | null>[] {
+  const columns = fields.map((f) => formData.getAll(`${prefix}.${f}`).map((v) => (typeof v === "string" ? v.trim() : "")));
   const rowCount = Math.max(0, ...columns.map((c) => c.length));
 
   const rows: Record<K, string | null>[] = [];

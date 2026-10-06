@@ -132,11 +132,11 @@ export function CcpTab({
                 addLabel="+ Add ICT Team Member"
                 renderRow={(row) => (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
-                    <TextField name="name" label="Name/Title" defaultValue={row.name} />
-                    <TextField name="phone" label="Phone" defaultValue={row.phone} />
-                    <TextField name="email" label="Email" defaultValue={row.email} />
-                    <TextField name="relation" label="Relation to Member" defaultValue={row.relation} />
-                    <TextField name="specialty" label="Specialty (if applicable)" defaultValue={row.specialty} />
+                    <TextField name="teamMember.name" label="Name/Title" defaultValue={row.name} />
+                    <TextField name="teamMember.phone" label="Phone" defaultValue={row.phone} />
+                    <TextField name="teamMember.email" label="Email" defaultValue={row.email} />
+                    <TextField name="teamMember.relation" label="Relation to Member" defaultValue={row.relation} />
+                    <TextField name="teamMember.specialty" label="Specialty (if applicable)" defaultValue={row.specialty} />
                   </div>
                 )}
               />
@@ -179,11 +179,11 @@ export function CcpTab({
                 addLabel="+ Add Medication"
                 renderRow={(row) => (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
-                    <TextField name="name" label="Medication" defaultValue={row.name} />
-                    <TextField name="dosage" label="Dosage" defaultValue={row.dosage} />
-                    <TextField name="frequency" label="Frequency" defaultValue={row.frequency} />
-                    <DateField name="startDate" label="Start Date" defaultValue={row.startDate as string | null} />
-                    <DateField name="endDate" label="Discontinued Date" defaultValue={row.endDate as string | null} />
+                    <TextField name="medication.name" label="Medication" defaultValue={row.name} />
+                    <TextField name="medication.dosage" label="Dosage" defaultValue={row.dosage} />
+                    <TextField name="medication.frequency" label="Frequency" defaultValue={row.frequency} />
+                    <DateField name="medication.startDate" label="Start Date" defaultValue={row.startDate as string | null} />
+                    <DateField name="medication.endDate" label="Discontinued Date" defaultValue={row.endDate as string | null} />
                   </div>
                 )}
               />
@@ -207,10 +207,10 @@ export function CcpTab({
                           addLabel="+ Add Backup Contact"
                           renderRow={(row) => (
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-                              <TextField name="name" label="Name" defaultValue={row.name} />
-                              <TextField name="phone" label="Phone" defaultValue={row.phone} />
-                              <TextField name="address" label="Address" defaultValue={row.address} />
-                              <TextField name="relationship" label="Relationship" defaultValue={row.relationship} />
+                              <TextField name="backupContact.name" label="Name" defaultValue={row.name} />
+                              <TextField name="backupContact.phone" label="Phone" defaultValue={row.phone} />
+                              <TextField name="backupContact.address" label="Address" defaultValue={row.address} />
+                              <TextField name="backupContact.relationship" label="Relationship" defaultValue={row.relationship} />
                             </div>
                           )}
                         />
@@ -246,9 +246,9 @@ export function CcpTab({
                           addLabel="+ Add Disaster Contact"
                           renderRow={(row) => (
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                              <TextField name="name" label="Name" defaultValue={row.name} />
-                              <TextField name="phone" label="Phone" defaultValue={row.phone} />
-                              <TextField name="helpWith" label="Will be able to help with" defaultValue={row.helpWith} />
+                              <TextField name="disasterContact.name" label="Name" defaultValue={row.name} />
+                              <TextField name="disasterContact.phone" label="Phone" defaultValue={row.phone} />
+                              <TextField name="disasterContact.helpWith" label="Will be able to help with" defaultValue={row.helpWith} />
                             </div>
                           )}
                         />
