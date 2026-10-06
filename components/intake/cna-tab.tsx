@@ -13,6 +13,7 @@ import {
   TextArea,
   DateField,
   SelectField,
+  MultiSelectField,
   Checkbox,
   YesNoField,
   YesNoNaField,
@@ -90,22 +91,9 @@ export function CnaTab({
           <DateField name="assessmentDate" label="Assessment Date" defaultValue={toDateInputValue(draft?.assessmentDate)} />
           <SelectField name="assessmentMethod" label={fields["cna.assessmentMethod"]?.label ?? "Assessment Method"} options={fields["cna.assessmentMethod"]?.options ?? CNA_ASSESSMENT_METHOD_OPTIONS} defaultValue={draft?.assessmentMethod} />
         </div>
-        <div className="mt-4">
-          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">Assessment Type (check all that apply)</p>
-          <div className="flex flex-wrap gap-4">
-            {(fields["cna.assessmentType"]?.options ?? CNA_ASSESSMENT_TYPE_OPTIONS).map((opt) => (
-              <label key={opt} className="flex items-center gap-2 text-sm text-stone-700">
-                <input
-                  type="checkbox"
-                  name="assessmentType"
-                  value={opt}
-                  defaultChecked={draft?.assessmentType?.includes(opt) ?? false}
-                  className="h-4 w-4 rounded border-stone-300"
-                />
-                {opt}
-              </label>
-            ))}
-          </div>
+        <div className="mt-4 max-w-xs">
+          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">Assessment Type</p>
+          <MultiSelectField name="assessmentType" options={CNA_ASSESSMENT_TYPE_OPTIONS} defaultValues={draft?.assessmentType} />
         </div>
       </Card>
 
