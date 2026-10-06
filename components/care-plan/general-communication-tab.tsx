@@ -181,9 +181,12 @@ function GeneralCommunicationEntryForm({
       <input type="hidden" name="_expectedUpdatedAt" value={record.updatedAt.getTime()} />
       <Card title="Outreach Details">
         <p className="mb-3 text-xs text-stone-400">
-          Started {formatDateTime(record.createdAt)} by {record.author?.name ?? "unknown"}
+          Logged by {record.author?.name ?? "unknown"}
           {record.updatedAt > record.createdAt && ` · last updated ${formatDateTime(record.updatedAt)}`}
         </p>
+        <div className="mb-4 max-w-xs">
+          <DateField name="contactDate" label="Contact Date" defaultValue={toDateInputValue(record.createdAt)} />
+        </div>
         <OrderedStack
           order={fieldOrder}
           items={[

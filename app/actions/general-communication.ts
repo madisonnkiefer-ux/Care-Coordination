@@ -49,6 +49,14 @@ export async function saveGeneralCommunication(memberId: string, commId: string,
   const successfulRaw = formData.get("successful");
   const successful = successfulRaw === "yes" ? true : successfulRaw === "no" ? false : null;
 
+  // Defaults to "when this was logged" (createdAt's own @default(now())),
+  // but coordinators regularly catch up on documentation after the fact —
+  // this lets the record's date reflect when the contact actually
+  // happened instead of when it was typed in. Blank/unparseable means "no
+  // change" (createdAt is required, not nullable), matching every other
+  // required-date field's handling elsewhere in this app.
+  const contactDate = date(formData, "contactDate");
+
   await db.generalCommunication.update({
     where: { id: commId },
     data: {
@@ -58,6 +66,7 @@ export async function saveGeneralCommunication(memberId: string, commId: string,
       unsuccessfulReason: successful === false ? str(formData, "unsuccessfulReason") : null,
       personContacted: str(formData, "personContacted"),
       nextAttemptDate: date(formData, "nextAttemptDate"),
+      ...(contactDate ? { createdAt: contactDate } : {}),
     },
   });
 
@@ -69,6 +78,9 @@ export async function saveGeneralCommunication(memberId: string, commId: string,
     action: "UPDATE",
     resource: "GeneralCommunication",
     resourceId: commId,
+    ...(contactDate && contactDate.getTime() !== existing.createdAt.getTime()
+      ? { metadata: { contactDateChanged: true, oldValue: existing.createdAt.toISOString(), newValue: contactDate.toISOString() } }
+      : {}),
   });
 
   // Flag the member the moment they cross 3 consecutive unsuccessful
