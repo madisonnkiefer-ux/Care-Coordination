@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useFieldOverride, useFormLock } from "@/lib/form-fields/context";
 
 // A hidden (retired) field only disappears once it's blank — if the record
@@ -192,39 +193,79 @@ export function SelectField({
 // submits via formData.getAll(name) exactly like CheckboxGroup, just more
 // compact for a long option list. Hold Ctrl/Cmd (or drag) to select more
 // than one.
+// A closed-by-default dropdown for "select all that apply" fields — opens
+// into a checkbox list on click, closes on an outside click or Escape.
+// Real checkbox inputs stay in the DOM (just visually hidden) while closed,
+// so formData.getAll(name) on save works exactly like CheckboxGroup.
 export function MultiSelectField({
   name,
   options,
   defaultValues,
-  size = 6,
 }: {
   name: string;
   options: string[];
   defaultValues?: string[] | null;
-  size?: number;
 }) {
   const override = useFieldOverride(name);
   const { locked } = useFormLock();
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<string[]>(defaultValues ?? []);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
   if (isHiddenAndEmpty(override?.hidden, Boolean(defaultValues?.length))) return null;
   const effectiveOptions = override?.options ?? options;
 
+  const summary = selected.length === 0 ? "Select…" : selected.length <= 2 ? selected.join(", ") : `${selected.length} selected`;
+
   return (
-    <div>
-      <select
-        name={name}
-        multiple
-        size={Math.min(size, effectiveOptions.length)}
-        defaultValue={defaultValues ?? []}
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
         disabled={locked}
-        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose disabled:bg-stone-50 disabled:text-stone-500"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between rounded-md border border-stone-300 bg-white px-3 py-2 text-left text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose disabled:bg-stone-50 disabled:text-stone-500"
       >
-        {effectiveOptions.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
-      <p className="mt-1 text-xs text-stone-400">Hold Ctrl (Cmd on Mac) to select more than one.</p>
+        <span className={selected.length === 0 ? "text-stone-400" : ""}>{summary}</span>
+        <svg className="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-stone-300 bg-white p-2 shadow-lg">
+          {effectiveOptions.map((opt) => (
+            <label key={opt} className="flex items-center gap-2 rounded px-1.5 py-1 text-sm text-stone-700 hover:bg-stone-50">
+              <input
+                type="checkbox"
+                name={name}
+                value={opt}
+                defaultChecked={defaultValues?.includes(opt) ?? false}
+                disabled={locked}
+                onChange={(e) => {
+                  setSelected((prev) => (e.target.checked ? [...prev, opt] : prev.filter((v) => v !== opt)));
+                }}
+                className="h-4 w-4 shrink-0 rounded border-stone-300"
+              />
+              {opt}
+            </label>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
