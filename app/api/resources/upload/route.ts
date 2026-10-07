@@ -1,17 +1,13 @@
-import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { s3, DOCUMENTS_BUCKET } from "@/lib/s3";
 import { requirePermission } from "@/lib/dal";
-import { isPdfFilename } from "@/lib/uploads";
+import { resolveUploadKind, uploadKindSpec, randomStorageKey } from "@/lib/uploads";
 
 // Same presigned-POST pattern as /api/documents/upload — the file goes
 // straight from the browser to the private bucket, never through this
 // server. Keyed under resources/<clinicId>/... instead of a memberId,
 // since ResourceEntry isn't member-scoped.
-const ALLOWED_CONTENT_TYPE = "application/pdf";
-const MAX_SIZE_BYTES = 25 * 1024 * 1024;
-
 export async function POST(request: Request) {
   const session = await requirePermission("MANAGE_RESOURCES");
   // proxy.ts's MFA-enrollment redirect never runs for /api routes — see
@@ -24,18 +20,20 @@ export async function POST(request: Request) {
   if (!fileName) {
     return NextResponse.json({ error: "Missing fileName" }, { status: 400 });
   }
-  if (!isPdfFilename(fileName)) {
-    return NextResponse.json({ error: "Only PDF files can be uploaded." }, { status: 400 });
+  const kind = resolveUploadKind(fileName);
+  if (!kind) {
+    return NextResponse.json({ error: "Only PDF, PNG, or JPEG files can be uploaded." }, { status: 400 });
   }
 
-  const key = `resources/${session.clinicId}/${randomUUID()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const key = randomStorageKey(`resources/${session.clinicId}`, kind);
+  const { mimeType, maxSizeBytes } = uploadKindSpec(kind);
 
   try {
     const { url, fields } = await createPresignedPost(s3, {
       Bucket: DOCUMENTS_BUCKET,
       Key: key,
-      Conditions: [["content-length-range", 1, MAX_SIZE_BYTES], ["eq", "$Content-Type", ALLOWED_CONTENT_TYPE]],
-      Fields: { "Content-Type": ALLOWED_CONTENT_TYPE },
+      Conditions: [["content-length-range", 1, maxSizeBytes], ["eq", "$Content-Type", mimeType]],
+      Fields: { "Content-Type": mimeType },
       Expires: 300,
     });
 

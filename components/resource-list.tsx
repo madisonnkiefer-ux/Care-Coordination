@@ -184,7 +184,7 @@ function ResourceCard({ resource, canEdit }: { resource: ResourceEntry; canEdit:
           className="mt-3 flex items-center gap-1.5 border-t border-stone-100 pt-3 text-xs font-medium text-charcoal hover:underline"
         >
           <FileText className="h-3.5 w-3.5 text-stone-400" />
-          {resource.documentName ?? "Download PDF"}
+          {resource.documentName ?? "Download Attachment"}
         </a>
       )}
     </Card>
@@ -204,7 +204,7 @@ function ResourceForm({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [attachment, setAttachment] = useState<{ key: string; name: string } | null>(
-    resource?.documentKey ? { key: resource.documentKey, name: resource.documentName ?? "Attached PDF" } : null
+    resource?.documentKey ? { key: resource.documentKey, name: resource.documentName ?? "Attached file" } : null
   );
   const [removedExisting, setRemovedExisting] = useState(false);
 
@@ -337,7 +337,7 @@ function ResourceForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Attached PDF</label>
+          <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-400">Attachment</label>
           {attachment ? (
             <div className="flex items-center gap-2 rounded-md border border-stone-300 bg-stone-50 px-3 py-1.5 text-sm">
               <FileText className="h-3.5 w-3.5 shrink-0 text-stone-400" />
@@ -357,11 +357,11 @@ function ResourceForm({
           ) : (
             <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-stone-300 px-3 py-2 text-xs font-medium text-stone-500 hover:border-fuchsia-400 hover:text-fuchsia-600">
               <Upload className="h-3.5 w-3.5" />
-              {isUploading ? "Uploading…" : "Upload PDF"}
+              {isUploading ? "Uploading…" : "Upload File"}
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="application/pdf"
+                accept="application/pdf,image/png,image/jpeg"
                 onChange={handleFileChange}
                 disabled={isUploading}
                 className="hidden"

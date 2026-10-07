@@ -15,7 +15,7 @@ vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn() }));
 // magic-byte check so it doesn't need a real bucket to resolve.
 vi.mock("@/lib/uploads", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/uploads")>()),
-  verifyIsPdfObject: vi.fn(async () => true),
+  verifyUploadedFile: vi.fn(async () => true),
 }));
 
 const SESSION = { userId: "user-a", clinicId: "clinic-a" };

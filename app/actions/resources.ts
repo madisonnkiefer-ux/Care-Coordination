@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
-import { sanitizePdfFilename, verifyIsPdfObject } from "@/lib/uploads";
+import { sanitizeUploadFilename, kindForStorageKey, verifyUploadedFile } from "@/lib/uploads";
 
 function str(formData: FormData, key: string) {
   const v = formData.get(key);
@@ -20,9 +20,10 @@ async function requireOwnDocumentKey(formData: FormData, clinicId: string) {
   const key = str(formData, "documentKey");
   if (!key) return { documentKey: null, documentName: null };
   if (!key.startsWith(`resources/${clinicId}/`)) throw new Error("Forbidden");
-  if (!(await verifyIsPdfObject(key))) throw new Error("That file isn't a valid PDF.");
+  const kind = kindForStorageKey(key);
+  if (!kind || !(await verifyUploadedFile(key, kind))) throw new Error("That file isn't a valid upload.");
   const rawName = str(formData, "documentName");
-  return { documentKey: key, documentName: rawName ? sanitizePdfFilename(rawName) : null };
+  return { documentKey: key, documentName: rawName ? sanitizeUploadFilename(rawName, kind) : null };
 }
 
 export async function createResource(formData: FormData) {

@@ -5,14 +5,12 @@ import { db } from "@/lib/db";
 import { authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
-import { sanitizePdfFilename, verifyIsPdfObject } from "@/lib/uploads";
+import { sanitizeUploadFilename, kindForStorageKey, verifyUploadedFile } from "@/lib/uploads";
 import type { DocumentCategory } from "@/app/generated/prisma/client";
 
 export async function saveDocument(memberId: string, params: { name: string; category: DocumentCategory; key: string }) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
-
-  const name = sanitizePdfFilename(params.name);
 
   // The presigned-upload flow always issues a key scoped to this member
   // (app/api/documents/upload/route.ts), but this action is a directly
@@ -22,9 +20,15 @@ export async function saveDocument(memberId: string, params: { name: string; cat
   // supplying its key here.
   if (!params.key.startsWith(`${memberId}/`)) throw new Error("Forbidden");
 
-  if (!(await verifyIsPdfObject(params.key))) {
-    throw new Error("That file isn't a valid PDF.");
+  // The key's extension is server-generated (randomStorageKey), never
+  // caller-controlled, so it's a trustworthy source for which signature to
+  // check the object's actual bytes against.
+  const kind = kindForStorageKey(params.key);
+  if (!kind || !(await verifyUploadedFile(params.key, kind))) {
+    throw new Error("That file isn't a valid upload.");
   }
+
+  const name = sanitizeUploadFilename(params.name, kind);
 
   const document = await db.document.create({
     data: {

@@ -3,6 +3,7 @@ import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { s3, DOCUMENTS_BUCKET } from "@/lib/s3";
+import { contentTypeForKind, kindForStorageKey } from "@/lib/uploads";
 
 // Serves a resource's attached PDF — never a direct bucket URL, same
 // authenticated-proxy pattern as /api/documents/[id]. Resources aren't
@@ -24,10 +25,11 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const object = await s3.send(new GetObjectCommand({ Bucket: DOCUMENTS_BUCKET, Key: resource.documentKey }));
   if (!object.Body) return new NextResponse("Unable to retrieve document", { status: 502 });
 
+  const fallbackKind = kindForStorageKey(resource.documentKey);
   return new NextResponse(object.Body.transformToWebStream(), {
     headers: {
-      "Content-Type": object.ContentType ?? "application/pdf",
-      "Content-Disposition": `inline; filename="${(resource.documentName ?? "resource.pdf").replace(/"/g, "")}"`,
+      "Content-Type": object.ContentType ?? (fallbackKind ? contentTypeForKind(fallbackKind) : "application/octet-stream"),
+      "Content-Disposition": `inline; filename="${(resource.documentName ?? "resource").replace(/"/g, "")}"`,
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
     },

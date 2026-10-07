@@ -79,11 +79,11 @@ export function DocumentUpload({ memberId }: { memberId: string }) {
         </select>
         <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-500 hover:border-fuchsia-400 hover:text-fuchsia-600">
           <Upload className="h-3.5 w-3.5" />
-          {isUploading ? "Uploading…" : "Upload PDF"}
+          {isUploading ? "Uploading…" : "Upload File"}
           <input
             ref={fileInputRef}
             type="file"
-            accept="application/pdf"
+            accept="application/pdf,image/png,image/jpeg"
             onChange={handleFileChange}
             disabled={isUploading}
             className="hidden"

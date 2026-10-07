@@ -1,68 +1,137 @@
 import "server-only";
+import { randomUUID } from "crypto";
 import { GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { s3, DOCUMENTS_BUCKET } from "@/lib/s3";
 
-// The app's only two file-upload paths (member Documents, Resource
-// Directory attachments) both accept PDFs only. The real security
-// boundary is already the S3 presigned POST's own hard Content-Type
-// condition (see app/api/documents/upload/route.ts and
-// app/api/resources/upload/route.ts) plus the "X-Content-Type-Options:
-// nosniff" header set when serving the file back (app/api/documents/[id]
-// and app/api/resources/[id]) — together they mean whatever bytes a
-// caller actually uploads, the file is always served as
-// application/pdf with sniffing disabled, so a mislabeled upload (e.g.
-// an SVG containing a script) can never get rendered as anything else.
-//
-// These two helpers close the remaining, purely cosmetic gap a pentest
-// flagged (3.1.2): the caller-supplied *original filename* — which a
-// server-side Content-Type lock does nothing to constrain — otherwise
-// flows straight through into the stored/displayed name and the
-// Content-Disposition header. A name like "invoice.svg" or a crafted
-// double extension like "shell.svg.pdf" would still look exactly like
-// what it claims not to be. isPdfFilename() rejects an upload outright
-// if its name doesn't already look like a PDF; sanitizePdfFilename()
-// then normalizes whatever survives down to a single, unambiguous
-// "<name>.pdf" before it's ever persisted.
-const PDF_EXTENSION = /\.pdf$/i;
+// The app's two file-upload paths (member Documents, Resource Directory
+// attachments) share this allowlist. Each kind pairs a canonical extension,
+// the MIME type forced onto the presigned POST (never the caller's
+// declared Content-Type — see the upload routes), a maxSizeBytes ceiling,
+// and the real byte signature(s) its files start with. The signature check
+// (verifyUploadedFile) is the actual security boundary — filename and
+// declared Content-Type are both caller-controlled and prove nothing about
+// what bytes actually land in the bucket (BreachLock 3.1.4); everything
+// else here (extension allowlist, forced Content-Type, random storage
+// keys, nosniff on retrieval) is defense in depth around that boundary
+// (BreachLock 3.1.1, 3.1.2).
+export type UploadKind = "PDF" | "PNG" | "JPEG";
 
-export function isPdfFilename(fileName: string): boolean {
-  return PDF_EXTENSION.test(fileName.trim());
+type KindSpec = {
+  extensions: string[]; // lowercase, no leading dot; first is canonical
+  mimeType: string;
+  maxSizeBytes: number;
+  signatures: number[][];
+};
+
+const KIND_SPECS: Record<UploadKind, KindSpec> = {
+  PDF: {
+    extensions: ["pdf"],
+    mimeType: "application/pdf",
+    maxSizeBytes: 25 * 1024 * 1024,
+    signatures: [[0x25, 0x50, 0x44, 0x46, 0x2d]], // %PDF-
+  },
+  PNG: {
+    extensions: ["png"],
+    mimeType: "image/png",
+    maxSizeBytes: 10 * 1024 * 1024,
+    signatures: [[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]],
+  },
+  JPEG: {
+    extensions: ["jpg", "jpeg"],
+    mimeType: "image/jpeg",
+    maxSizeBytes: 10 * 1024 * 1024,
+    signatures: [[0xff, 0xd8, 0xff]],
+  },
+};
+
+const EXTENSION_TO_KIND: Record<string, UploadKind> = Object.fromEntries(
+  (Object.entries(KIND_SPECS) as [UploadKind, KindSpec][]).flatMap(([kind, spec]) =>
+    spec.extensions.map((ext) => [ext, kind])
+  )
+);
+
+export function uploadKindSpec(kind: UploadKind): { mimeType: string; maxSizeBytes: number } {
+  const { mimeType, maxSizeBytes } = KIND_SPECS[kind];
+  return { mimeType, maxSizeBytes };
 }
 
-// Keeps only the text before the FIRST dot, discarding every extension
-// (real or fake) the caller supplied, then appends exactly one ".pdf" —
-// "shell.svg.pdf" and "invoice.svg" both become "<name>.pdf".
-export function sanitizePdfFilename(fileName: string): string {
+// Exactly one "." is required — the simplest rule that fully closes every
+// double-extension trick (shell.php.pdf, invoice.svg.pdf, report.exe.png)
+// without maintaining a blocklist of "dangerous" extensions that could
+// always miss one. Legitimate multi-word names still work fine; the
+// original filename is only ever used for display anyway (see
+// sanitizeUploadFilename) — the storage key is always a random UUID.
+const SAFE_FILENAME = /^[^.]+\.([a-zA-Z0-9]+)$/;
+
+// Resolves a caller-supplied filename to an allowed upload kind, or null if
+// it's not recognized, has more than one extension, or isn't on the
+// allowlist at all (including every extension this app doesn't accept —
+// .svg, .html, .exe, .php, .js, etc.).
+export function resolveUploadKind(fileName: string): UploadKind | null {
+  const match = SAFE_FILENAME.exec(fileName.trim());
+  if (!match) return null;
+  return EXTENSION_TO_KIND[match[1].toLowerCase()] ?? null;
+}
+
+export function contentTypeForKind(kind: UploadKind): string {
+  return KIND_SPECS[kind].mimeType;
+}
+
+// Infers a kind from a storage key this app generated itself (always
+// "<prefix>/<uuid>.<ext>" — see randomStorageKey) — used only as a
+// last-resort Content-Type fallback when serving a file back and S3
+// didn't return stored object metadata.
+export function kindForStorageKey(key: string): UploadKind | null {
+  const ext = key.split(".").pop()?.toLowerCase();
+  return ext ? (EXTENSION_TO_KIND[ext] ?? null) : null;
+}
+
+// A purely random storage key — the caller's original filename never flows
+// into where the file is actually stored, only into the display name kept
+// separately in the database (sanitizeUploadFilename).
+export function randomStorageKey(prefix: string, kind: UploadKind): string {
+  return `${prefix}/${randomUUID()}.${KIND_SPECS[kind].extensions[0]}`;
+}
+
+// Keeps only the text before the caller's first dot for display, then
+// appends the canonical extension for the verified kind — "invoice.PDF"
+// displays as "invoice.pdf"; nothing else about the original name (real or
+// fake extensions) survives.
+export function sanitizeUploadFilename(fileName: string, kind: UploadKind): string {
   const base = fileName.trim().split(".")[0].trim();
-  return `${base || "document"}.pdf`;
+  return `${base || "file"}.${KIND_SPECS[kind].extensions[0]}`;
 }
 
-const PDF_MAGIC_BYTES = "%PDF-";
+function bytesStartWith(bytes: Uint8Array, signature: number[]): boolean {
+  if (bytes.length < signature.length) return false;
+  for (let i = 0; i < signature.length; i++) {
+    if (bytes[i] !== signature[i]) return false;
+  }
+  return true;
+}
 
-// Closes the actual gap a pentest flagged (3.1.4): the presigned POST's
-// Content-Type condition only checks what the uploader *declared* in the
-// multipart form, never the bytes that actually land in the bucket — a
-// caller can upload anything (an .exe, a script, real malware) and just
-// claim Content-Type: application/pdf, and S3 has no opinion on whether
-// that's true. This fetches the first few bytes of the object actually
-// stored at `key` and checks for the real PDF magic number. A mismatch
-// deletes the object outright — a bad upload never lingers in the bucket
-// even though the save action it was headed for will now reject it.
-export async function verifyIsPdfObject(key: string): Promise<boolean> {
-  let isPdf: boolean;
+// Fetches the first few bytes of the object actually stored at `key` and
+// checks them against the real signature for `kind` — independent of the
+// key's extension, the object's declared Content-Type, or anything else a
+// caller controls. A mismatch (wrong kind, spoofed MIME, corrupt/truncated
+// upload) deletes the object outright: a bad upload never lingers in the
+// bucket even though the save action it was headed for will now reject it.
+export async function verifyUploadedFile(key: string, kind: UploadKind): Promise<boolean> {
+  const { signatures } = KIND_SPECS[kind];
+  const maxLen = Math.max(...signatures.map((s) => s.length));
+
+  let matches: boolean;
   try {
-    const obj = await s3.send(
-      new GetObjectCommand({ Bucket: DOCUMENTS_BUCKET, Key: key, Range: `bytes=0-${PDF_MAGIC_BYTES.length - 1}` })
-    );
+    const obj = await s3.send(new GetObjectCommand({ Bucket: DOCUMENTS_BUCKET, Key: key, Range: `bytes=0-${maxLen - 1}` }));
     const bytes = await obj.Body?.transformToByteArray();
-    isPdf = bytes ? Buffer.from(bytes).toString("latin1").startsWith(PDF_MAGIC_BYTES) : false;
+    matches = bytes ? signatures.some((sig) => bytesStartWith(bytes, sig)) : false;
   } catch {
-    isPdf = false;
+    matches = false;
   }
 
-  if (!isPdf) {
+  if (!matches) {
     await s3.send(new DeleteObjectCommand({ Bucket: DOCUMENTS_BUCKET, Key: key })).catch(() => {});
   }
 
-  return isPdf;
+  return matches;
 }

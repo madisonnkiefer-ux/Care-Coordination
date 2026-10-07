@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { verifySession, authorizeMemberAccess } from "@/lib/dal";
 import { writeAuditLog } from "@/lib/audit";
 import { s3, DOCUMENTS_BUCKET } from "@/lib/s3";
+import { contentTypeForKind, kindForStorageKey } from "@/lib/uploads";
 
 // Every document view goes through here — never a direct bucket URL — so
 // access is checked and audit-logged on every open, not just on upload.
@@ -36,9 +37,10 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const object = await s3.send(new GetObjectCommand({ Bucket: DOCUMENTS_BUCKET, Key: document.storageKey }));
   if (!object.Body) return new NextResponse("Unable to retrieve document", { status: 502 });
 
+  const fallbackKind = kindForStorageKey(document.storageKey);
   return new NextResponse(object.Body.transformToWebStream(), {
     headers: {
-      "Content-Type": object.ContentType ?? "application/pdf",
+      "Content-Type": object.ContentType ?? (fallbackKind ? contentTypeForKind(fallbackKind) : "application/octet-stream"),
       "Content-Disposition": `inline; filename="${document.name.replace(/"/g, "")}"`,
       "Cache-Control": "private, no-store",
       // The upload's declared Content-Type isn't verified against the
