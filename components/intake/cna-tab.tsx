@@ -13,7 +13,6 @@ import {
   TextArea,
   DateField,
   SelectField,
-  MultiSelectField,
   Checkbox,
   YesNoField,
   YesNoNaField,
@@ -90,10 +89,7 @@ export function CnaTab({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <DateField name="assessmentDate" label="Assessment Date" defaultValue={toDateInputValue(draft?.assessmentDate)} />
           <SelectField name="assessmentMethod" label={fields["cna.assessmentMethod"]?.label ?? "Assessment Method"} options={fields["cna.assessmentMethod"]?.options ?? CNA_ASSESSMENT_METHOD_OPTIONS} defaultValue={draft?.assessmentMethod} />
-        </div>
-        <div className="mt-4 max-w-xs">
-          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">Assessment Type</p>
-          <MultiSelectField name="assessmentType" options={CNA_ASSESSMENT_TYPE_OPTIONS} defaultValues={draft?.assessmentType} />
+          <SelectField name="assessmentType" label="Assessment Type" options={CNA_ASSESSMENT_TYPE_OPTIONS} defaultValue={draft?.assessmentType?.[0]} />
         </div>
       </Card>
 

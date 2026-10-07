@@ -83,7 +83,7 @@ export async function saveCna(memberId: string, cnaId: string, formData: FormDat
   const data = {
     status,
     assessmentDate: date("assessmentDate") ?? undefined,
-    assessmentType: formData.getAll("assessmentType").filter((v): v is string => typeof v === "string"),
+    assessmentType: str("assessmentType") ? [str("assessmentType") as string] : [],
     assessmentMethod: selectOrCustom("assessmentMethod"),
 
     // Introduction
