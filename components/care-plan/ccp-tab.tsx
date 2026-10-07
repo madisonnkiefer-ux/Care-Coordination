@@ -25,6 +25,9 @@ import { CustomQuestionsSection } from "@/components/intake/custom-questions-sec
 import { mergeCustomQuestions, type CustomQuestionDef } from "@/lib/custom-questions-shared";
 import { OrderedStack } from "@/components/intake/ordered-items";
 
+const DEFAULT_DISASTER_PLAN_TEXT =
+  "The member is committed to following all instructions provided by the authorities and staying alert to any important information in their surroundings. They will ensure they are prepared for emergencies by keeping essential items readily available, including identification cards, first aid supplies, emergency contact numbers, and any necessary medications. In the event of a medical issue or injury, they will seek appropriate medical attention without delay to ensure their health and safety are properly managed.";
+
 type CarePlanRecord = CarePlan & {
   teamMembers: CarePlanTeamMember[];
   medications: CarePlanMedication[];
@@ -256,7 +259,7 @@ export function CcpTab({
                           <TextArea
                             name="disasterPlanText"
                             label="These are my plans for a natural disaster, emergency preparedness, and/or evacuation plan. This includes the care of service animals or pets."
-                            defaultValue={plan.disasterPlanText}
+                            defaultValue={plan.disasterPlanText ?? DEFAULT_DISASTER_PLAN_TEXT}
                             rows={3}
                           />
                         </div>
