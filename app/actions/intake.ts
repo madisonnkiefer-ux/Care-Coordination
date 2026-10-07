@@ -66,15 +66,17 @@ export async function createNewIntakeVersion(memberId: string) {
   redirect(`/members/${memberId}/intake`);
 }
 
-// Admin-only correction of the enrollment's own createdAt — the date shown
-// on the history chip and in the member's Charts list, separate from any
-// date field inside Demographics/HRA/CNA/Notes themselves. Available
+// Admin/supervisor correction of the enrollment's own createdAt — the date
+// shown on the history chip and in the member's Charts list, separate from
+// any date field inside Demographics/HRA/CNA/Notes themselves. Available
 // whether or not the enrollment is signed, since this isn't one of the
 // form's own answers.
 export async function updateIntakeVersionDate(memberId: string, intakeVersionId: string, newDate: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");
-  if (session.role !== "ADMIN") throw new Error("Forbidden: only admins can edit this date");
+  if (session.role !== "ADMIN" && session.role !== "SUPERVISOR") {
+    throw new Error("Forbidden: only admins and supervisors can edit this date");
+  }
 
   const existing = await db.intakeVersion.findUnique({ where: { id: intakeVersionId } });
   if (!existing || existing.memberId !== memberId) throw new Error("Not found");

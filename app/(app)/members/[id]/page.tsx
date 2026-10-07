@@ -181,7 +181,12 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
             {chartEntries.length === 0 ? (
               <EmptyState label="No charts yet." />
             ) : (
-              <ChartHistoryList entries={chartEntries} memberId={id} isAdmin={session.role === "ADMIN"} />
+              <ChartHistoryList
+                entries={chartEntries}
+                memberId={id}
+                canEditIntakeDate={session.role === "ADMIN" || session.role === "SUPERVISOR"}
+                canEditTocDate={session.role === "ADMIN"}
+              />
             )}
           </Card>
 

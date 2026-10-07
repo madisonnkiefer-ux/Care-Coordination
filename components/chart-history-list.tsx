@@ -19,13 +19,24 @@ export type ChartHistoryEntry = {
 };
 
 // The member chart's "Charts" card — a flat, dated list across every
-// record type (Enrollment/intake, TOC, Care Plan, documents). Admin-only,
-// same as the pencil on each form's own history bar: lets an admin correct
+// record type (Enrollment/intake, TOC, Care Plan, documents). Same as the
+// pencil on each form's own history bar: lets an authorized user correct
 // the date this entry is filed under (its createdAt), separate from any
 // date field inside the record itself. Only "intake" and "toc" entries
-// have a correction action wired up — that's the scope the admin
-// date-editing feature covers.
-export function ChartHistoryList({ entries, memberId, isAdmin }: { entries: ChartHistoryEntry[]; memberId: string; isAdmin: boolean }) {
+// have a correction action wired up — that's the scope the date-editing
+// feature covers. Enrollment dates are admin/supervisor; TOC dates stay
+// admin-only (see app/actions/toc.ts).
+export function ChartHistoryList({
+  entries,
+  memberId,
+  canEditIntakeDate,
+  canEditTocDate,
+}: {
+  entries: ChartHistoryEntry[];
+  memberId: string;
+  canEditIntakeDate: boolean;
+  canEditTocDate: boolean;
+}) {
   return (
     <ul className="divide-y divide-stone-100">
       {entries.map((entry) => {
@@ -39,6 +50,7 @@ export function ChartHistoryList({ entries, memberId, isAdmin }: { entries: Char
           </span>
         );
 
+        const canEdit = entry.kind === "intake" ? canEditIntakeDate : entry.kind === "toc" ? canEditTocDate : false;
         const editAction =
           entry.kind === "intake"
             ? (newDate: string) => updateIntakeVersionDate(memberId, entry.id, newDate)
@@ -57,7 +69,7 @@ export function ChartHistoryList({ entries, memberId, isAdmin }: { entries: Char
                 {row}
               </Link>
             )}
-            {isAdmin && editAction && <EditDateChipButton currentDate={entry.date} onConfirm={editAction} />}
+            {canEdit && editAction && <EditDateChipButton currentDate={entry.date} onConfirm={editAction} />}
           </li>
         );
       })}
