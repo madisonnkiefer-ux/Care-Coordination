@@ -21,6 +21,10 @@ import { CustomQuestionsSection } from "@/components/intake/custom-questions-sec
 import type { CustomQuestionForRecord } from "@/lib/custom-questions-shared";
 import { OrderedStack } from "@/components/intake/ordered-items";
 
+const DEFAULT_ELIGIBILITY_CONCLUSIONS_SUMMARY =
+  "The member is eligible to receive community resources including support with housing, food assistance, transportation, utility help and other social services as needed to promote overall well-being and stability.";
+const DEFAULT_MEMBER_SATISFACTION_DESCRIPTION = "The member was satisfied with the services provided today.";
+
 export function CareCoordinationNotesTab({
   memberId,
   record: draft,
@@ -193,7 +197,7 @@ export function CareCoordinationNotesTab({
                 <TextArea
                   name="eligibilityConclusionsSummary"
                   label="8. Summarize the care coordinator's conclusions about the Member's eligibility and access to community resources and the next steps that will be taken by the care coordinator and the Member."
-                  defaultValue={draft?.eligibilityConclusionsSummary}
+                  defaultValue={draft?.eligibilityConclusionsSummary ?? DEFAULT_ELIGIBILITY_CONCLUSIONS_SUMMARY}
                   rows={4}
                 />
               ),
@@ -202,7 +206,7 @@ export function CareCoordinationNotesTab({
               key: "ccn.cbsqCbmaCompleted",
               el: (
                 <div>
-                  <YesNoNaField name="cbsqCbmaCompleted" label="9. Were the CBSQ and CBMA completed?" defaultValue={draft?.cbsqCbmaCompleted} />
+                  <YesNoNaField name="cbsqCbmaCompleted" label="9. Were the CBSQ and CBMA completed?" defaultValue={draft?.cbsqCbmaCompleted ?? "na"} />
                   <div className="mt-2 max-w-md">
                     <TextField name="cbsqCbmaNotCompletedExplain" label="If no, explain" defaultValue={draft?.cbsqCbmaNotCompletedExplain} />
                   </div>
@@ -211,7 +215,7 @@ export function CareCoordinationNotesTab({
             },
             {
               key: "ccn.hasCoe100Abp",
-              el: <YesNoField name="hasCoe100Abp" label="10. Does the member have a COE 100 ABP?" defaultValue={draft?.hasCoe100Abp} />,
+              el: <YesNoField name="hasCoe100Abp" label="10. Does the member have a COE 100 ABP?" defaultValue={draft?.hasCoe100Abp ?? false} />,
             },
             {
               key: "ccn.wantsAbpExemptEvaluation",
@@ -219,7 +223,7 @@ export function CareCoordinationNotesTab({
                 <YesNoField
                   name="wantsAbpExemptEvaluation"
                   label="Does the member want to be evaluated for ABP exempt?"
-                  defaultValue={draft?.wantsAbpExemptEvaluation}
+                  defaultValue={draft?.wantsAbpExemptEvaluation ?? false}
                 />
               ),
             },
@@ -229,7 +233,13 @@ export function CareCoordinationNotesTab({
                 <div className="flex gap-6">
                   {(fields["ccn.abpClassification"]?.options ?? ABP_CLASSIFICATION_OPTIONS).map((opt) => (
                     <label key={opt} className="flex items-center gap-2 text-sm text-stone-600">
-                      <input type="radio" name="abpClassification" value={opt} defaultChecked={draft?.abpClassification === opt} className="h-4 w-4" />
+                      <input
+                        type="radio"
+                        name="abpClassification"
+                        value={opt}
+                        defaultChecked={(draft?.abpClassification ?? "N/A") === opt}
+                        className="h-4 w-4"
+                      />
                       {opt}
                     </label>
                   ))}
@@ -240,7 +250,7 @@ export function CareCoordinationNotesTab({
               key: "ccn.qualifiesForAbpExempt",
               el: (
                 <div>
-                  <YesNoField name="qualifiesForAbpExempt" label="11. Does the member qualify for ABP exempt?" defaultValue={draft?.qualifiesForAbpExempt} />
+                  <YesNoField name="qualifiesForAbpExempt" label="11. Does the member qualify for ABP exempt?" defaultValue={draft?.qualifiesForAbpExempt ?? false} />
                   <div className="mt-2 max-w-md">
                     <TextField name="abpExemptReason" label="If yes, specify PH or BH exempt reason" defaultValue={draft?.abpExemptReason} />
                   </div>
@@ -253,7 +263,7 @@ export function CareCoordinationNotesTab({
                 <YesNoNaField
                   name="hcbsSettingsRuleAssessed"
                   label="12. Has the care coordinator assessed the Member's living arrangement to ensure compliance with the HCBS settings rule?"
-                  defaultValue={draft?.hcbsSettingsRuleAssessed}
+                  defaultValue={draft?.hcbsSettingsRuleAssessed ?? "na"}
                 />
               ),
             },
@@ -264,7 +274,7 @@ export function CareCoordinationNotesTab({
                   <YesNoField
                     name="providedServicesBenefitsInfo"
                     label="13. Member was provided with information on all available services and benefits."
-                    defaultValue={draft?.providedServicesBenefitsInfo}
+                    defaultValue={draft?.providedServicesBenefitsInfo ?? true}
                   />
                   <div className="mt-2 max-w-md">
                     <TextField name="providedServicesBenefitsInfoExplain" label="If no, explain" defaultValue={draft?.providedServicesBenefitsInfoExplain} />
@@ -278,7 +288,7 @@ export function CareCoordinationNotesTab({
                 <TextArea
                   name="memberSatisfactionDescription"
                   label="14. Describe the member's satisfaction with services and care."
-                  defaultValue={draft?.memberSatisfactionDescription}
+                  defaultValue={draft?.memberSatisfactionDescription ?? DEFAULT_MEMBER_SATISFACTION_DESCRIPTION}
                   rows={3}
                 />
               ),
@@ -290,7 +300,7 @@ export function CareCoordinationNotesTab({
                   name="complexCaseManagementOrNfloc"
                   label="15. Is the Member being assessed for Complex Case Management or considered for initial NFLOC?"
                   options={fields["ccn.complexCaseManagementOrNfloc"]?.options ?? COMPLEX_CASE_OPTIONS}
-                  defaultValue={draft?.complexCaseManagementOrNfloc}
+                  defaultValue={draft?.complexCaseManagementOrNfloc ?? "N/A"}
                 />
               ),
             },
