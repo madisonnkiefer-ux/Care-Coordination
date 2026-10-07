@@ -30,6 +30,7 @@ export async function getSupervisorData() {
   // start of this month, and an anchored quarter is always fully contained
   // within the last 3 calendar months.
   const contactFetchFloor = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [
     totalMembers,
@@ -48,6 +49,7 @@ export async function getSupervisorData() {
     membersForCcpDueDates,
     membersForContactCadence,
     cadenceOverrides,
+    f2fContactsThisMonth,
   ] = await Promise.all([
     db.member.count({ where: { clinicId } }),
     db.member.count({ where: { clinicId, cnaAssessments: { some: { status: "COMPLETED" } } } }),
@@ -135,6 +137,7 @@ export async function getSupervisorData() {
       },
     }),
     getCadenceOverridesForClinic(clinicId),
+    db.f2FContact.count({ where: { member: { clinicId }, contactDate: { gte: monthStart } } }),
   ]);
 
   const pct = (n: number) => (totalMembers === 0 ? 0 : Math.round((n / totalMembers) * 100));
@@ -258,5 +261,6 @@ export async function getSupervisorData() {
     membersNeedingAssignment,
     overdueCcps,
     touchpointGaps,
+    f2fContactsThisMonth,
   };
 }

@@ -28,6 +28,7 @@ export default async function SupervisorDashboardPage() {
       membersNeedingAssignment,
       overdueCcps,
       touchpointGaps,
+      f2fContactsThisMonth,
     },
     pendingStatusChanges,
     caseloadCoordinators,
@@ -51,12 +52,13 @@ export default async function SupervisorDashboardPage() {
           <StatTile label="Care Plans in Place" value={`${carePlanCompletionPct}%`} />
         </div>
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           <StatTile label="Active Members" value={activeMembersCount} />
           <StatTile label="Graduations" value={graduationsCount} />
           <StatTile label="Terminations" value={terminationsCount} />
           <StatTile label="Draft/Unsigned Notes" value={draftOrUnsignedNotesCount} />
           <StatTile label="Open TOC Cases" value={openTocCasesCount} />
+          <StatTile label="F2F Contacts This Month" value={f2fContactsThisMonth} />
         </div>
 
         <p className="text-sm text-stone-500">

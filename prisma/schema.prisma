@@ -214,6 +214,7 @@ model User {
   homeVisitsLogged          HomeVisit[]        @relation("HomeVisitCoordinator")
   homeVisitRequestsAssigned HomeVisitRequest[] @relation("HomeVisitRequestAssignee")
   homeVisitRequestsMade     HomeVisitRequest[] @relation("HomeVisitRequestRequestedBy")
+  f2fContactsLogged         F2FContact[]       @relation("F2FContactCreatedBy")
 
   rolePermissionsUpdated    RolePermissions[]   @relation("RolePermissionsUpdatedBy")
   customRolesCreated        CustomRole[]        @relation("CustomRoleCreatedBy")
@@ -325,6 +326,7 @@ model Member {
   amendmentRequests     AmendmentRequest[]
   homeVisits            HomeVisit[]
   homeVisitRequests     HomeVisitRequest[]
+  f2fContacts           F2FContact[]
 
   @@index([clinicId])
   @@index([assignedCoordinatorId])
@@ -1267,6 +1269,23 @@ model HomeVisit {
 
   @@index([memberId])
   @@index([coordinatorId])
+}
+
+// A logged face-to-face contact with the member — just the date it
+// happened. Distinct from HomeVisit (which is specifically an at-home
+// visit, with its own outcome/notes fields): an F2F contact can happen
+// anywhere, and this is intentionally lightweight — add the date, done.
+model F2FContact {
+  id          String   @id @default(cuid())
+  memberId    String
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  contactDate DateTime
+  createdById String
+  createdBy   User     @relation("F2FContactCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([memberId])
+  @@index([contactDate])
 }
 
 enum TouchpointType {

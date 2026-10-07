@@ -10,7 +10,7 @@ import { GoalDonut } from "@/components/goal-donut";
 import { DocumentUpload } from "@/components/document-upload";
 import { MemberStatusCard } from "@/components/member-status-card";
 import { MemberInfoCard } from "@/components/member-info-card";
-import { formatDate, formatDateTime, titleCase } from "@/lib/format";
+import { formatDate, formatDateTime, titleCase, toDateInputValue } from "@/lib/format";
 import { toggleTask, createTask } from "@/app/actions/tasks";
 import { saveQuickNote } from "@/app/actions/notes";
 import { createAppointment } from "@/app/actions/appointments";
@@ -27,6 +27,8 @@ import { DeleteMemberButton } from "@/components/delete-member-button";
 import { getAmendmentRequestsForMember } from "@/lib/data/amendment-requests";
 import { AmendmentRequestsCard } from "@/components/amendment-requests-card";
 import { ChartHistoryList, type ChartHistoryEntry } from "@/components/chart-history-list";
+import { getF2FContacts } from "@/lib/data/f2f";
+import { logF2FContact } from "@/app/actions/f2f";
 
 export default async function MemberChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -40,6 +42,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
     graduationInfo,
     amendmentRequests,
     cclScheduleData,
+    f2fContacts,
   ] = await Promise.all([
     getMemberChart(id),
     getStatusHistory(id),
@@ -50,6 +53,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
     getMemberGraduationInfo(id),
     getAmendmentRequestsForMember(id),
     getCclScheduleData(id),
+    getF2FContacts(id),
   ]);
 
   const returnPath = `/members/${id}`;
@@ -192,6 +196,36 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
 
           <Card title="Care Plan Goals">
             <GoalDonut totals={goalTotals} />
+          </Card>
+
+          <Card title="Face-to-Face Contacts" className="print:hidden">
+            {f2fContacts.length === 0 ? (
+              <EmptyState label="No F2F contacts logged yet." />
+            ) : (
+              <ul className="mb-3 divide-y divide-stone-100">
+                {f2fContacts.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between py-2 text-sm">
+                    <span className="text-stone-700">{formatDate(c.contactDate)}</span>
+                    <span className="text-xs text-stone-400">Logged by {c.createdBy.name}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <form action={logF2FContact.bind(null, id)} className="flex gap-2 border-t border-stone-100 pt-3">
+              <input
+                type="date"
+                name="contactDate"
+                required
+                defaultValue={toDateInputValue(new Date())}
+                className="rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+              />
+              <button
+                type="submit"
+                className="rounded-md bg-deep-rose px-3 py-1.5 text-xs font-medium text-white hover:bg-deep-rose-dark"
+              >
+                Log F2F Contact
+              </button>
+            </form>
           </Card>
 
           <Card title="Recent Contact Attempts">
