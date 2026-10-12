@@ -14,8 +14,11 @@ export async function logF2FContact(memberId: string, formData: FormData) {
   const contactDate = new Date(raw);
   if (Number.isNaN(contactDate.getTime())) throw new Error("Invalid date.");
 
+  const noteRaw = formData.get("note");
+  const note = typeof noteRaw === "string" && noteRaw.trim() ? noteRaw.trim() : null;
+
   const contact = await db.f2FContact.create({
-    data: { memberId, contactDate, createdById: session.userId },
+    data: { memberId, contactDate, note, createdById: session.userId },
   });
 
   await writeAuditLog({

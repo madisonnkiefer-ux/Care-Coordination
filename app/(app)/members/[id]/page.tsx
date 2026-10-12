@@ -204,27 +204,38 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
             ) : (
               <ul className="mb-3 divide-y divide-stone-100">
                 {f2fContacts.map((c) => (
-                  <li key={c.id} className="flex items-center justify-between py-2 text-sm">
-                    <span className="text-stone-700">{formatDate(c.contactDate)}</span>
-                    <span className="text-xs text-stone-400">Logged by {c.createdBy.name}</span>
+                  <li key={c.id} className="py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-stone-700">{formatDate(c.contactDate)}</span>
+                      <span className="text-xs text-stone-400">Logged by {c.createdBy.name}</span>
+                    </div>
+                    {c.note && <p className="mt-1 text-xs text-stone-500">{c.note}</p>}
                   </li>
                 ))}
               </ul>
             )}
-            <form action={logF2FContact.bind(null, id)} className="flex gap-2 border-t border-stone-100 pt-3">
+            <form action={logF2FContact.bind(null, id)} className="flex flex-col gap-2 border-t border-stone-100 pt-3">
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  name="contactDate"
+                  required
+                  defaultValue={toDateInputValue(new Date())}
+                  className="rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                />
+                <button
+                  type="submit"
+                  className="rounded-md bg-deep-rose px-3 py-1.5 text-xs font-medium text-white hover:bg-deep-rose-dark"
+                >
+                  Log F2F Contact
+                </button>
+              </div>
               <input
-                type="date"
-                name="contactDate"
-                required
-                defaultValue={toDateInputValue(new Date())}
-                className="rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+                type="text"
+                name="note"
+                placeholder="Add a note (optional)"
+                className="w-full rounded-md border border-stone-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
               />
-              <button
-                type="submit"
-                className="rounded-md bg-deep-rose px-3 py-1.5 text-xs font-medium text-white hover:bg-deep-rose-dark"
-              >
-                Log F2F Contact
-              </button>
             </form>
           </Card>
 

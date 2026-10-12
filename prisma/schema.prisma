@@ -1280,6 +1280,7 @@ model F2FContact {
   memberId    String
   member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
   contactDate DateTime
+  note        String?
   createdById String
   createdBy   User     @relation("F2FContactCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
