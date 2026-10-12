@@ -316,3 +316,60 @@ export async function addProgressNote(memberId: string, carePlanId: string, goal
 
   revalidatePath(`/members/${memberId}/care-plan`);
 }
+
+async function requireOwnProgressNote(noteId: string, goalId: string, memberId: string) {
+  await requireOwnCarePlanGoal(goalId, memberId);
+  const note = await db.carePlanProgressNote.findUnique({ where: { id: noteId } });
+  if (!note || note.goalId !== goalId) throw new Error("Not found");
+  return note;
+}
+
+// Nothing in the CCP should be write-once — a progress note typed in
+// wrong, or that just needs updating later, should be editable the same
+// as every other field on the care plan.
+export async function updateProgressNote(memberId: string, carePlanId: string, goalId: string, noteId: string, formData: FormData) {
+  const { session, member } = await authorizeMemberAccess(memberId);
+  if (!member) throw new Error("Forbidden");
+  const goal = await requireOwnCarePlanGoal(goalId, memberId);
+  if (goal.carePlanId !== carePlanId) throw new Error("Forbidden");
+  await requireOwnProgressNote(noteId, goalId, memberId);
+
+  const note = str(formData, "note");
+  if (!note) throw new Error("Note text is required.");
+
+  await db.carePlanProgressNote.update({
+    where: { id: noteId },
+    data: { note, date: date(formData, "date") },
+  });
+
+  await writeAuditLog({
+    userId: session.userId,
+    memberId,
+    action: "UPDATE",
+    resource: "CarePlanProgressNote",
+    resourceId: noteId,
+  });
+
+  revalidatePath(`/members/${memberId}/care-plan`);
+}
+
+export async function deleteProgressNote(memberId: string, carePlanId: string, goalId: string, noteId: string) {
+  const { session, member } = await authorizeMemberAccess(memberId);
+  if (!member) throw new Error("Forbidden");
+  const goal = await requireOwnCarePlanGoal(goalId, memberId);
+  if (goal.carePlanId !== carePlanId) throw new Error("Forbidden");
+  const existing = await requireOwnProgressNote(noteId, goalId, memberId);
+
+  await db.carePlanProgressNote.delete({ where: { id: noteId } });
+
+  await writeAuditLog({
+    userId: session.userId,
+    memberId,
+    action: "DELETE",
+    resource: "CarePlanProgressNote",
+    resourceId: noteId,
+    metadata: { deletedNote: existing.note },
+  });
+
+  revalidatePath(`/members/${memberId}/care-plan`);
+}

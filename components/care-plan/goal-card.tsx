@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui";
 import { formatDate } from "@/lib/format";
-import { saveGoal, addProgressNote } from "@/app/actions/care-plan";
+import { saveGoal, addProgressNote, updateProgressNote, deleteProgressNote } from "@/app/actions/care-plan";
 import { GoalStatusSelect } from "@/components/goal-status-select";
 import { TextField, TextArea, DateField, SelectField, Checkbox } from "@/components/intake/form-fields";
 import { GOAL_PRIORITY_OPTIONS } from "@/components/intake/options";
@@ -160,6 +160,8 @@ export function GoalCard({
               label="Member Progress Updates"
               notes={memberNotes}
               action={addProgressNote.bind(null, memberId, carePlanId, goal.id)}
+              onUpdate={updateProgressNote.bind(null, memberId, carePlanId, goal.id)}
+              onDelete={deleteProgressNote.bind(null, memberId, carePlanId, goal.id)}
               track="MEMBER"
             />
           </div>
@@ -204,6 +206,8 @@ export function GoalCard({
             label="Care Coordinator Progress Updates"
             notes={coordinatorNotes}
             action={addProgressNote.bind(null, memberId, carePlanId, goal.id)}
+            onUpdate={updateProgressNote.bind(null, memberId, carePlanId, goal.id)}
+            onDelete={deleteProgressNote.bind(null, memberId, carePlanId, goal.id)}
             track="COORDINATOR"
           />
       </div>
@@ -216,12 +220,16 @@ function ProgressNoteColumn({
   label,
   notes,
   action,
+  onUpdate,
+  onDelete,
   track,
 }: {
   idPrefix: string;
   label: string;
   notes: CarePlanProgressNote[];
   action: (formData: FormData) => Promise<void>;
+  onUpdate: (noteId: string, formData: FormData) => Promise<void>;
+  onDelete: (noteId: string) => Promise<void>;
   track: "MEMBER" | "COORDINATOR";
 }) {
   // "+ Add Update" adds another blank note/date row rather than submitting —
@@ -231,18 +239,67 @@ function ProgressNoteColumn({
   // "date" field names; addProgressNote zips them by position and skips any
   // left blank.
   const [rowCount, setRowCount] = useState(1);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   return (
     <div>
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-600">{label}</p>
       <ul className="mb-3 space-y-2">
         {notes.length === 0 && <li className="text-sm text-stone-500">No progress updates yet.</li>}
-        {notes.map((n) => (
-          <li key={n.id} className="rounded-md border border-stone-100 bg-white p-2 text-sm text-stone-700">
-            <p>{n.note}</p>
-            {n.date && <p className="mt-1 text-xs text-stone-500">{formatDate(n.date)}</p>}
-          </li>
-        ))}
+        {notes.map((n) =>
+          editingId === n.id ? (
+            <li key={n.id} className="rounded-md border border-stone-200 bg-white p-2">
+              <form
+                action={async (formData: FormData) => {
+                  await onUpdate(n.id, formData);
+                  setEditingId(null);
+                }}
+                className="space-y-2"
+              >
+                <TextArea id={`${idPrefix}-edit-note-${n.id}`} name="note" label="Progress Update" defaultValue={n.note} rows={2} />
+                <DateField id={`${idPrefix}-edit-date-${n.id}`} name="date" label="Date" defaultValue={toInputDate(n.date)} />
+                <div className="flex gap-2 print:hidden">
+                  <button type="submit" className="rounded-md bg-charcoal px-3 py-1 text-xs font-medium text-white hover:bg-stone-800">
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingId(null)}
+                    className="rounded-md border border-stone-300 px-3 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </li>
+          ) : (
+            <li key={n.id} className="rounded-md border border-stone-100 bg-white p-2 text-sm text-stone-700">
+              <div className="flex items-start justify-between gap-2">
+                <p className="flex-1">{n.note}</p>
+                <div className="flex shrink-0 gap-2 print:hidden">
+                  <button
+                    type="button"
+                    onClick={() => setEditingId(n.id)}
+                    className="text-xs font-medium text-stone-500 hover:text-charcoal hover:underline"
+                  >
+                    Edit
+                  </button>
+                  <form
+                    action={async () => {
+                      if (!confirm("Delete this progress update? This can't be undone.")) return;
+                      await onDelete(n.id);
+                    }}
+                  >
+                    <button type="submit" className="text-xs font-medium text-red-600 hover:text-red-800 hover:underline">
+                      Delete
+                    </button>
+                  </form>
+                </div>
+              </div>
+              {n.date && <p className="mt-1 text-xs text-stone-500">{formatDate(n.date)}</p>}
+            </li>
+          )
+        )}
       </ul>
       <form id={`${idPrefix}-progress-form`} action={action} className="space-y-3 print:hidden">
         <input type="hidden" name="track" value={track} />

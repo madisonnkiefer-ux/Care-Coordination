@@ -152,7 +152,7 @@ export function CcpTab({
                 items={[
                   {
                     key: "ccp.servicesAuthorizedByMco",
-                    el: <TextArea name="servicesAuthorizedByMco" label="Services authorized by the MCO" defaultValue={plan.servicesAuthorizedByMco} rows={4} />,
+                    el: <TextArea name="servicesAuthorizedByMco" label="Services authorized by the MCO" defaultValue={plan.servicesAuthorizedByMco ?? "N/A"} rows={4} />,
                   },
                 ]}
               />
