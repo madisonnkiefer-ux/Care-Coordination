@@ -100,9 +100,21 @@ export const getPatientSnapshot = cache(async (memberId: string) => {
     pregnancy = { kind: "pregnant", weeks: Math.min(42, Math.max(0, 40 - weeksUntilDue)), edd: member.edd };
   }
 
-  // CCP due date mirrors the same annual-renewal logic used on the
-  // Supervisor Dashboard's "Overdue CCPs" card.
-  const ccpReferenceDate = latestCarePlan ? (latestCarePlan.ccpStartDate ?? latestCarePlan.createdAt) : null;
+  // CCP annual due date — the most recent of CCP Start Date, Most Recent
+  // CNA Completion Date (both editable on the CCP form itself), or the
+  // record's own creation date. Taking the latest of these (not just
+  // ccpStartDate alone) means completing this year's annual CNA and
+  // recording it on an existing CCP correctly pushes next year's due date
+  // out, even if staff don't separately bump "CCP Start Date" too — before
+  // this, updating an older CCP's CNA-completion field with no matching
+  // CCP Start Date change left the due date anchored to whichever (often
+  // much older) date happened to be in ccpStartDate, so the CCP kept
+  // showing as overdue despite the annual CNA having just been done.
+  const ccpReferenceDate = latestCarePlan
+    ? [latestCarePlan.ccpStartDate, latestCarePlan.mostRecentCnaCompletionDate, latestCarePlan.createdAt]
+        .filter((d): d is Date => d != null)
+        .reduce((latest, d) => (d > latest ? d : latest))
+    : null;
   const ccpDueDate = ccpReferenceDate
     ? new Date(ccpReferenceDate.getFullYear() + 1, ccpReferenceDate.getMonth(), ccpReferenceDate.getDate())
     : null;
