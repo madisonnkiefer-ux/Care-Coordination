@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui";
 import { FloatingSaveBar } from "@/components/floating-save-bar";
-import { saveGeneralCommunication, createNewGeneralCommunication } from "@/app/actions/general-communication";
+import { saveGeneralCommunication, createGeneralCommunicationEntry } from "@/app/actions/general-communication";
 import type { CclLevel, GeneralCommunication } from "@/app/generated/prisma/client";
 import { SelectField, DateField } from "@/components/intake/form-fields";
 import { CONTACT_METHOD_OPTIONS, PERSON_CONTACTED_OPTIONS, UNSUCCESSFUL_REASON_OPTIONS } from "@/components/care-plan/outreach-options";
@@ -42,10 +42,8 @@ export function GeneralCommunicationTab({
   customQuestionDefs: CustomQuestionDef[];
   customAnswersByRecord: Record<string, Record<string, unknown>>;
 }) {
-  // Newest first, and newly-created entries have nothing documented yet, so
-  // open one automatically instead of leaving the coordinator to find it.
   const sortedRecords = useMemo(() => [...records].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()), [records]);
-  const [expandedId, setExpandedId] = useState<string | null>(sortedRecords[0]?.id ?? null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { daysSinceLastSuccessful, cadence, attemptsInWindow, successfulInWindow, compliant } = useMemo(() => {
     const now = new Date();
@@ -69,11 +67,6 @@ export function GeneralCommunicationTab({
     };
   }, [records, program, enrollmentDate, cadenceOverrides, cclLevel, lastCnaCompletedDate]);
 
-  async function handleNewEntry() {
-    const newId = await createNewGeneralCommunication(memberId);
-    if (typeof newId === "string") setExpandedId(newId);
-  }
-
   return (
     <FormFieldsProvider form="generalComm" fields={fields}>
     <div className="p-8">
@@ -96,21 +89,13 @@ export function GeneralCommunicationTab({
         </div>
       )}
 
-      <div className="mb-4 flex justify-end print:hidden">
-        <button
-          type="button"
-          onClick={handleNewEntry}
-          className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50"
-        >
-          + New Entry
-        </button>
-      </div>
+      <div className="max-w-4xl space-y-3">
+        <NewEntryComposer key={records.length} memberId={memberId} fields={fields} />
 
-      {sortedRecords.length === 0 ? (
-        <p className="text-sm text-slate-500">No General Communication entries yet — click &quot;+ New Entry&quot; to start one.</p>
-      ) : (
-        <div className="max-w-4xl space-y-3">
-          {sortedRecords.map((record) =>
+        {sortedRecords.length === 0 ? (
+          <p className="text-sm text-slate-500">No General Communication entries yet — add one above.</p>
+        ) : (
+          sortedRecords.map((record) =>
             expandedId === record.id ? (
               <GeneralCommunicationEntryForm
                 key={record.id}
@@ -124,11 +109,88 @@ export function GeneralCommunicationTab({
             ) : (
               <CollapsedEntry key={record.id} record={record} onExpand={() => setExpandedId(record.id)} />
             )
-          )}
-        </div>
-      )}
+          )
+        )}
+      </div>
     </div>
     </FormFieldsProvider>
+  );
+}
+
+// The primary, fast way to log something: one textarea and a Save button
+// right underneath it — no "create a blank entry, then go find it and
+// fill it in" round trip. The outreach-detail fields that feed touchpoint
+// compliance (contact method, successful/unsuccessful, etc.) still exist,
+// just tucked into a collapsed "Add outreach details" disclosure below the
+// textarea for whoever needs them, rather than being the first thing in
+// the way of jotting down a quick note.
+function NewEntryComposer({
+  memberId,
+  fields,
+}: {
+  memberId: string;
+  fields: ResolvedFormFields;
+}) {
+  return (
+    <form action={createGeneralCommunicationEntry.bind(null, memberId)} className="space-y-3">
+      <Card>
+        <textarea
+          name="body"
+          placeholder="Write a note…"
+          rows={6}
+          className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+        />
+        <details className="mt-3 print:hidden">
+          <summary className="cursor-pointer text-xs font-medium text-stone-500 hover:text-charcoal">Add outreach details (optional)</summary>
+          <div className="mt-3 space-y-4">
+            <div className="max-w-xs">
+              <DateField name="contactDate" label="Contact Date" defaultValue={toDateInputValue(new Date())} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <SelectField
+                name="contactMethod"
+                label={fields["generalComm.contactMethod"]?.label ?? "Contact Method"}
+                options={fields["generalComm.contactMethod"]?.options ?? CONTACT_METHOD_OPTIONS}
+                defaultValue={null}
+              />
+              <SelectField
+                name="personContacted"
+                label={fields["generalComm.personContacted"]?.label ?? "Person Contacted"}
+                options={fields["generalComm.personContacted"]?.options ?? PERSON_CONTACTED_OPTIONS}
+                defaultValue={null}
+              />
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">Successful?</p>
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2 text-sm text-stone-600">
+                  <input type="radio" name="successful" value="yes" className="h-4 w-4" />
+                  Yes
+                </label>
+                <label className="flex items-center gap-2 text-sm text-stone-600">
+                  <input type="radio" name="successful" value="no" className="h-4 w-4" />
+                  No
+                </label>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <SelectField
+                name="unsuccessfulReason"
+                label={fields["generalComm.unsuccessfulReason"]?.label ?? "If unsuccessful, reason"}
+                options={fields["generalComm.unsuccessfulReason"]?.options ?? UNSUCCESSFUL_REASON_OPTIONS}
+                defaultValue={null}
+              />
+              <DateField name="nextAttemptDate" label="Next Attempt Date" defaultValue={null} />
+            </div>
+          </div>
+        </details>
+      </Card>
+      <div className="flex justify-end print:hidden">
+        <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
+          Save
+        </button>
+      </div>
+    </form>
   );
 }
 
