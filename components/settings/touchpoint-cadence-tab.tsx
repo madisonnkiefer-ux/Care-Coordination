@@ -98,14 +98,14 @@ function CadenceRow({ row }: { row: CadenceSettingsRow }) {
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50"
+                className="rounded-md bg-charcoal px-2 py-1 text-xs font-medium text-white hover:bg-stone-800 disabled:opacity-50"
               >
                 {pending ? "Saving..." : "Save"}
               </button>
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="px-4 py-2 text-sm text-stone-400 hover:text-stone-600"
+                className="px-2 py-1 text-xs text-stone-400 hover:text-stone-600"
               >
                 Cancel
               </button>
