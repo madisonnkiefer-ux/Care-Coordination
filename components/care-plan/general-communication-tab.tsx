@@ -8,7 +8,7 @@ import type { CclLevel, GeneralCommunication } from "@/app/generated/prisma/clie
 import { SelectField, DateField } from "@/components/intake/form-fields";
 import { CONTACT_METHOD_OPTIONS, PERSON_CONTACTED_OPTIONS, UNSUCCESSFUL_REASON_OPTIONS } from "@/components/care-plan/outreach-options";
 import { formatDate, formatDateTime, toDateInputValue } from "@/lib/format";
-import { getComplianceCadence, getWindowStart, isTouchpointCompliant, type CadenceOverrides } from "@/lib/touchpoint-compliance";
+import { getComplianceCadence, getWindowStart, isTouchpointCompliant, type CadenceOverrides, type ContactRecord } from "@/lib/touchpoint-compliance";
 import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 import { FormFieldsProvider } from "@/lib/form-fields/context";
 import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
@@ -20,6 +20,7 @@ type CommRecord = GeneralCommunication & { author: { name: string } | null };
 export function GeneralCommunicationTab({
   memberId,
   records,
+  progressNoteContacts,
   program,
   cclLevel,
   lastCnaCompletedDate,
@@ -32,6 +33,7 @@ export function GeneralCommunicationTab({
 }: {
   memberId: string;
   records: CommRecord[];
+  progressNoteContacts: ContactRecord[];
   program: string | null;
   cclLevel?: CclLevel | null;
   lastCnaCompletedDate?: Date | null;
@@ -45,27 +47,35 @@ export function GeneralCommunicationTab({
   const sortedRecords = useMemo(() => [...records].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()), [records]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // Compliance counts both logged General Communication entries and the
+  // member's own ("Member Progress Updates") care plan goal notes — same
+  // two sources every other compliance surface in the app combines (see
+  // lib/touchpoint-compliance.ts's progressNotesToContacts). Judging it off
+  // General Communication alone made a member contacted only via progress
+  // notes look non-compliant here while every other view correctly showed
+  // them compliant.
   const { daysSinceLastSuccessful, cadence, attemptsInWindow, successfulInWindow, compliant } = useMemo(() => {
     const now = new Date();
-    const successfulDates = records.filter((r) => r.successful).map((r) => r.createdAt);
+    const allContacts: ContactRecord[] = [...records, ...progressNoteContacts];
+    const successfulDates = allContacts.filter((r) => r.successful).map((r) => r.createdAt);
     const lastSuccessful = successfulDates.length ? new Date(Math.max(...successfulDates.map((d) => d.getTime()))) : null;
     const days = lastSuccessful ? Math.floor((now.getTime() - lastSuccessful.getTime()) / (1000 * 60 * 60 * 24)) : null;
 
     const windowCadence = getComplianceCadence(program, cadenceOverrides);
     const windowStart = getWindowStart(windowCadence.unit, now, enrollmentDate);
-    const inWindow = records.filter((r) => r.createdAt >= windowStart);
+    const inWindow = allContacts.filter((r) => r.createdAt >= windowStart);
 
     return {
       daysSinceLastSuccessful: days,
       cadence: windowCadence,
       attemptsInWindow: inWindow.length,
       successfulInWindow: inWindow.filter((r) => r.successful).length,
-      compliant: isTouchpointCompliant(records, program, enrollmentDate, now, cadenceOverrides, {
+      compliant: isTouchpointCompliant(allContacts, program, enrollmentDate, now, cadenceOverrides, {
         cclLevel,
         lastCnaCompletedDate: lastCnaCompletedDate ?? null,
       }),
     };
-  }, [records, program, enrollmentDate, cadenceOverrides, cclLevel, lastCnaCompletedDate]);
+  }, [records, progressNoteContacts, program, enrollmentDate, cadenceOverrides, cclLevel, lastCnaCompletedDate]);
 
   return (
     <FormFieldsProvider form="generalComm" fields={fields}>

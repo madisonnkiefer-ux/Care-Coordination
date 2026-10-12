@@ -69,6 +69,7 @@ export default async function CarePlanPage({
         <GeneralCommunicationTab
           memberId={id}
           records={commData.records}
+          progressNoteContacts={commData.progressNoteContacts}
           program={member.program}
           cclLevel={member.cclLevel}
           lastCnaCompletedDate={commData.lastCnaCompletedDate}
