@@ -76,7 +76,6 @@ export default async function CarePlanPage({
           enrollmentDate={commData.enrollmentDate}
           cadenceOverrides={commData.cadenceOverrides}
           fields={fields}
-          fieldOrder={fieldOrder}
           customQuestionDefs={generalCommQuestionDefs}
           customAnswersByRecord={generalCommAnswers}
         />

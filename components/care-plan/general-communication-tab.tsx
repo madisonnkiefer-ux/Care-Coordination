@@ -2,18 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui";
-import { FloatingSaveBar } from "@/components/floating-save-bar";
-import { saveGeneralCommunication, createGeneralCommunicationEntry } from "@/app/actions/general-communication";
+import { saveGeneralCommunication, createGeneralCommunicationEntry, deleteGeneralCommunicationEntry } from "@/app/actions/general-communication";
 import type { CclLevel, GeneralCommunication } from "@/app/generated/prisma/client";
-import { SelectField, DateField } from "@/components/intake/form-fields";
-import { CONTACT_METHOD_OPTIONS, PERSON_CONTACTED_OPTIONS, UNSUCCESSFUL_REASON_OPTIONS } from "@/components/care-plan/outreach-options";
-import { formatDate, formatDateTime, toDateInputValue } from "@/lib/format";
+import { DateField } from "@/components/intake/form-fields";
+import { formatDateTime, toDateInputValue } from "@/lib/format";
 import { getComplianceCadence, getWindowStart, isTouchpointCompliant, type CadenceOverrides, type ContactRecord } from "@/lib/touchpoint-compliance";
 import type { ResolvedFormFields } from "@/lib/form-fields/registry";
 import { FormFieldsProvider } from "@/lib/form-fields/context";
 import { CustomQuestionsSection } from "@/components/intake/custom-questions-section";
 import { mergeCustomQuestions, type CustomQuestionDef } from "@/lib/custom-questions-shared";
-import { OrderedStack } from "@/components/intake/ordered-items";
 
 type CommRecord = GeneralCommunication & { author: { name: string } | null };
 
@@ -27,7 +24,6 @@ export function GeneralCommunicationTab({
   enrollmentDate,
   cadenceOverrides,
   fields,
-  fieldOrder,
   customQuestionDefs,
   customAnswersByRecord,
 }: {
@@ -40,12 +36,11 @@ export function GeneralCommunicationTab({
   enrollmentDate: Date;
   cadenceOverrides?: CadenceOverrides;
   fields: ResolvedFormFields;
-  fieldOrder: string[];
   customQuestionDefs: CustomQuestionDef[];
   customAnswersByRecord: Record<string, Record<string, unknown>>;
 }) {
   const sortedRecords = useMemo(() => [...records].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()), [records]);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Compliance counts both logged General Communication entries and the
   // member's own ("Member Progress Updates") care plan goal notes — same
@@ -100,24 +95,27 @@ export function GeneralCommunicationTab({
       )}
 
       <div className="max-w-4xl space-y-3">
-        <NewEntryComposer key={records.length} memberId={memberId} fields={fields} />
+        <NewEntryComposer key={records.length} memberId={memberId} />
 
         {sortedRecords.length === 0 ? (
-          <p className="text-sm text-slate-500">No General Communication entries yet — add one above.</p>
+          <p className="text-sm text-slate-500">No notes yet — add one above.</p>
         ) : (
           sortedRecords.map((record) =>
-            expandedId === record.id ? (
+            editingId === record.id ? (
               <GeneralCommunicationEntryForm
                 key={record.id}
                 memberId={memberId}
                 record={record}
-                fields={fields}
-                fieldOrder={fieldOrder}
                 customQuestions={mergeCustomQuestions(customQuestionDefs, customAnswersByRecord[record.id])}
-                onCollapse={() => setExpandedId(null)}
+                onDone={() => setEditingId(null)}
               />
             ) : (
-              <CollapsedEntry key={record.id} record={record} onExpand={() => setExpandedId(record.id)} />
+              <CommunicationNote
+                key={record.id}
+                record={record}
+                onEdit={() => setEditingId(record.id)}
+                onDelete={() => deleteGeneralCommunicationEntry(memberId, record.id)}
+              />
             )
           )
         )}
@@ -127,73 +125,26 @@ export function GeneralCommunicationTab({
   );
 }
 
-// The primary, fast way to log something: one textarea and a Save button
-// right underneath it — no "create a blank entry, then go find it and
-// fill it in" round trip. The outreach-detail fields that feed touchpoint
-// compliance (contact method, successful/unsuccessful, etc.) still exist,
-// just tucked into a collapsed "Add outreach details" disclosure below the
-// textarea for whoever needs them, rather than being the first thing in
-// the way of jotting down a quick note.
-function NewEntryComposer({
-  memberId,
-  fields,
-}: {
-  memberId: string;
-  fields: ResolvedFormFields;
-}) {
+// One textarea, one Save button — just a running log of notes. No
+// separate "outreach attempt" workflow with its own fields to fill in;
+// coordinators just write down what happened and when.
+function NewEntryComposer({ memberId }: { memberId: string }) {
   return (
     <form action={createGeneralCommunicationEntry.bind(null, memberId)} className="space-y-3">
       <Card>
+        {/* Left blank by default so a fresh note's timestamp is "right now" (to
+            the second) — multiple notes added back-to-back on the same day
+            still sort and delete correctly. Only fill this in to backdate a
+            note that documents something that happened earlier. */}
+        <div className="mb-3 max-w-xs">
+          <DateField name="contactDate" label="Date (leave blank for now)" defaultValue={null} />
+        </div>
         <textarea
           name="body"
           placeholder="Write a note…"
           rows={6}
           className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
         />
-        <details className="mt-3 print:hidden">
-          <summary className="cursor-pointer text-xs font-medium text-stone-500 hover:text-charcoal">Add outreach details (optional)</summary>
-          <div className="mt-3 space-y-4">
-            <div className="max-w-xs">
-              <DateField name="contactDate" label="Contact Date" defaultValue={toDateInputValue(new Date())} />
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <SelectField
-                name="contactMethod"
-                label={fields["generalComm.contactMethod"]?.label ?? "Contact Method"}
-                options={fields["generalComm.contactMethod"]?.options ?? CONTACT_METHOD_OPTIONS}
-                defaultValue={null}
-              />
-              <SelectField
-                name="personContacted"
-                label={fields["generalComm.personContacted"]?.label ?? "Person Contacted"}
-                options={fields["generalComm.personContacted"]?.options ?? PERSON_CONTACTED_OPTIONS}
-                defaultValue={null}
-              />
-            </div>
-            <div>
-              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">Successful?</p>
-              <div className="flex gap-6">
-                <label className="flex items-center gap-2 text-sm text-stone-600">
-                  <input type="radio" name="successful" value="yes" className="h-4 w-4" />
-                  Yes
-                </label>
-                <label className="flex items-center gap-2 text-sm text-stone-600">
-                  <input type="radio" name="successful" value="no" className="h-4 w-4" />
-                  No
-                </label>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <SelectField
-                name="unsuccessfulReason"
-                label={fields["generalComm.unsuccessfulReason"]?.label ?? "If unsuccessful, reason"}
-                options={fields["generalComm.unsuccessfulReason"]?.options ?? UNSUCCESSFUL_REASON_OPTIONS}
-                defaultValue={null}
-              />
-              <DateField name="nextAttemptDate" label="Next Attempt Date" defaultValue={null} />
-            </div>
-          </div>
-        </details>
       </Card>
       <div className="flex justify-end print:hidden">
         <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
@@ -204,142 +155,89 @@ function NewEntryComposer({
   );
 }
 
-function CollapsedEntry({ record, onExpand }: { record: CommRecord; onExpand: () => void }) {
-  const statusLabel = record.successful === true ? "Successful" : record.successful === false ? "Unsuccessful" : "Not noted";
-  const statusClass =
-    record.successful === true
-      ? "bg-emerald-100 text-emerald-700"
-      : record.successful === false
-        ? "bg-red-100 text-red-700"
-        : "bg-stone-100 text-stone-500";
-
+// Every note is editable/deletable inline, right in the list — no
+// clicking into a separate full-page form. Nothing here should ever feel
+// write-once.
+function CommunicationNote({
+  record,
+  onEdit,
+  onDelete,
+}: {
+  record: CommRecord;
+  onEdit: () => void;
+  onDelete: () => Promise<void>;
+}) {
   return (
-    <button
-      type="button"
-      onClick={onExpand}
-      className="w-full rounded-2xl border border-stone-100 bg-white p-4 text-left shadow-sm hover:border-stone-300 print:hidden"
-    >
+    <div className="rounded-2xl border border-stone-100 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-medium text-stone-500">{formatDate(record.createdAt)}</span>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusClass}`}>{statusLabel}</span>
+        <span className="text-xs font-medium text-stone-500">
+          {formatDateTime(record.createdAt)} · {record.author?.name ?? "unknown"}
+          {record.updatedAt > record.createdAt && ` · edited ${formatDateTime(record.updatedAt)}`}
+        </span>
+        <div className="flex gap-3 text-xs font-medium print:hidden">
+          <button type="button" onClick={onEdit} className="text-stone-500 hover:text-charcoal">
+            Edit
+          </button>
+          <form
+            action={async () => {
+              if (!confirm("Delete this note? This cannot be undone.")) return;
+              await onDelete();
+            }}
+          >
+            <button type="submit" className="text-red-500 hover:text-red-700">
+              Delete
+            </button>
+          </form>
+        </div>
       </div>
-      <p className="mt-1 line-clamp-2 text-sm text-stone-700">{record.body || "No notes entered."}</p>
-    </button>
+      <p className="mt-2 whitespace-pre-wrap text-sm text-stone-700">{record.body || "No notes entered."}</p>
+    </div>
   );
 }
 
 function GeneralCommunicationEntryForm({
   memberId,
   record,
-  fields,
-  fieldOrder,
   customQuestions,
-  onCollapse,
+  onDone,
 }: {
   memberId: string;
   record: CommRecord;
-  fields: ResolvedFormFields;
-  fieldOrder: string[];
   customQuestions: ReturnType<typeof mergeCustomQuestions>;
-  onCollapse: () => void;
+  onDone: () => void;
 }) {
   return (
     <form
       key={`${record.id}-${record.updatedAt.getTime()}`}
       action={saveGeneralCommunication.bind(null, memberId, record.id)}
-      onSubmit={onCollapse}
-      className="space-y-4"
+      onSubmit={onDone}
+      className="space-y-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm"
     >
       <input type="hidden" name="_expectedUpdatedAt" value={record.updatedAt.getTime()} />
-      <Card title="Outreach Details">
-        <p className="mb-3 text-xs text-stone-400">
-          Logged by {record.author?.name ?? "unknown"}
-          {record.updatedAt > record.createdAt && ` · last updated ${formatDateTime(record.updatedAt)}`}
-        </p>
-        <div className="mb-4 max-w-xs">
-          <DateField name="contactDate" label="Contact Date" defaultValue={toDateInputValue(record.createdAt)} />
-        </div>
-        <OrderedStack
-          order={fieldOrder}
-          items={[
-            {
-              key: "generalComm.contactMethod",
-              el: (
-                <SelectField
-                  name="contactMethod"
-                  label={fields["generalComm.contactMethod"]?.label ?? "Contact Method"}
-                  options={fields["generalComm.contactMethod"]?.options ?? CONTACT_METHOD_OPTIONS}
-                  defaultValue={record.contactMethod}
-                />
-              ),
-            },
-            {
-              key: "generalComm.personContacted",
-              el: (
-                <div>
-                  <SelectField
-                    name="personContacted"
-                    label={fields["generalComm.personContacted"]?.label ?? "Person Contacted"}
-                    options={fields["generalComm.personContacted"]?.options ?? PERSON_CONTACTED_OPTIONS}
-                    defaultValue={record.personContacted}
-                  />
-                  <div className="mt-4">
-                    <p className="mb-1 text-xs font-medium uppercase tracking-wide text-stone-500">Successful?</p>
-                    <div className="flex gap-6">
-                      <label className="flex items-center gap-2 text-sm text-stone-600">
-                        <input type="radio" name="successful" value="yes" defaultChecked={record.successful === true} className="h-4 w-4" />
-                        Yes
-                      </label>
-                      <label className="flex items-center gap-2 text-sm text-stone-600">
-                        <input type="radio" name="successful" value="no" defaultChecked={record.successful === false} className="h-4 w-4" />
-                        No
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              ),
-            },
-            {
-              key: "generalComm.unsuccessfulReason",
-              el: (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <SelectField
-                    name="unsuccessfulReason"
-                    label={fields["generalComm.unsuccessfulReason"]?.label ?? "If unsuccessful, reason"}
-                    options={fields["generalComm.unsuccessfulReason"]?.options ?? UNSUCCESSFUL_REASON_OPTIONS}
-                    defaultValue={record.unsuccessfulReason}
-                  />
-                  <DateField name="nextAttemptDate" label="Next Attempt Date" defaultValue={toDateInputValue(record.nextAttemptDate)} />
-                </div>
-              ),
-            },
-          ]}
-        />
-      </Card>
-
-      <Card title="General Communication">
-        <textarea
-          name="body"
-          defaultValue={record.body ?? ""}
-          rows={12}
-          className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
-        />
-      </Card>
+      <div className="max-w-xs">
+        <DateField name="contactDate" label="Date" defaultValue={toDateInputValue(record.createdAt)} />
+      </div>
+      <textarea
+        name="body"
+        defaultValue={record.body ?? ""}
+        rows={8}
+        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-deep-rose"
+      />
 
       <CustomQuestionsSection questions={customQuestions} />
 
-      <FloatingSaveBar>
+      <div className="flex justify-end gap-2 print:hidden">
         <button
           type="button"
-          onClick={onCollapse}
+          onClick={onDone}
           className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
         >
-          Collapse
+          Cancel
         </button>
         <button type="submit" className="rounded-md bg-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-stone-800">
           Save
         </button>
-      </FloatingSaveBar>
+      </div>
     </form>
   );
 }
