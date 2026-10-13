@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/format";
 import { EditDateChipButton } from "@/components/intake/versioning";
 import { updateIntakeVersionDate } from "@/app/actions/intake";
 import { updateTocRecordDate } from "@/app/actions/toc";
+import { updateCarePlanDate } from "@/app/actions/care-plan";
 
 export type ChartHistoryEntry = {
   key: string;
@@ -22,20 +23,21 @@ export type ChartHistoryEntry = {
 // record type (Enrollment/intake, TOC, Care Plan, documents). Same as the
 // pencil on each form's own history bar: lets an authorized user correct
 // the date this entry is filed under (its createdAt), separate from any
-// date field inside the record itself. Only "intake" and "toc" entries
-// have a correction action wired up — that's the scope the date-editing
-// feature covers. Enrollment dates are admin/supervisor; TOC dates stay
-// admin-only (see app/actions/toc.ts).
+// date field inside the record itself. "intake", "toc", and "careplan"
+// entries have a correction action wired up. Enrollment and CCP dates are
+// admin/supervisor; TOC dates stay admin-only (see app/actions/toc.ts).
 export function ChartHistoryList({
   entries,
   memberId,
   canEditIntakeDate,
   canEditTocDate,
+  canEditCarePlanDate,
 }: {
   entries: ChartHistoryEntry[];
   memberId: string;
   canEditIntakeDate: boolean;
   canEditTocDate: boolean;
+  canEditCarePlanDate: boolean;
 }) {
   return (
     <ul className="divide-y divide-stone-100">
@@ -50,13 +52,22 @@ export function ChartHistoryList({
           </span>
         );
 
-        const canEdit = entry.kind === "intake" ? canEditIntakeDate : entry.kind === "toc" ? canEditTocDate : false;
+        const canEdit =
+          entry.kind === "intake"
+            ? canEditIntakeDate
+            : entry.kind === "toc"
+              ? canEditTocDate
+              : entry.kind === "careplan"
+                ? canEditCarePlanDate
+                : false;
         const editAction =
           entry.kind === "intake"
             ? (newDate: string) => updateIntakeVersionDate(memberId, entry.id, newDate)
             : entry.kind === "toc"
               ? (newDate: string) => updateTocRecordDate(memberId, entry.id, newDate)
-              : null;
+              : entry.kind === "careplan"
+                ? (newDate: string) => updateCarePlanDate(memberId, entry.id, newDate)
+                : null;
 
         return (
           <li key={entry.key} className="flex items-center gap-1">

@@ -46,6 +46,43 @@ async function requireOwnCarePlanGoal(goalId: string, memberId: string) {
   return goal;
 }
 
+// Lets an authorized user correct the date a CCP is filed under (its
+// createdAt — what the member chart's history list sorts and displays
+// by), separate from any date field inside the plan itself. Same
+// admin-or-supervisor permission as the enrollment (intake) date
+// correction — see updateIntakeVersionDate in app/actions/intake.ts.
+export async function updateCarePlanDate(memberId: string, carePlanId: string, newDate: string) {
+  const { session, member } = await authorizeMemberAccess(memberId);
+  if (!member) throw new Error("Forbidden");
+  if (session.role !== "ADMIN" && session.role !== "SUPERVISOR") {
+    throw new Error("Forbidden: only admins and supervisors can edit this date");
+  }
+
+  const existing = await requireOwnCarePlan(carePlanId, memberId);
+
+  const parsed = new Date(newDate);
+  if (Number.isNaN(parsed.getTime())) throw new Error("Invalid date");
+  if (parsed.getTime() === existing.createdAt.getTime()) return;
+
+  await db.carePlan.update({ where: { id: carePlanId }, data: { createdAt: parsed } });
+
+  await writeAuditLog({
+    userId: session.userId,
+    memberId,
+    action: "UPDATE",
+    resource: "CarePlan",
+    resourceId: carePlanId,
+    metadata: {
+      adminDateCorrection: true,
+      changes: [{ field: "createdAt", oldValue: existing.createdAt.toISOString(), newValue: parsed.toISOString() }],
+    },
+  });
+
+  revalidatePath(`/members/${memberId}/care-plan`);
+  revalidatePath(`/members/${memberId}`);
+  revalidatePath("/members");
+}
+
 export async function createNewCarePlan(memberId: string) {
   const { session, member } = await authorizeMemberAccess(memberId);
   if (!member) throw new Error("Forbidden");

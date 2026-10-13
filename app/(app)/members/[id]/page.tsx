@@ -190,6 +190,7 @@ export default async function MemberChartPage({ params }: { params: Promise<{ id
                 memberId={id}
                 canEditIntakeDate={session.role === "ADMIN" || session.role === "SUPERVISOR"}
                 canEditTocDate={session.role === "ADMIN"}
+                canEditCarePlanDate={session.role === "ADMIN" || session.role === "SUPERVISOR"}
               />
             )}
           </Card>
