@@ -106,8 +106,8 @@ export async function listActiveCoordinators() {
   });
 }
 
-// Who can carry a member caseload — care coordinators plus supervisors
-// (supervisors can hold their own members alongside their oversight
+// Who can carry a member caseload — care coordinators, supervisors, and
+// admins (any of them can hold their own members alongside their other
 // duties). Separate from listActiveCoordinators() above, which stays
 // scoped to care coordinators only for task/home-visit assignment —
 // those are different pools of assignable work, not requested to change
@@ -115,7 +115,7 @@ export async function listActiveCoordinators() {
 export async function listAssignableCoordinators() {
   const session = await verifySession();
   return db.user.findMany({
-    where: { clinicId: session.clinicId, role: { in: ["CARE_COORDINATOR", "SUPERVISOR"] }, active: true },
+    where: { clinicId: session.clinicId, role: { in: ["CARE_COORDINATOR", "SUPERVISOR", "ADMIN"] }, active: true },
     orderBy: { name: "asc" },
     select: { id: true, name: true },
   });

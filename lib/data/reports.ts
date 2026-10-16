@@ -55,10 +55,11 @@ export async function getReportsData() {
       },
     }),
     db.user.findMany({
-      // Includes supervisors — they can carry their own caseload alongside
-      // care coordinators, so the reassignment dropdown and per-coordinator
-      // report breakdowns need to recognize them as a valid assignee too.
-      where: { clinicId, role: { in: ["CARE_COORDINATOR", "SUPERVISOR"] }, active: true },
+      // Includes supervisors and admins — they can carry their own caseload
+      // alongside care coordinators, so the reassignment dropdown and
+      // per-coordinator report breakdowns need to recognize them as a valid
+      // assignee too.
+      where: { clinicId, role: { in: ["CARE_COORDINATOR", "SUPERVISOR", "ADMIN"] }, active: true },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),

@@ -49,9 +49,9 @@ export async function getBillingRoster() {
       },
     }),
     db.user.findMany({
-      // Includes supervisors — they can carry their own caseload, so members
-      // assigned to one should still be filterable here by name.
-      where: { clinicId, role: { in: ["CARE_COORDINATOR", "SUPERVISOR"] }, active: true },
+      // Includes supervisors and admins — they can carry their own caseload,
+      // so members assigned to one should still be filterable here by name.
+      where: { clinicId, role: { in: ["CARE_COORDINATOR", "SUPERVISOR", "ADMIN"] }, active: true },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
