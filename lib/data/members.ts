@@ -106,6 +106,21 @@ export async function listActiveCoordinators() {
   });
 }
 
+// Who can carry a member caseload — care coordinators plus supervisors
+// (supervisors can hold their own members alongside their oversight
+// duties). Separate from listActiveCoordinators() above, which stays
+// scoped to care coordinators only for task/home-visit assignment —
+// those are different pools of assignable work, not requested to change
+// here.
+export async function listAssignableCoordinators() {
+  const session = await verifySession();
+  return db.user.findMany({
+    where: { clinicId: session.clinicId, role: { in: ["CARE_COORDINATOR", "SUPERVISOR"] }, active: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+}
+
 // Fetches everything the Member Chart overview needs, enforces
 // clinic/coordinator-scoped authorization, and records a VIEW audit event —
 // this is the PHI record-level "who looked at this chart, and when" trail.

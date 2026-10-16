@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getSupervisorData } from "@/lib/data/supervisor";
 import { getPendingStatusChanges } from "@/lib/data/member-status";
 import { getUpcomingGraduations } from "@/lib/data/graduation";
-import { listActiveCoordinators } from "@/lib/data/members";
+import { listAssignableCoordinators } from "@/lib/data/members";
 import { approveStatusChange, rejectStatusChange } from "@/app/actions/member-status";
 import { PageHeader, Card, StatTile, Badge } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -36,7 +36,7 @@ export default async function SupervisorDashboardPage() {
   ] = await Promise.all([
     getSupervisorData(),
     getPendingStatusChanges(),
-    listActiveCoordinators(),
+    listAssignableCoordinators(),
     getUpcomingGraduations(),
   ]);
 

@@ -1,10 +1,10 @@
-import { listActiveCoordinators } from "@/lib/data/members";
+import { listAssignableCoordinators } from "@/lib/data/members";
 import { getCurrentUser } from "@/lib/dal";
 import { PageHeader } from "@/components/ui";
 import { NewMemberForm } from "@/components/members/new-member-form";
 
 export default async function NewMemberPage() {
-  const [coordinators, currentUser] = await Promise.all([listActiveCoordinators(), getCurrentUser()]);
+  const [coordinators, currentUser] = await Promise.all([listAssignableCoordinators(), getCurrentUser()]);
 
   return (
     <div>
